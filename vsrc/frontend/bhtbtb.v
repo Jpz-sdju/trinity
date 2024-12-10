@@ -1,15 +1,16 @@
-module bht_btb(
-    input clk,
+module bhtbtb(
+    input clock,
     input reset_n,
     input [63:0] pc,//rd_addr
     input pc_handshake,//rd_en
     input [63:0] wr_addr,
     input wr_en,
-    input [32:0] bht_wr_data,
-    input [32:0] btb_wr_data,
+    input [31:0] bht_wr_data,//16 saturate counter
+    input [31:0] btb_wr_data,//predict target
     //output wr_done,
-    output [32:0] bht_rd_data,
-    output [32:0] btb_rd_data,
+    output [31:0] bht_rd_data,//16 saturate counter
+    output [31:0] btb_rd_data,//predict target
+    output [63:0] bhtbtb2dec_pc,
     output btbtag_hit
 
 );
@@ -39,21 +40,21 @@ wire [16:0] btb_tagram_out;
 wire [32:0] btb_dataram_out;
 
 //BHT logic
-always @(posedge clk or negedge reset_n) begin
+always @(posedge clock or negedge reset_n) begin
     if(~reset_n)begin
         bhtram <= 0;
     end else if (rd_en && wr_en)begin
-        bhtram_out <= bht_wr_data;
-        bhtram[wr_set_addr] <= bht_wr_data;        
+        bhtram_out <= {1'd1,bht_wr_data};
+        bhtram[wr_set_addr] <= {1'd1,bht_wr_data};        
     end else if (rd_en && ~wr_en) begin
         bhtram_out <= bhtram[rd_set_addr];
     end else if (~rd_en && wr_en) begin
-        bhtram[wr_set_addr] <= bht_wr_data;
+        bhtram[wr_set_addr] <= {1'd1,bht_wr_data};
     end
 end
 
 //BTB tag logic
-always @(posedge clk or negedge reset_n) begin
+always @(posedge clock or negedge reset_n) begin
     if(~reset_n)begin
         btb_tagram <= 0;
     end else if (rd_en && wr_en)begin
@@ -67,22 +68,26 @@ always @(posedge clk or negedge reset_n) begin
 end
 
 //BTB data logic
-always @(posedge clk or negedge reset_n) begin
+always @(posedge clock or negedge reset_n) begin
     if(~reset_n)begin
         btb_dataram <= 0;
     end else if (rd_en && wr_en)begin
-        btb_dataram_out <= btb_wr_data;
-        btb_dataram[wr_set_addr] <= btb_wr_data;
+        btb_dataram_out <= {1'd1,btb_wr_data};
+        btb_dataram[wr_set_addr] <= {1'd1,btb_wr_data};
     end else if (rd_en && ~wr_en) begin
         btb_dataram_out <= btb_dataram[rd_set_addr];
     end else if (~rd_en && wr_en) begin
-        btb_dataram[wr_set_addr] <= btb_wr_data;
+        btb_dataram[wr_set_addr] <= {1'd1,btb_wr_data};
     end
 end
 
-assign btbtag_hit = (pc == btb_tagram_out);
-assign bht_rd_data = btbtag_hit ? bhtram_out:32'd0;
-assign btb_rd_data = btbtag_hit ? btb_dataram_out:32'd0;
+//compare logic
+assign btbtag_hit = (pc[15:0] == btb_tagram_out[15:0]);
+
+//output signals
+assign bht_rd_data = btbtag_hit ? bhtram_out[31:0]:32'd0;
+assign btb_rd_data = btbtag_hit ? btb_dataram_out[31:0]:32'd0;
+assign bhtbtb2dec_pc = btbtag_hit ? pc:64'd0;
 
 
 

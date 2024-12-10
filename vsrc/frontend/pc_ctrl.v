@@ -11,6 +11,10 @@ module pc_ctrl (
     input wire        redirect_valid,
     input wire [47:0] redirect_target,
 
+    //port with bpu
+    input  wire [47:0] predict_target,
+    input  wire predict_valid,
+
     //ports with ibuffer
     input  wire        fetch_inst,      // Fetch instruction signal, pulse signal for PC increment
     output reg         can_fetch_inst,  // Indicates if a new instruction can be fetched
@@ -104,7 +108,10 @@ module pc_ctrl (
             SET_PC_10:begin
                 if(redirect_valid_or)begin
                     pc = redirect_target_or; 
-                    next_state = RAISE_VALID_REDIRECT_11;           
+                    next_state = RAISE_VALID_REDIRECT_11;     
+                end else if (predict_valid_or) begin
+                    pc = predict_target_or; // only take aligned predict_target for now
+                    next_state = RAISE_VALID_NORMAL_1;
                 end else begin
                     pc = had_unalign_redirect ? pc + 60 :(pc + 64);
                     next_state = RAISE_VALID_NORMAL_1;
@@ -168,6 +175,26 @@ module pc_ctrl (
             end
         end
     end
+
+    reg predict_valid_latch;
+    reg [47:0] predict_target_latch;
+    always @(posedge clock or negedge reset_n) begin
+        if(~reset_n)begin
+            predict_valid_latch <= 1'b0;
+            predict_target_latch <= 48'd0;
+        end else if (predict_valid) begin
+            predict_valid_latch <= 1'b1; 
+            predict_target_latch <= predict_target;
+        end else if (current_state == NORMAL_DONE_3) begin
+            predict_valid_latch <= 1'b0;
+            predict_target_latch <= 48'd0;
+        end
+    end
+
+    wire predict_valid_or;
+    assign predict_valid_or = predict_valid || predict_valid_latch;
+    wire [47:0] predict_target_or;
+    assign predict_target_or = ({48{predict_valid}} & predict_target) | ({48{predict_valid_latch}} & predict_target_latch);
 
 
 

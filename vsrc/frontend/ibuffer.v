@@ -18,6 +18,43 @@ module ibuffer (
 
     input wire mem_stall
 );
+//predict logic
+// Registers for counter and range tracking
+reg [63:0] pc_counter;         // Simple counter starting from 0
+reg within_range;              // Indicates if the counter is within the range
+reg [63:0] range_count;        // Stores the calculated range count
+assign predict_valid_level = within_range; // Output signal for valid range
+
+// Counter logic
+always @(posedge clock or negedge reset_n) begin
+    if (!reset_n || clear_ibuffer) begin
+        pc_counter <= 64'b0;
+        within_range <= 1'b0;
+        range_count <= 64'b0;  // Reset range count
+    end else begin
+        if (pc_operation_done) begin
+            // Calculate range_count when pc_operation_done pulse is high
+            range_count <= (trigger_pc - base_pc) >> 2;
+            pc_counter <= 64'b0; // Reset counter to start from 0
+        end
+
+        // Increment the counter only if it is within range_count
+        if (pc_counter < range_count) begin
+            pc_counter <= pc_counter + 1;
+        end
+
+        // Check if counter is within the valid range
+        within_range <= (pc_counter < range_count);
+    end
+end
+
+
+
+
+
+
+
+//
     wire [(32+48-1):0] fifo_inst_addr_out;           // 32-bit output data from the FIFO
     assign ibuffer_inst_out = fifo_inst_addr_out[(32+48-1):48];
     assign ibuffer_pc_out = fifo_inst_addr_out[47:0];

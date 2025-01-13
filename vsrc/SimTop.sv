@@ -24,22 +24,21 @@ module SimTop (
 
     // DDR Control Inputs and Outputs
     wire         ddr_chip_enable;  // Enables chip for one cycle when a channel is selected
-    wire [ 18:0] ddr_index;  // 19-bit selected index to be sent to DDR
+    wire [ 63:0] ddr_index;  // 19-bit selected index to be sent to DDR
     wire         ddr_write_enable;  // Write enable signal (1 for write; 0 for read)
     wire         ddr_burst_mode;  // Burst mode signal; 1 when pc_index is selected
-    wire [ 63:0] ddr_opstore_write_mask;  // Output write mask for opstore channel
-    wire [ 63:0] ddr_opstore_write_data;  // Output write data for opstore channel
-    wire [ 63:0] ddr_opload_read_data;  // 64-bit data output for lw channel read
-    wire [511:0] ddr_pc_read_inst;  // 512-bit data output for pc channel burst read
+    wire [ 511:0] ddr_write_mask;  // Output write mask for opstore channel
+    wire [ 511:0] ddr_write_data;  // Output write data for opstore channel
+    wire [ 511:0] ddr_read_data;  // 64-bit data output for lw channel read
     wire         ddr_operation_done;
     wire         ddr_ready;  // Indicates if DDR is ready for new operation
     wire         flop_commit_valid;
-    reg  [63:0]  commit_valid_cnt;
+    reg  [ 63:0] commit_valid_cnt;
 
     always @(posedge clock or negedge reset) begin
-        if(reset) begin
+        if (reset) begin
             commit_valid_cnt <= 0;
-        end else if (flop_commit_valid)begin
+        end else if (flop_commit_valid) begin
             commit_valid_cnt <= commit_valid_cnt + 1;
         end
     end
@@ -51,31 +50,31 @@ module SimTop (
         .ddr_index             (ddr_index),
         .ddr_write_enable      (ddr_write_enable),
         .ddr_burst_mode        (ddr_burst_mode),
-        .ddr_opstore_write_mask(ddr_opstore_write_mask),
-        .ddr_opstore_write_data(ddr_opstore_write_data),
-        .ddr_opload_read_data  (ddr_opload_read_data),
-        .ddr_pc_read_inst      (ddr_pc_read_inst),
+        .ddr_write_mask(ddr_write_mask),
+        .ddr_write_data(ddr_write_data),
+        .ddr_read_data  (ddr_read_data),
         .ddr_operation_done    (ddr_operation_done),
         .ddr_ready             (ddr_ready),
         .flop_commit_valid     (flop_commit_valid)
     );
 
 
+
+
     simddr u_simddr (
-        .clock                 (clock),
-        .reset_n               (~reset),
-        .ddr_chip_enable       (ddr_chip_enable),
-        .ddr_index             (ddr_index),
-        .ddr_write_enable      (ddr_write_enable),
-        .ddr_burst_mode        (ddr_burst_mode),
-        .ddr_opstore_write_mask(ddr_opstore_write_mask),
-        .ddr_opstore_write_data(ddr_opstore_write_data),
-        .ddr_opload_read_data  (ddr_opload_read_data),
-        .ddr_pc_read_inst      (ddr_pc_read_inst),
-        .ddr_l2_write_data     ('b0),
-        .ddr_operation_done    (ddr_operation_done),
-        .ddr_ready             (ddr_ready)
+        .clock             (clock),
+        .reset_n           (~reset),
+        .ddr_chip_enable   (ddr_chip_enable),
+        .ddr_index         (ddr_index),
+        .ddr_write_enable  (ddr_write_enable),
+        .ddr_burst_mode    (ddr_burst_mode),
+        .ddr_write_mask    (ddr_write_mask),
+        .ddr_write_data    (ddr_write_data),
+        .ddr_read_data     (ddr_read_data),
+        .ddr_operation_done(ddr_operation_done),
+        .ddr_ready         (ddr_ready)
     );
+
 
     reg [63:0] cycle_cnt;
     always @(posedge clock) begin

@@ -99,3 +99,27 @@
 `define IS_W 2 
 `define IS_D 3 
 
+`define TBUS_RANGE 1:0
+`define TBUS_READ 2'b00
+`define TBUS_WRITE 2'b01
+`define TBUS_RESERVED0 2'b10
+`define TBUS_RESERVED1 2'b11
+
+`define DBUS_RANGE 1:0
+`define DBUS_READ 2'b00
+`define DBUS_WRITE 2'b01
+`define DBUS_RESERVED0 2'b10
+`define DBUS_RESERVED1 2'b11
+
+`define TAGRAM_RANGE 37:0
+`define TAGRAM_LENGTH 38
+`define TAGRAM_TAG_RANGE 16:0
+`define TAGRAM_VALID_RANGE 18:18
+`define TAGRAM_DIRTY_RANGE 17:17 
+`define TAGRAM_WAYNUM 2
+`define DATARAM_BANKNUM 8
+
+`define ADDR_RANGE 63:0
+`define INST_CACHE_RANGE 511:0
+
+

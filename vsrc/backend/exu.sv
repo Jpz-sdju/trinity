@@ -63,10 +63,10 @@ module exu (
     
 
     //exu logic
-    wire alu_valid = |alu_type;
-    wire agu_valid = is_load | is_store;
-    wire bju_valid = |cx_type;
-    wire muldiv_valid = |muldiv_type;
+    wire alu_valid = (|alu_type) & instr_valid;
+    wire agu_valid = (is_load | is_store) & instr_valid;
+    wire bju_valid = (|cx_type) & instr_valid;
+    wire muldiv_valid = (|muldiv_type) & instr_valid;
 
     assign instr_valid_out = instr_valid;
     assign pc_out = pc;

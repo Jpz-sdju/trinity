@@ -12,7 +12,7 @@ module frontend (
     input  wire         pc_index_ready,     // Signal indicating DDR operation is complete
     input  wire         pc_operation_done,  // Signal indicating PC operation is done
     input  wire [511:0] pc_read_inst,       // 512-bit input data for instructions
-    output wire [ 18:0] pc_index,           // Selected bits [21:3] of the PC for DDR index
+    output wire [ 63:0] pc_index,           // Selected bits [21:3] of the PC for DDR index
 
     // Inputs for instruction buffer
     input wire fifo_read_en,      // External read enable signal for FIFO

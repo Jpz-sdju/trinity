@@ -1,13 +1,13 @@
 module fifo_depth24 (
     input wire               clock,
     input wire               reset_n,
-    input wire [(32+48-1):0] data_in,        // (32+48-1)-bit data input
+    input wire [(32+64-1):0] data_in,        // (32+64-1)-bit data input
     input wire               write_en,       // Write enable
     input wire               read_en,        // Read enable
     input wire               clear_ibuffer,  // Clear signal for ibuffer
     input wire               stall,          // Stall signal (new input)
 
-    output reg  [(32+48-1):0] data_out,   // (32+48-1)-bit data output
+    output reg  [(32+64-1):0] data_out,   // (32+64-1)-bit data output
     output wire               empty,      // FIFO empty flag
     output wire               full,       // FIFO full flag
     output reg  [        5:0] count,      // FIFO count
@@ -17,7 +17,7 @@ module fifo_depth24 (
     localparam FIFO_DEPTH  = 48;
     localparam FIFO_DEPTH_LOG = 6;
 
-    reg [(32+48-1):0] fifo                        [FIFO_DEPTH-1:0];  // FIFO storage ((32+48-1)x24)
+    reg [(32+64-1):0] fifo                        [FIFO_DEPTH-1:0];  // FIFO storage ((32+64-1)x24)
     reg [        FIFO_DEPTH_LOG-1 :0] read_ptr;  // Read pointer
     reg [        FIFO_DEPTH_LOG-1 :0] write_ptr;  // Write pointer
 
@@ -29,7 +29,7 @@ module fifo_depth24 (
             // Reset or clear the FIFO
             read_ptr   <= 6'b0;
             write_ptr  <= 6'b0;
-            data_out   <= {(32 + 48) {1'b0}};
+            data_out   <= {(32 + 64) {1'b0}};
             data_valid <= 1'b0;  // Reset data valid signal
         end else begin
             // Write operation

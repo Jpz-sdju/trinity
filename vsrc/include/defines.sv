@@ -9,6 +9,7 @@
 
 `define IBUFFER_FIFO_WIDTH 32+48
 `define INST_CACHE_WIDTH 512
+
 /*
     0 = ADD
     1 = SET LESS THAN
@@ -99,13 +100,17 @@
 `define IS_W 2 
 `define IS_D 3 
 
-`define TBUS_RANGE 1:0
+`define TBUS_INDEX_RANGE 63:0
+`define TBUS_DATA_RANGE 63:0
+`define TBUS_OPTYPE_RANGE 1:0
 `define TBUS_READ 2'b00
 `define TBUS_WRITE 2'b01
 `define TBUS_RESERVED0 2'b10
 `define TBUS_RESERVED1 2'b11
 
-`define DBUS_RANGE 1:0
+`define DBUS_INDEX_RANGE 63:0
+`define DBUS_DATA_RANGE 63:0
+`define DBUS_OPTYPE_RANGE 1:0
 `define DBUS_READ 2'b00
 `define DBUS_WRITE 2'b01
 `define DBUS_RESERVED0 2'b10
@@ -120,7 +125,9 @@
 `define DATARAM_BANKNUM 8
 
 `define ADDR_RANGE 63:0
-`define INST_CACHE_RANGE 511:0
+`define CACHELINE512_RANGE 511:0
+
+`define ICACHE_FETCHWIDTH128_RANGE 127:0
 
 `define ROB_SIZE_LOG 6
 `define ROB_SIZE 64

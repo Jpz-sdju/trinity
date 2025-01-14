@@ -1,7 +1,8 @@
-module dcache #(
-    parameter DATA_WIDTH = 64,  // Width of DATARAM
+module icache #(
+    parameter DATA_WIDTH = 128,  // Width of DATARAM
     parameter TAG_WIDTH  = 38,  // Width of TAGRAM
-    parameter ADDR_WIDTH = 9    // Width of address bus
+    parameter ADDR_WIDTH = 9,    // Width of address bus
+    parameter BANK_NUM = 4
 ) (
 
     input wire clock,    // Clock signal
@@ -9,31 +10,30 @@ module dcache #(
     input wire flush,
 
     //trinity bus channel as input
-    input  reg                       tbus_index_valid,
-    output wire                      tbus_index_ready,
-    input  reg  [`TBUS_INDEX_RANGE]  tbus_index,
-    input  reg  [`TBUS_DATA_RANGE ]  tbus_write_data,
-    input  reg  [`TBUS_DATA_RANGE ]  tbus_write_mask, 
-    output wire [`TBUS_DATA_RANGE ]  tbus_read_data,
-    output wire                      tbus_operation_done,
-    input  wire [`TBUS_OPTYPE_RANGE] tbus_operation_type,
-
+    input  reg                                   tbus_index_valid,
+    output wire                                  tbus_index_ready,
+    input  reg  [   `TBUS_INDEX_RANGE       ]    tbus_index,
+    input  reg  [   `TBUS_DATA_RANGE        ]    tbus_write_data,
+    input  reg  [   `TBUS_DATA_RANGE        ]    tbus_write_mask,
+    output wire [`ICACHE_FETCHWIDTH128_RANGE]    tbus_read_data,
+    output wire                                  tbus_operation_done,
+    input  wire [  `TBUS_OPTYPE_RANGE       ]    tbus_operation_type,
 
     //trinity bus channel as output
-    output wire                     dcache2arb_dbus_index_valid,
-    input  wire                     dcache2arb_dbus_index_ready,
-    output reg  [`DBUS_INDEX_RANGE] dcache2arb_dbus_index,
-    output reg  [`DBUS_DATA_RANGE ] dcache2arb_dbus_write_data,
-    output reg  [`DBUS_DATA_RANGE ] dcache2arb_dbus_write_mask,
-    input  wire [`CACHELINE512_RANGE] dcache2arb_dbus_read_data,
-    input  wire                     dcache2arb_dbus_operation_done,
-    output wire [`DBUS_OPTYPE_RANGE ] dcache2arb_dbus_operation_type
+    output wire                             icache2arb_dbus_index_valid,
+    input  wire                             icache2arb_dbus_index_ready,
+    output reg  [`DBUS_INDEX_RANGE ]        icache2arb_dbus_index,
+    output reg  [`DBUS_DATA_RANGE  ]        icache2arb_dbus_write_data,
+    output reg  [`DBUS_DATA_RANGE  ]        icache2arb_dbus_write_mask,
+    input  wire [`CACHELINE512_RANGE ]        icache2arb_dbus_read_data,
+    input  wire                             icache2arb_dbus_operation_done,
+    output wire [`DBUS_OPTYPE_RANGE]        icache2arb_dbus_operation_type
 
 );
     wire tbus_fire;
     assign tbus_fire = tbus_index_valid & tbus_index_ready;
-    reg                      dcache2arb_dbus_index_valid_internal;
-    assign dcache2arb_dbus_index_valid = dcache2arb_dbus_index_valid_internal & ~flush;
+    reg                      icache2arb_dbus_index_valid_internal;
+    assign icache2arb_dbus_index_valid = icache2arb_dbus_index_valid_internal & ~flush;
 
     //internal signals
     wire [ `TAGRAM_RANGE] tagarray_dout;
@@ -46,14 +46,14 @@ module dcache #(
 
     reg                   dataarray_we;
     reg  [           1:0] dataarray_ce_way;
-    reg  [           7:0] dataarray_ce_bank;
+    reg  [  BANK_NUM-1:0] dataarray_ce_bank;
     reg  [ADDR_WIDTH-1:0] dataarray_writesetaddr;
     reg  [ADDR_WIDTH-1:0] dataarray_readsetaddr;
-    reg  [DATA_WIDTH-1:0] dataarray_din_banks    [0:7];
-    reg  [DATA_WIDTH-1:0] dataarray_wmask_banks  [0:7];
-    wire [DATA_WIDTH-1:0] dataarray_dout_banks   [0:7];
+    reg  [DATA_WIDTH-1:0] dataarray_din_banks    [0:BANK_NUM-1];
+    reg  [DATA_WIDTH-1:0] dataarray_wmask_banks  [0:BANK_NUM-1];
+    wire [DATA_WIDTH-1:0] dataarray_dout_banks   [0:BANK_NUM-1];
 
-    reg  [ `RESULT_RANGE] tbus_read_data_s2;
+    reg  [DATA_WIDTH-1:0] tbus_read_data_s2;
 
 
 
@@ -98,39 +98,15 @@ module dcache #(
     assign ls_addr_or = tbus_index | ls_addr_latch;
 
     //decode bankaddr base on latched tbus addr
-    wire [2:0] bankaddr_or;
-    assign bankaddr_or = ls_addr_or[5:3];
-    reg [7:0] bankaddr_onehot_or;
+    wire [1:0] bankaddr_or;//for 4 icache bank
+    assign bankaddr_or = ls_addr_or[5:4];//in icache, addr[3:0] stand for 128bit 
+    reg [BANK_NUM-1:0] bankaddr_onehot_or;
     always @(*) begin
         integer i;
-        for (i = 0; i < `DATARAM_BANKNUM; i = i + 1) begin
+        for (i = 0; i < BANK_NUM; i = i + 1) begin
             bankaddr_onehot_or[i] = (bankaddr_or == i);
         end
     end
-
-    //latch 64bit tbus data
-    reg [`SRC_RANGE] write_data_latch;
-    always @(posedge clock or reset_n) begin
-        if (~reset_n) begin
-            write_data_latch <= 'b0;
-        end else if (in_idle & tbus_index_valid) begin
-            write_data_latch <= tbus_write_data;
-        end
-    end
-    wire [`SRC_RANGE] write_data_or;
-    assign write_data_or = write_data_latch | tbus_write_data;
-
-    //latch 64bit tbus wmask
-    reg [`SRC_RANGE] write_mask_latch;
-    always @(posedge clock or reset_n) begin
-        if (~reset_n) begin
-            write_mask_latch <= 'b0;
-        end else if (in_idle & tbus_index_valid) begin
-            write_mask_latch <= tbus_write_mask;
-        end
-    end
-    wire [`SRC_RANGE] write_mask_or;
-    assign write_mask_or = write_mask_latch | tbus_write_mask;
 
     //latch tbus operation_type
     reg [1:0] operation_type_latch;
@@ -148,34 +124,6 @@ module dcache #(
     assign tbus_is_write = (operation_type_or == `TBUS_WRITE);
     wire tbus_is_read;
     assign tbus_is_read = (operation_type_or == `TBUS_READ);
-
-    //extend latched tbus write data to 2D array for writing dataarray
-    reg [DATA_WIDTH-1:0] write_data_8banks[0:7];
-    always @(*) begin
-        integer i;
-        for (i = 0; i < `DATARAM_BANKNUM; i = i + 1) begin
-            if (bankaddr_onehot_or[i]) begin
-                write_data_8banks[i] = write_data_or;
-            end else begin
-                write_data_8banks[i] = 0;
-            end
-        end
-
-    end
-    //extend latched tbus wmask to 2D array for writing dataarray
-    reg [DATA_WIDTH-1:0] write_mask_8banks[0:7];
-
-    always @(*) begin
-        integer i;
-        for (i = 0; i < `DATARAM_BANKNUM; i = i + 1) begin
-            if (bankaddr_onehot_or[i]) begin
-                write_mask_8banks[i] = write_mask_or;
-            end else begin
-                write_mask_8banks[i] = 0;
-            end
-        end
-
-    end
 
 
     /* ------------------------------- lfsr random ------------------------------ */
@@ -340,7 +288,7 @@ module dcache #(
 
 
     /* --------------------------- when state == READ_CACHE, get dataarray bank dout --------------------------- */
-    reg [7:0] dataarray_ce_bank_q;  //regnext the ce bank to select data array out
+    reg [BANK_NUM-1:0] dataarray_ce_bank_q;  //regnext the ce bank to select data array out
 
     always @(posedge clock or negedge reset_n) begin
         if (~reset_n) begin
@@ -354,7 +302,7 @@ module dcache #(
     always @(*) begin
         integer i;
         tbus_read_data_s2 = 'b0;
-        for (i = 0; i < `DATARAM_BANKNUM; i = i + 1) begin
+        for (i = 0; i < BANK_NUM; i = i + 1) begin
             if (dataarray_ce_bank_q[i]) begin
                 tbus_read_data_s2 = dataarray_dout_banks[i];
             end
@@ -365,27 +313,28 @@ module dcache #(
     /*      Stage sx : when (state == READ_DDR) and opreation_done     */
     /* -------------------------------------------------------------------------- */
     /* --------------------------- get ddr 512bit cacheline data -------------------------- */
-    reg [`RESULT_RANGE] ddr_512_readdata_sx[0:7];
+    reg [DATA_WIDTH-1 : 0] ddr_512_readdata_sx[0:BANK_NUM-1];
     genvar i;
     generate
-        for (i = 0; i < `DATARAM_BANKNUM; i = i + 1) begin : gen_ddr_readdata
+        for (i = 0; i < BANK_NUM; i = i + 1) begin : gen_ddr_readdata
             always @(*) begin
                 ddr_512_readdata_sx[i] = 0;
-                if ((state == READ_DDR) && dcache2arb_dbus_operation_done) begin
-                    ddr_512_readdata_sx[i] = dcache2arb_dbus_read_data[(i+1)*64-1 : i*64];
+                if ((state == READ_DDR) && icache2arb_dbus_operation_done) begin
+                    ddr_512_readdata_sx[i] = icache2arb_dbus_read_data[(i+1)*128-1 : i*128];
                 end else begin
                     ddr_512_readdata_sx[i] = 0;
                 end
             end
         end
     endgenerate
-    /* -------- when opload, extract target 64 bit from ddr 512 bit data -------- */
-    reg [`RESULT_RANGE] masked_ddr_readdata_sx;
+
+    /* -------- when pc read, extract target 128 bit from ddr 512 bit data , output to frontend through tbus in REFILL_READ-------- */
+    reg [DATA_WIDTH-1 : 0] masked_ddr_readdata_sx; 
     always @(*) begin
         integer i;
         masked_ddr_readdata_sx = 0;
-        if ((state == READ_DDR) && dcache2arb_dbus_operation_done) begin
-            for (i = 0; i < `DATARAM_BANKNUM; i = i + 1) begin
+        if ((state == READ_DDR) && icache2arb_dbus_operation_done) begin
+            for (i = 0; i < DATA_WIDTH; i = i + 1) begin
                 if (bankaddr_onehot_or[i]) begin
                     masked_ddr_readdata_sx = ddr_512_readdata_sx[i];
                     break;
@@ -394,8 +343,8 @@ module dcache #(
         end
     end
 
-    //latch 64bit tbus wmask
-    reg [`RESULT_RANGE] masked_ddr_readdata_latch;
+    //latch 128bit tbus read data
+    reg [DATA_WIDTH-1 : 0 ] masked_ddr_readdata_latch;
     always @(posedge clock or reset_n) begin
         if (~reset_n | (state == IDLE)) begin
             masked_ddr_readdata_latch <= 0;
@@ -403,29 +352,8 @@ module dcache #(
             masked_ddr_readdata_latch <= masked_ddr_readdata_sx;
         end
     end
-    wire [`RESULT_RANGE] masked_ddr_readdata_or;
+    wire [DATA_WIDTH-1 : 0] masked_ddr_readdata_or;
     assign masked_ddr_readdata_or = masked_ddr_readdata_latch | masked_ddr_readdata_sx;
-
-
-
-
-    /* ------------------------ when opstore , merge data ----------------------- */
-    reg [`RESULT_RANGE] merged_512_write_data[0:7];
-    always @(*) begin
-        integer i;
-        for (i = 0; i < `DATARAM_BANKNUM; i = i + 1) begin
-            merged_512_write_data[i] = 'b0;
-        end
-        if ((state == READ_DDR) && dcache2arb_dbus_operation_done) begin
-            for (i = 0; i < `DATARAM_BANKNUM; i = i + 1) begin
-                if (~bankaddr_onehot_or[i]) begin
-                    merged_512_write_data[i] = ddr_512_readdata_sx[i];
-                end else begin
-                    merged_512_write_data[i] = (write_data_8banks[i] & write_mask_8banks[i]) | (ddr_512_readdata_sx[i] & ~write_mask_8banks[i]);
-                end
-            end
-        end
-    end
 
 
     /* --------------------------- state = REFILL_READ -------------------------- */
@@ -461,7 +389,7 @@ module dcache #(
     /* -------------------------------------------------------------------------- */
 
 
-    cache_tagarray u_dcache_tagarray (
+    cache_tagarray u_icache_tagarray (
         .clock  (clock),
         .reset_n(reset_n),
         .we     (tagarray_we),
@@ -473,7 +401,12 @@ module dcache #(
         .dout   (tagarray_dout)    //output
     );
 
-    cache_dataarray u_dcache_dataarray (
+    cache_dataarray #(
+     .DATA_WIDTH (DATA_WIDTH),  // Width of data
+     .ADDR_WIDTH (ADDR_WIDTH),    // Width of address bus
+     .BANK_NUM   (BANK_NUM)
+    )
+    u_icache_dataarray (
         .clock       (clock),
         .reset_n     (reset_n),
         .we          (dataarray_we),
@@ -500,7 +433,7 @@ module dcache #(
     always @(*) begin
         case (state)
             IDLE: begin
-                if (tbus_index_valid & ~dcache2arb_inprocess) next_state = LOOKUP;
+                if (tbus_index_valid & ~icache2arb_inprocess) next_state = LOOKUP;
                 else next_state = IDLE;
             end
             LOOKUP: begin
@@ -523,14 +456,14 @@ module dcache #(
                 end
             end
             WRITE_DDR: begin
-                if (dcache2arb_dbus_operation_done) begin
+                if (icache2arb_dbus_operation_done) begin
                     next_state = READ_DDR;
                 end
             end
             READ_DDR: begin
-                if (dcache2arb_dbus_operation_done && tbus_is_read) begin
+                if (icache2arb_dbus_operation_done && tbus_is_read) begin
                     next_state = REFILL_READ;
-                end else if (dcache2arb_dbus_operation_done && tbus_is_write) begin
+                end else if (icache2arb_dbus_operation_done && tbus_is_write) begin
                     next_state = REFILL_WRITE;
                 end
             end
@@ -598,11 +531,14 @@ module dcache #(
     /* --------------------------- set dataarray input -------------------------- */
 
 
-    wire [DATA_WIDTH-1:0] dataarray_din_banks_allone [0:7];
-    wire [DATA_WIDTH-1:0] dataarray_din_banks_allzero[0:7];
+    wire [DATA_WIDTH-1:0] dataarray_din_banks_allone [0:BANK_NUM-1];
+    wire [DATA_WIDTH-1:0] dataarray_din_banks_allzero[0:BANK_NUM-1];
 
-    assign dataarray_din_banks_allone  = {{64'hffff_ffff_ffff_ffff}, {64'hffff_ffff_ffff_ffff}, {64'hffff_ffff_ffff_ffff}, {64'hffff_ffff_ffff_ffff}, {64'hffff_ffff_ffff_ffff}, {64'hffff_ffff_ffff_ffff}, {64'hffff_ffff_ffff_ffff}, {64'hffff_ffff_ffff_ffff}};
-    assign dataarray_din_banks_allzero = {{64'h0}, {64'h0}, {64'h0}, {64'h0}, {64'h0}, {64'h0}, {64'h0}, {64'h0}};
+    assign dataarray_din_banks_allone  = {  {128'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff}, 
+                                            {128'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff}, 
+                                            {128'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff}, 
+                                            {128'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff}};
+    assign dataarray_din_banks_allzero = {{128'h0}, {128'h0}, {128'h0}, {128'h0}};
 
     always @(*) begin
         if (~reset_n) begin
@@ -617,10 +553,10 @@ module dcache #(
             dataarray_we           = 1;
             dataarray_ce_way       = lookup_hitway_onehot_s1;
             dataarray_ce_bank      = bankaddr_onehot_or;
-            dataarray_din_banks    = write_data_8banks;
+            dataarray_din_banks    = dataarray_din_banks_allzero; // wont goto state WRITE_CACHE in icache
             dataarray_writesetaddr = ls_addr_or[14:6];
             dataarray_readsetaddr  = 0;
-            dataarray_wmask_banks  = write_mask_8banks;
+            dataarray_wmask_banks  = dataarray_din_banks_allzero;// wont goto state WRITE_CACHE in icache
         end else if (next_state == READ_CACHE) begin  //read dataarray
             dataarray_we           = 0;
             dataarray_ce_way       = lookup_hitway_onehot_s1;
@@ -641,7 +577,7 @@ module dcache #(
             dataarray_we           = 1;
             dataarray_ce_way       = victimway_oh_s1;
             dataarray_ce_bank      = 8'hff;
-            dataarray_din_banks    = merged_512_write_data;
+            dataarray_din_banks    = dataarray_din_banks_allzero;// wont goto state REFILL_WRITE in icache
             dataarray_writesetaddr = ls_addr_or[14:6];
             dataarray_readsetaddr  = 0;
             dataarray_wmask_banks  = dataarray_din_banks_allone;
@@ -658,7 +594,7 @@ module dcache #(
 
     /* ----------------------- trinity bus to backend/pc_ctrl ----------------------- */
     always @(*) begin
-        if (state == IDLE && ~dcache2arb_inprocess) begin
+        if (state == IDLE && ~icache2arb_inprocess) begin
             tbus_operation_done = 1'b0;
             tbus_read_data      = 0;
             tbus_index_ready    = 1;
@@ -688,49 +624,49 @@ module dcache #(
 
 
     /* ------------------------------- set ddr bus ------------------------------ */
-    wire dcache2arb_fire;
-    assign dcache2arb_fire = dcache2arb_dbus_index_valid_internal & dcache2arb_dbus_index_ready;
-    reg  dcache2arb_inprocess;
+    wire icache2arb_fire;
+    assign icache2arb_fire = icache2arb_dbus_index_valid_internal & icache2arb_dbus_index_ready;
+    reg  icache2arb_inprocess;
     always @(posedge clock or negedge reset_n) begin
         if (~reset_n) begin
-            dcache2arb_inprocess <= 'b0;
-        end else if (dcache2arb_fire) begin
-            dcache2arb_inprocess <= 1'b1;
-        end else if (dcache2arb_dbus_operation_done) begin
-            dcache2arb_inprocess <= 'b0;
+            icache2arb_inprocess <= 'b0;
+        end else if (icache2arb_fire) begin
+            icache2arb_inprocess <= 1'b1;
+        end else if (icache2arb_dbus_operation_done) begin
+            icache2arb_inprocess <= 'b0;
         end
     end
 
 
-    wire [63:0] miss_read_align_addr = {ls_addr_or[63:6], 6'b0};
+    wire [63:0] miss_read_align_addr = {ls_addr_or[63:6], 6'b0}; // aligned read addr for ddr
     always @(posedge clock or negedge reset_n) begin
         if (~reset_n || flush) begin
-            dcache2arb_dbus_index_valid_internal    <= 0;
-            dcache2arb_dbus_index          <= 0;
-            dcache2arb_dbus_write_data     <= 0;
-            dcache2arb_dbus_write_mask     <= 0;
-            dcache2arb_dbus_operation_type <= 0;
+            icache2arb_dbus_index_valid_internal    <= 0;
+            icache2arb_dbus_index                   <= 0;
+            icache2arb_dbus_write_data              <= 0;
+            icache2arb_dbus_write_mask              <= 0;
+            icache2arb_dbus_operation_type          <= 0;
         end else if (state == READ_CACHE && next_state == WRITE_DDR) begin  //write back dirty data to ddr
-            dcache2arb_dbus_index_valid_internal    <= 1;
-            dcache2arb_dbus_index          <= victimway_fulladdr_latch;
-            dcache2arb_dbus_write_data     <= tbus_read_data_s2;  //64bit
-            dcache2arb_dbus_write_mask     <= write_mask_or;
-            dcache2arb_dbus_operation_type <= `TBUS_WRITE;
-        end else if ((state == WRITE_DDR && dcache2arb_dbus_index_ready) || (state == READ_DDR && dcache2arb_dbus_index_ready)) begin  //write ddr/read ddr is fire
-            dcache2arb_dbus_index_valid_internal    <= 0;
+            icache2arb_dbus_index_valid_internal    <= 1;
+            icache2arb_dbus_index                   <= victimway_fulladdr_latch;
+            icache2arb_dbus_write_data              <= tbus_read_data_s2;  //128bit //no use in icache
+            icache2arb_dbus_write_mask              <= 0;//no use in icache
+            icache2arb_dbus_operation_type          <= `TBUS_WRITE;
+        end else if ((state == WRITE_DDR && icache2arb_dbus_index_ready) || (state == READ_DDR && icache2arb_dbus_index_ready)) begin  //write ddr/read ddr is fire
+            icache2arb_dbus_index_valid_internal    <= 0;
         end else if ((state == WRITE_DDR) && (next_state == READ_DDR)) begin  //read cacheline from ddr
-            dcache2arb_dbus_index_valid_internal    <= 1;
-            dcache2arb_dbus_index          <= miss_read_align_addr;
-            dcache2arb_dbus_write_data     <= 0;
-            dcache2arb_dbus_write_mask     <= 0;
-            dcache2arb_dbus_operation_type <= `TBUS_READ;
+            icache2arb_dbus_index_valid_internal    <= 1;
+            icache2arb_dbus_index                   <= miss_read_align_addr;
+            icache2arb_dbus_write_data              <= 0;
+            icache2arb_dbus_write_mask              <= 0;
+            icache2arb_dbus_operation_type          <= `TBUS_READ;
         end else if (((state == LOOKUP) && (next_state == READ_DDR))) begin  //read cacheline from ddr 
             // 2nd condition means when state in READ_DDR,but ddr is busy,so have to wait till it finish
-            dcache2arb_dbus_index_valid_internal    <= 1;
-            dcache2arb_dbus_index          <= miss_read_align_addr;
-            dcache2arb_dbus_write_data     <= 0;
-            dcache2arb_dbus_write_mask     <= 0;
-            dcache2arb_dbus_operation_type <= `TBUS_READ;
+            icache2arb_dbus_index_valid_internal    <= 1;
+            icache2arb_dbus_index                   <= miss_read_align_addr;
+            icache2arb_dbus_write_data              <= 0;
+            icache2arb_dbus_write_mask              <= 0;
+            icache2arb_dbus_operation_type          <= `TBUS_READ;
         end
     end
 

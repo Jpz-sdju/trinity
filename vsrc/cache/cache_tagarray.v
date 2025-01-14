@@ -1,6 +1,6 @@
 
 // dcache_tagarray Module
-module dcache_tagarray #(parameter DATA_WIDTH = 38,  // Width of data
+module cache_tagarray #(parameter DATA_WIDTH = 38,  // Width of data
                        parameter ADDR_WIDTH = 9   // Width of address bus (512 sets => 9 bits)
                       ) (
     input wire clock,                                 // Clock signal

@@ -32,7 +32,7 @@ module pc_ctrl (
         end else if(redirect_valid)begin
             pc <= redirect_target; 
         end else if(pc_operation_done) begin
-            pc <= ({pc[63:3], 3'b0}) + 8;
+            pc <= ({pc[63:4], 4'b0}) + 16;
         end
     end
 

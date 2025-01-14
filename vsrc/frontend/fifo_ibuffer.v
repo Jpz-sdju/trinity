@@ -1,10 +1,10 @@
-module fifo_depth24 (
+module fifo_ibuffer (
     input wire               clock,
     input wire               reset_n,
     input wire [(32+64-1):0] data_in,        // (32+64-1)-bit data input
     input wire               write_en,       // Write enable
     input wire               read_en,        // Read enable
-    input wire               clear_ibuffer,  // Clear signal for ibuffer
+    input wire               redirect_valid,  // Clear signal for ibuffer
     input wire               stall,          // Stall signal (new input)
 
     output reg  [(32+64-1):0] data_out,   // (32+64-1)-bit data output
@@ -25,7 +25,7 @@ module fifo_depth24 (
     assign full  = (count == 6'd63);
 
     always @(posedge clock or negedge reset_n) begin
-        if (!reset_n || clear_ibuffer) begin
+        if (!reset_n || redirect_valid) begin
             // Reset or clear the FIFO
             read_ptr   <= 6'b0;
             write_ptr  <= 6'b0;
@@ -57,7 +57,7 @@ module fifo_depth24 (
     end
 
     always @(posedge clock or negedge reset_n) begin
-        if (!reset_n || clear_ibuffer) begin
+        if (!reset_n || redirect_valid) begin
             // Reset or clear the FIFO
             count      <= 6'b0;
         end else begin

@@ -47,7 +47,7 @@ module backend (
 
     input  wire [`RESULT_RANGE] tbus_read_data,
     input  wire                 tbus_operation_done,
-    output wire [  `TBUS_RANGE] tbus_operation_type,
+    output wire [  `TBUS_OPTYPE_RANGE] tbus_operation_type,
 
 
     // output instrcnt pulse
@@ -236,10 +236,10 @@ module backend (
     assign exe_byp_result     = exu_instr_valid_out ? ex_byp_result : mem_instr_valid_out ? mem_opload_read_data_wb : 64'hDEADBEEF;
 
 
-    pipe_reg u_pipe_reg_exe2wb (
+    pipereg u_pipereg_exe2wb (
         .clock                  (clock),
         .reset_n                (reset_n),
-        .stall                  (1'b0),
+        .stall                  (1'b0),//this is used to stall pipereg output
         .redirect_flush         (1'b0),
         //pipe input meterial
         .rs1                    (rs1),
@@ -261,7 +261,7 @@ module backend (
         .ls_size                (ls_size),
         .muldiv_type            (muldiv_type),
         //valid,pc,instr
-        .instr_valid            (instr_valid_to_pexe2wb & ~mem_stall),
+        .instr_valid            (instr_valid_to_pexe2wb & ~mem_stall),//stall means latch, but this pipereg output to difftest, so mem_stall dont latch output , but make instr(curent processing lsu operation) invalid, after lsu operation finish , mem_stall =0, this instr would automatically be valid to this pipereg
         .pc                     (pc_to_pexe2wb),
         .instr                  (instr_to_pexe2wb),
         //result

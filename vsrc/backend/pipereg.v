@@ -1,4 +1,4 @@
-module pipe_reg (
+module pipereg (
     input wire               clock,
     input wire               reset_n,
     input wire               stall,

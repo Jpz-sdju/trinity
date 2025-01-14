@@ -122,4 +122,13 @@
 `define ADDR_RANGE 63:0
 `define INST_CACHE_RANGE 511:0
 
+`define ROB_SIZE_LOG 6
+`define ROB_SIZE 64
 
+`define MACRO_DFF_NONEN(dff_data_q, dff_data_in, dff_data_width) \
+always @(posedge clock or negedge reset_n) begin \
+    if(reset_n == 1'b0) \
+        dff_data_q <= {dff_data_width{1'b0}}; \
+    else \
+        dff_data_q <= dff_data_in; \
+end

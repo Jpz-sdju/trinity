@@ -1,6 +1,8 @@
-V_FLAG = --cc --exe --build
+V_FLAG = --cc --exe --build -Wall
 INCDIR = -I./tb/ \
-	-I./vsrc/
+	-I./vsrc/\
+	-I./temp/\
+	-I./vsrc/include/
 SIM_CPP = ./csrc/sim.cpp
 CSRC = ./csrc/dpic.cpp
 # REF = $(NOOP_HOME)/r2r/riscv64-nemu-interpreter-so
@@ -17,7 +19,7 @@ sim-verilog:
 
 
 test_sim:
-	verilator $(V_FLAG) -j 32 -Wall $(SIM_CPP) $(CSRC) tb_top.v $(INCDIR) --trace
+	verilator $(V_FLAG) -j 32 $(SIM_CPP) $(CSRC) tb_top.v $(INCDIR) --trace
 
 test_run: test_sim
 	./obj_dir/Vtb_top
@@ -35,4 +37,4 @@ strace:
 	strace -e trace=open ./build/emu --diff=$(REF)  --dump-wave-full --wave-path=$(WAVE_PATH) -b 0 -e 5120 --image=$(BIN)
 
 clean:
-	rm -rf build/emu-compile build/emu time.log
+	rm -rf build/emu-compile build/emu time.log obj_dir/**

@@ -19,7 +19,7 @@ void init(int argc, char **argv)
     top->trace(vcd, 99);
     vcd->open("dump/sim.vcd");
 
-    top->clk = 0;
+    top->clock = 0;
 
 }
 void reset()
@@ -28,13 +28,14 @@ void reset()
     while (rst_cnt != 0)
     {
         contextp->timeInc(1);
-        top->rst_n = 0;
-        top->clk = !top->clk;
+        top->reset_n = 0;
+        top->clock = !top->clock;
         top->eval();
+
         vcd->dump(contextp->time());
         rst_cnt -= 1;
     }
-    top->rst_n = 1;
+    top->reset_n = 1;
     top->eval();
 }
 int main(int argc, char **argv)
@@ -48,10 +49,9 @@ int main(int argc, char **argv)
     {
         contextp->timeInc(1);
         top->a = 4;
-        top->clk = !top->clk;
+        top->clock = !top->clock;
         top->eval();
         vcd->dump(contextp->time());
-
         cnt += 1;
     }
     delete top;

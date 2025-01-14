@@ -4,3 +4,4 @@
 **/emu
 sig*
 **/.nfs*
+/obj_dir/**

@@ -1,7 +1,7 @@
 `include "defines.sv"
 module renametable (
-    input clock,
-    input reset_n,
+    input wire clock,
+    input wire reset_n,
 
     //read req from decode
     input wire       instr0_src1_is_reg,
@@ -20,29 +20,29 @@ module renametable (
     input wire [4:0] instr1_rd,
 
     //read data to rename
-    output wire [5:0] instr0_rat_prs1,
-    output wire [5:0] instr0_rat_prs2,
-    output wire [5:0] instr0_rat_prd,
+    output wire [`PREG_RANGE] instr0_rat_prs1,
+    output wire [`PREG_RANGE] instr0_rat_prs2,
+    output wire [`PREG_RANGE] instr0_rat_prd,
 
-    output wire [5:0] instr1_rat_prs1,
-    output wire [5:0] instr1_rat_prs2,
-    output wire [5:0] instr1_rat_prd,
+    output wire [`PREG_RANGE] instr1_rat_prs1,
+    output wire [`PREG_RANGE] instr1_rat_prs2,
+    output wire [`PREG_RANGE] instr1_rat_prd,
 
     //write request from rename
     input wire       instr0_rat_rename_valid,
     input wire [4:0] instr0_rat_rename_addr,
-    input wire [5:0] instr0_rat_rename_data,
+    input wire [`PREG_RANGE] instr0_rat_rename_data,
 
     input wire       instr1_rat_rename_valid,
     input wire [4:0] instr1_rat_rename_addr,
-    input wire [5:0] instr1_rat_rename_data
+    input wire [`PREG_RANGE] instr1_rat_rename_data
 
 );
 
-    reg [ 5:0] renametables          [0:31];
+    reg [ `PREG_RANGE] renametables          [0:31];
 
     reg [31:0] renametables_wren_dec;
-    reg [ 5:0] renametables_wdata_dec[0:31];
+    reg [ `PREG_RANGE] renametables_wdata_dec[0:31];
 
 
     assign instr0_rat_prs1 = instr0_src1_is_reg ? renametables[instr0_rs1] : 'b0;  //could gate?

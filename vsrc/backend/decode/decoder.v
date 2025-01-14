@@ -10,8 +10,6 @@ module decoder (
     //to regfile read 
     output reg  [ 4:0] rs1,
     output reg  [ 4:0] rs2,
-    input  wire [63:0] rs1_read_data,
-    input  wire [63:0] rs2_read_data,
 
     output reg  [               4:0] rd,
     output reg  [              63:0] src1,
@@ -69,8 +67,6 @@ module decoder (
     reg [63:0] imm_utype_64;
     reg [63:0] imm_jtype_64;
 
-    assign src1 = rs1_read_data;
-    assign src2 = rs2_read_data;
     always @(*) begin
         if (ibuffer_instr_valid) begin
             imm = 'b0;

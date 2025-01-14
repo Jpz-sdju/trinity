@@ -1,14 +1,13 @@
 `include "defines.sv"
 module rename (
-    //to regfile read 
 
     //instr 0
-    input wire        instr0_valid,
-    input wire [31:0] instr0,
-    input wire [ `LREG_RANGE] instr0_rs1,
-    input wire [ `LREG_RANGE] instr0_rs2,
-    input wire [ `LREG_RANGE] instr0_rd,
-    input wire [47:0] instr0_pc,
+    input wire               instr0_valid,
+    input wire [       31:0] instr0,
+    input wire [`LREG_RANGE] instr0_rs1,
+    input wire [`LREG_RANGE] instr0_rs2,
+    input wire [`LREG_RANGE] instr0_rd,
+    input wire [       47:0] instr0_pc,
 
     input wire [           63:0] instr0_imm,
     input wire                   instr0_src1_is_reg,
@@ -24,12 +23,12 @@ module rename (
     input wire [            3:0] instr0_ls_size,
 
     //instr 1
-    input wire        instr1_valid,
-    input wire [31:0] instr1,
-    input wire [ `LREG_RANGE] instr1_rs1,
-    input wire [ `LREG_RANGE] instr1_rs2,
-    input wire [ `LREG_RANGE] instr1_rd,
-    input wire [47:0] instr1_pc,
+    input wire               instr1_valid,
+    input wire [       31:0] instr1,
+    input wire [`LREG_RANGE] instr1_rs1,
+    input wire [`LREG_RANGE] instr1_rs2,
+    input wire [`LREG_RANGE] instr1_rd,
+    input wire [       47:0] instr1_pc,
 
     input wire [           63:0] instr1_imm,
     input wire                   instr1_src1_is_reg,
@@ -56,29 +55,30 @@ module rename (
     input wire [`PREG_RANGE] instr1_rat_prd,
 
     //write request to rat
-    output wire       instr0_rat_rename_valid,
+    output wire               instr0_rat_rename_valid,
     output wire [`LREG_RANGE] instr0_rat_rename_addr,
     output wire [`PREG_RANGE] instr0_rat_rename_data,
 
-    output wire       instr1_rat_rename_valid,
+    output wire               instr1_rat_rename_valid,
     output wire [`LREG_RANGE] instr1_rat_rename_addr,
     output wire [`PREG_RANGE] instr1_rat_rename_data,
 
 
     //alloc reqeust to freelist
-    output wire       instr0_freelist_req,
+    output wire               instr0_freelist_req,
     input  wire [`PREG_RANGE] instr0_freelist_resp,
 
-    output wire       instr1_freelist_req,
+    output wire               instr1_freelist_req,
     input  wire [`PREG_RANGE] instr1_freelist_resp,
 
 
     //to dispatch instr 0
-    output wire        to_dispatch_instr0_valid,
+    output wire                to_dispatch_instr0_valid,
     output wire [ `LREG_RANGE] to_dispatch_instr0_rs1,
     output wire [ `LREG_RANGE] to_dispatch_instr0_rs2,
     output wire [ `LREG_RANGE] to_dispatch_instr0_rd,
-    output wire [47:0] to_dispatch_instr0_pc,
+    output wire [        47:0] to_dispatch_instr0_pc,
+    output wire [`INSTR_RANGE] to_dispatch_instr0,
 
     output wire [           63:0] to_dispatch_instr0_imm,
     output wire                   to_dispatch_instr0_src1_is_reg,
@@ -102,11 +102,12 @@ module rename (
 
 
     //to dispatch instr 1
-    output wire        to_dispatch_instr1_valid,
+    output wire                to_dispatch_instr1_valid,
     output wire [ `LREG_RANGE] to_dispatch_instr1_rs1,
     output wire [ `LREG_RANGE] to_dispatch_instr1_rs2,
     output wire [ `LREG_RANGE] to_dispatch_instr1_rd,
-    output wire [47:0] to_dispatch_instr1_pc,
+    output wire [        47:0] to_dispatch_instr1_pc,
+    output wire [`INSTR_RANGE] to_dispatch_instr1,
 
     output wire [           63:0] to_dispatch_instr1_imm,
     output wire                   to_dispatch_instr1_src1_is_reg,

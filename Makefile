@@ -1,7 +1,8 @@
 V_FLAG = --cc --exe --build -Wall
 INCDIR = -I./tb/ \
 	-I./vsrc/\
-	-I./temp/\
+	-I./vsrc/backend\
+	-I./vsrc/frontend\
 	-I./vsrc/include/
 SIM_CPP = ./csrc/sim.cpp
 CSRC = ./csrc/dpic.cpp

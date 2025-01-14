@@ -1,37 +1,20 @@
 `include "defines.sv"
 module backend (
-    input  wire                      clock,
-    input  wire                      reset_n,
-    input  wire [       `LREG_RANGE] rs1,
-    input  wire [       `LREG_RANGE] rs2,
-    input  wire [       `LREG_RANGE] rd,
-    input  wire [        `SRC_RANGE] src1,
-    input  wire [        `SRC_RANGE] src2,
-    input  wire [        `SRC_RANGE] imm,
-    input  wire                      src1_is_reg,
-    input  wire                      src2_is_reg,
-    input  wire                      need_to_wb,
-    input  wire [    `CX_TYPE_RANGE] cx_type,
-    input  wire                      is_unsigned,
-    input  wire [   `ALU_TYPE_RANGE] alu_type,
-    input  wire                      is_word,
-    input  wire                      is_load,
-    input  wire                      is_imm,
-    input  wire                      is_store,
-    input  wire [               3:0] ls_size,
-    input  wire [`MULDIV_TYPE_RANGE] muldiv_type,
-    input  wire                      instr_valid,
-    input  wire [         `PC_RANGE] pc,
-    input  wire [      `INSTR_RANGE] instr,
+    input wire        clock,
+    input wire        reset_n,
+    input wire [31:0] ibuffer_instr_valid,
+    input wire [31:0] ibuffer_inst_out,
+    input wire [47:0] ibuffer_pc_out,
+
     //write back lreg 
-    output wire                      regfile_write_valid,
-    output wire [     `RESULT_RANGE] regfile_write_data,
-    output wire [               4:0] regfile_write_rd,
+    output wire                 regfile_write_valid,
+    output wire [`RESULT_RANGE] regfile_write_data,
+    output wire [          4:0] regfile_write_rd,
     //redirect
-    output wire                      redirect_valid,
-    output wire [         `PC_RANGE] redirect_target,
+    output wire                 redirect_valid,
+    output wire [    `PC_RANGE] redirect_target,
     //stall pipeline
-    output wire                      mem_stall,
+    output wire                 mem_stall,
 
     /*
         TO L1 D$/MEM
@@ -45,9 +28,9 @@ module backend (
     output reg  [   `SRC_RANGE] tbus_write_data,
     output reg  [         63:0] tbus_write_mask,
 
-    input  wire [`RESULT_RANGE] tbus_read_data,
-    input  wire                 tbus_operation_done,
-    output wire [  `TBUS_OPTYPE_RANGE] tbus_operation_type,
+    input  wire [     `RESULT_RANGE] tbus_read_data,
+    input  wire                      tbus_operation_done,
+    output wire [`TBUS_OPTYPE_RANGE] tbus_operation_type,
 
 
     // output instrcnt pulse
@@ -83,7 +66,7 @@ module backend (
     //exu internal output:
     wire                exu_redirect_valid;
     //when redirect hit mem_stall ,could cause false redirect fetch
-    assign redirect_valid = exu_redirect_valid & instr_valid_to_exu ;
+    assign redirect_valid = exu_redirect_valid & instr_valid_to_exu;
     wire [     `RESULT_RANGE] alu_result;
     wire [     `RESULT_RANGE] bju_result;
     wire [     `RESULT_RANGE] muldiv_result;
@@ -119,6 +102,12 @@ module backend (
     wire [     `RESULT_RANGE] wb_muldiv_result;
     wire [     `RESULT_RANGE] wb_opload_read_data_wb;
 
+
+
+
+    /* -------------------------------------------------------------------------- */
+    /*                                ctrl block                                  */
+    /* -------------------------------------------------------------------------- */
 
     always @(*) begin
         if (is_load | is_store) begin
@@ -237,65 +226,65 @@ module backend (
 
 
     pipereg u_pipereg_exe2wb (
-        .clock                  (clock),
-        .reset_n                (reset_n),
-        .stall                  (1'b0),//this is used to stall pipereg output
-        .redirect_flush         (1'b0),
+        .clock(clock),
+        .reset_n(reset_n),
+        .stall(1'b0),  //this is used to stall pipereg output
+        .redirect_flush(1'b0),
         //pipe input meterial
-        .rs1                    (rs1),
-        .rs2                    (rs2),
-        .rd                     (rd),
-        .src1                   (src1),
-        .src2                   (src2),
-        .imm                    (imm),
-        .src1_is_reg            (src1_is_reg),
-        .src2_is_reg            (src2_is_reg),
-        .need_to_wb             (need_to_wb),
-        .cx_type                (cx_type),
-        .is_unsigned            (is_unsigned),
-        .alu_type               (alu_type),
-        .is_word                (is_word),
-        .is_load                (is_load),
-        .is_imm                 (is_imm),
-        .is_store               (is_store),
-        .ls_size                (ls_size),
-        .muldiv_type            (muldiv_type),
+        .rs1(rs1),
+        .rs2(rs2),
+        .rd(rd),
+        .src1(src1),
+        .src2(src2),
+        .imm(imm),
+        .src1_is_reg(src1_is_reg),
+        .src2_is_reg(src2_is_reg),
+        .need_to_wb(need_to_wb),
+        .cx_type(cx_type),
+        .is_unsigned(is_unsigned),
+        .alu_type(alu_type),
+        .is_word(is_word),
+        .is_load(is_load),
+        .is_imm(is_imm),
+        .is_store(is_store),
+        .ls_size(ls_size),
+        .muldiv_type(muldiv_type),
         //valid,pc,instr
         .instr_valid            (instr_valid_to_pexe2wb & ~mem_stall),//stall means latch, but this pipereg output to difftest, so mem_stall dont latch output , but make instr(curent processing lsu operation) invalid, after lsu operation finish , mem_stall =0, this instr would automatically be valid to this pipereg
-        .pc                     (pc_to_pexe2wb),
-        .instr                  (instr_to_pexe2wb),
+        .pc(pc_to_pexe2wb),
+        .instr(instr_to_pexe2wb),
         //result
-        .ls_address             (mem_ls_address),
-        .alu_result             (alu_result),
-        .bju_result             (bju_result),
-        .muldiv_result          (muldiv_result),
-        .opload_read_data_wb    (mem_opload_read_data_wb),              //fill the load wb data
+        .ls_address(mem_ls_address),
+        .alu_result(alu_result),
+        .bju_result(bju_result),
+        .muldiv_result(muldiv_result),
+        .opload_read_data_wb(mem_opload_read_data_wb),  //fill the load wb data
         //piped values
-        .out_rs1                (wb_rs1),
-        .out_rs2                (wb_rs2),
-        .out_rd                 (wb_rd),
-        .out_src1               (wb_src1),
-        .out_src2               (wb_src2),
-        .out_imm                (wb_imm),
-        .out_src1_is_reg        (wb_src1_is_reg),
-        .out_src2_is_reg        (wb_src2_is_reg),
-        .out_need_to_wb         (wb_need_to_wb),
-        .out_cx_type            (wb_cx_type),
-        .out_is_unsigned        (wb_is_unsigned),
-        .out_alu_type           (wb_alu_type),
-        .out_is_word            (wb_is_word),
-        .out_is_load            (wb_is_load),
-        .out_is_imm             (wb_is_imm),
-        .out_is_store           (wb_is_store),
-        .out_ls_size            (wb_ls_size),
-        .out_muldiv_type        (wb_muldiv_type),
-        .out_instr_valid        (wb_valid),
-        .out_pc                 (wb_pc),
-        .out_instr              (wb_instr),
-        .out_ls_address         (wb_ls_address),
-        .out_alu_result         (wb_alu_result),
-        .out_bju_result         (wb_bju_result),
-        .out_muldiv_result      (wb_muldiv_result),
+        .out_rs1(wb_rs1),
+        .out_rs2(wb_rs2),
+        .out_rd(wb_rd),
+        .out_src1(wb_src1),
+        .out_src2(wb_src2),
+        .out_imm(wb_imm),
+        .out_src1_is_reg(wb_src1_is_reg),
+        .out_src2_is_reg(wb_src2_is_reg),
+        .out_need_to_wb(wb_need_to_wb),
+        .out_cx_type(wb_cx_type),
+        .out_is_unsigned(wb_is_unsigned),
+        .out_alu_type(wb_alu_type),
+        .out_is_word(wb_is_word),
+        .out_is_load(wb_is_load),
+        .out_is_imm(wb_is_imm),
+        .out_is_store(wb_is_store),
+        .out_ls_size(wb_ls_size),
+        .out_muldiv_type(wb_muldiv_type),
+        .out_instr_valid(wb_valid),
+        .out_pc(wb_pc),
+        .out_instr(wb_instr),
+        .out_ls_address(wb_ls_address),
+        .out_alu_result(wb_alu_result),
+        .out_bju_result(wb_bju_result),
+        .out_muldiv_result(wb_muldiv_result),
         .out_opload_read_data_wb(wb_opload_read_data_wb)
 
     );
@@ -307,57 +296,23 @@ module backend (
 
     wire                commit_valid = ((|wb_alu_type) | (|wb_cx_type) | (|wb_muldiv_type) | wb_is_load | wb_is_store) & wb_valid;
 
-    // reg                 flop_commit_valid;
     reg                 flop_wb_need_to_wb;
     reg  [         4:0] flop_wb_rd;
     reg  [   `PC_RANGE] flop_wb_pc;
     reg  [`INSTR_RANGE] flop_wb_instr;
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            flop_commit_valid <= 'b0;
-        end else begin
-            flop_commit_valid <= commit_valid;
-        end
-    end
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            flop_wb_need_to_wb <= 'b0;
-        end else begin
-            flop_wb_need_to_wb <= regfile_write_valid;
-        end
-    end
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            flop_wb_rd <= 'b0;
-        end else begin
-            flop_wb_rd <= wb_rd;
-        end
-    end
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            flop_wb_pc <= 'b0;
-        end else begin
-            flop_wb_pc <= wb_pc;
-        end
-    end
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            flop_wb_instr <= 'b0;
-        end else begin
-            flop_wb_instr <= wb_instr;
-        end
-    end
+    reg                 flop_mmio_valid;
 
     wire wb_mmio_valid = (wb_is_load | wb_is_store) & wb_valid & ('h30000000 <= wb_ls_address) & (wb_ls_address <= 'h40700000);
-    reg  flop_mmio_valid;
 
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            flop_mmio_valid <= 'b0;
-        end else begin
-            flop_mmio_valid <= wb_mmio_valid;
-        end
-    end
+    `MACRO_DFF_NONEN(flop_commit_valid, commit_valid, 1)
+    `MACRO_DFF_NONEN(flop_wb_need_to_wb, regfile_write_valid, 1)
+    `MACRO_DFF_NONEN(flop_wb_rd, wb_rd, `LREG_RANGE)
+    `MACRO_DFF_NONEN(flop_wb_pc, wb_pc, `PC_RANGE)
+    `MACRO_DFF_NONEN(flop_wb_instr, wb_instr, `INSTR_RANGE)
+    `MACRO_DFF_NONEN(flop_mmio_valid, wb_mmio_valid, 1)
+
+
+
 
     DifftestInstrCommit u_DifftestInstrCommit (
         .clock     (clock),

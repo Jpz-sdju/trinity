@@ -3,11 +3,11 @@ module ifu_top (
     input wire reset_n,
 
     // Inputs for PC control
-    input  wire [47:0] boot_addr,         // 48-bit boot address
+    input  wire [`PC_RANGE] boot_addr,         // 48-bit boot address
     input  wire        interrupt_valid,   // Interrupt valid signal
-    input  wire [47:0] interrupt_addr,    // 48-bit interrupt address
+    input  wire [`PC_RANGE] interrupt_addr,    // 48-bit interrupt address
     input  wire        redirect_valid,    // Branch address valid signal
-    input  wire [47:0] redirect_target,   // 48-bit branch address
+    input  wire [`PC_RANGE] redirect_target,   // 48-bit branch address
     output wire        pc_index_valid,
     input  wire        pc_index_ready,    // Signal indicating DDR operation is complete
     input  wire        pc_operation_done, // Signal indicating PC operation is done

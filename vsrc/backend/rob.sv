@@ -12,7 +12,7 @@ module rob (
     input wire [`LREG_RANGE] instr0_lrd,
     input wire [`PREG_RANGE] instr0_prd,
     input wire [`PREG_RANGE] instr0_old_prd,
-    input wire [       47:0] instr0_pc,
+    input wire [       `PC_RANGE] instr0_pc,
 
     input wire               instr1_enq_valid,
     input wire [       31:0] instr1,
@@ -21,7 +21,7 @@ module rob (
     input wire [`LREG_RANGE] instr1_lrd,
     input wire [`PREG_RANGE] instr1_prd,
     input wire [`PREG_RANGE] instr1_old_prd,
-    input wire [       47:0] instr1_pc,
+    input wire [       `PC_RANGE] instr1_pc,
     //counter(temp sig)
     output reg [`ROB_SIZE_LOG-1:0] counter,
 
@@ -52,19 +52,19 @@ module rob (
     output wire [`LREG_RANGE] commits0_lrd,
     output wire [`PREG_RANGE] commits0_prd,
     output wire [       31:0] commits0_instr,
-    output wire [       47:0] commits0_pc,
+    output wire [       `PC_RANGE] commits0_pc,
 
     output wire               commits1_valid,
     output wire [`PREG_RANGE] commits1_old_prd,
     output wire [`LREG_RANGE] commits1_lrd,
     output wire [`PREG_RANGE] commits1_prd,
     output wire [       31:0] commits1_instr,
-    output wire [       47:0] commits1_pc,
+    output wire [       `PC_RANGE] commits1_pc,
 
     //redirect
     input wire                     redirect_valid,
     input wire [             63:0] redirect_target,
-    input wire                     redirect_robflag,
+    input wire                     redirect_robidx_flag,
     input wire [`ROB_SIZE_LOG-1:0] redirect_robidx
 
 
@@ -85,7 +85,7 @@ module rob (
     reg  [  `ROB_SIZE_LOG:0] deq_num;  //add one bit to adapt flag bit
 
     reg  [    `ROB_SIZE-1:0] rob_entries_enq_dec;
-    reg  [             47:0] rob_entries_enq_pc_dec                   [0:`ROB_SIZE-1];
+    reg  [             `PC_RANGE] rob_entries_enq_pc_dec                   [0:`ROB_SIZE-1];
     reg  [             31:0] rob_entries_enq_instr_dec                [0:`ROB_SIZE-1];
     reg  [      `LREG_RANGE] rob_entries_enq_lrd_dec                  [0:`ROB_SIZE-1];
     reg  [      `PREG_RANGE] rob_entries_enq_prd_dec                  [0:`ROB_SIZE-1];
@@ -93,7 +93,7 @@ module rob (
 
 
     wire [    `ROB_SIZE-1:0] rob_entries_deq_dec;
-    wire [             47:0] rob_entries_deq_pc_dec                   [0:`ROB_SIZE-1];
+    wire [             `PC_RANGE] rob_entries_deq_pc_dec                   [0:`ROB_SIZE-1];
     wire [             31:0] rob_entries_deq_instr_dec                [0:`ROB_SIZE-1];
     wire [      `LREG_RANGE] rob_entries_deq_lrd_dec                  [0:`ROB_SIZE-1];
     wire [      `PREG_RANGE] rob_entries_deq_prd_dec                  [0:`ROB_SIZE-1];

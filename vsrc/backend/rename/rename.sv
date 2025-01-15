@@ -9,7 +9,7 @@ module rename (
     input  wire [`LREG_RANGE] instr0_lrs1,
     input  wire [`LREG_RANGE] instr0_lrs2,
     input  wire [`LREG_RANGE] instr0_lrd,
-    input  wire [       47:0] instr0_pc,
+    input  wire [       `PC_RANGE] instr0_pc,
 
     input wire [              63:0] instr0_imm,
     input wire                      instr0_src1_is_reg,
@@ -31,7 +31,7 @@ module rename (
     input wire [`LREG_RANGE] instr1_lrs1,
     input wire [`LREG_RANGE] instr1_lrs2,
     input wire [`LREG_RANGE] instr1_lrd,
-    input wire [       47:0] instr1_pc,
+    input wire [       `PC_RANGE] instr1_pc,
 
     input wire [              63:0] instr1_imm,
     input wire                      instr1_src1_is_reg,
@@ -83,7 +83,7 @@ module rename (
     output wire [ `LREG_RANGE] to_dispatch_instr0_lrs1,
     output wire [ `LREG_RANGE] to_dispatch_instr0_lrs2,
     output wire [ `LREG_RANGE] to_dispatch_instr0_lrd,
-    output wire [        47:0] to_dispatch_instr0_pc,
+    output wire [        `PC_RANGE] to_dispatch_instr0_pc,
     output wire [`INSTR_RANGE] to_dispatch_instr0,
 
     output wire [              63:0] to_dispatch_instr0_imm,
@@ -113,7 +113,7 @@ module rename (
     output wire [ `LREG_RANGE] to_dispatch_instr1_lrs1,
     output wire [ `LREG_RANGE] to_dispatch_instr1_lrs2,
     output wire [ `LREG_RANGE] to_dispatch_instr1_lrd,
-    output wire [        47:0] to_dispatch_instr1_pc,
+    output wire [        `PC_RANGE] to_dispatch_instr1_pc,
     output wire [`INSTR_RANGE] to_dispatch_instr1,
 
     output wire [              63:0] to_dispatch_instr1_imm,

@@ -5,7 +5,7 @@ module robentry (
     input wire               clock,
     input wire               reset_n,
     input wire               enq,
-    input wire [       47:0] enq_pc,
+    input wire [       `PC_RANGE] enq_pc,
     input wire [       31:0] enq_instr,
     input wire [`LREG_RANGE] enq_lrd,
     input wire [`PREG_RANGE] enq_prd,
@@ -14,7 +14,7 @@ module robentry (
 
     /* ------------------------------------ deq port ----------------------------------- */
     output wire               deq,
-    output wire [       47:0] deq_pc,
+    output wire [       `PC_RANGE] deq_pc,
     output wire [       31:0] deq_instr,
     output wire [`LREG_RANGE] deq_lrd,
     output wire [`PREG_RANGE] deq_prd,
@@ -23,7 +23,7 @@ module robentry (
 
     reg               rob_entries_valid;
     reg               rob_entries_complete;
-    reg [       47:0] rob_entries_pc;
+    reg [       `PC_RANGE] rob_entries_pc;
     reg [       31:0] rob_entries_instr;
     reg [`LREG_RANGE] rob_entries_lrd;
     reg [`PREG_RANGE] rob_entries_prd;

@@ -50,9 +50,9 @@ module muldiv (
     wire [`RESULT_RANGE] rem_result = {sign, remainder[62:0]};
     wire [`RESULT_RANGE] remu_result = remainder;
 
-    wire [`RESULT_RANGE] w_product = src1[31:0] * src2[31:0];
-    wire [`RESULT_RANGE] w_q = src1[31:0] / src2[31:0];
-    wire [`RESULT_RANGE] w_remainder = src1[31:0] % src1[31:0];
+    wire [         31:0] w_product = src1[31:0] * src2[31:0];
+    wire [         31:0] w_q = src1[31:0] / src2[31:0];
+    wire [         31:0] w_remainder = src1[31:0] % src1[31:0];
     wire                 w_sign = src1[31] ^ src2[31];
 
 

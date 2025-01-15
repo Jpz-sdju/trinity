@@ -1,7 +1,7 @@
 module decode (
     input wire        ibuffer_instr_valid,
     input wire [31:0] ibuffer_inst_out,
-    input wire [47:0] ibuffer_pc_out,
+    input wire [`PC_RANGE] ibuffer_pc_out,
 
     //decode result
     output wire [               4:0] lrs1,
@@ -22,7 +22,7 @@ module decode (
     output wire [`MULDIV_TYPE_RANGE] muldiv_type,
     output wire                      decoder_instr_valid,
     output wire [              31:0] decoder_inst_out,
-    output wire [              47:0] decoder_pc_out
+    output wire [              `PC_RANGE] decoder_pc_out
 );
 
     decoder u_decoder (

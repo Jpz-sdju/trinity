@@ -18,99 +18,51 @@ module core_top #(
 );
 
 
-    wire                      chip_enable = 1'b1;
-
-
-
-    wire [       `LREG_RANGE] rs1;
-    wire [       `LREG_RANGE] rs2;
-    wire [       `LREG_RANGE] rd;
-    wire [        `SRC_RANGE] src1;
-    wire [        `SRC_RANGE] src2;
-    wire [        `SRC_RANGE] imm;
-    wire                      src1_is_reg;
-    wire                      src2_is_reg;
-    wire                      need_to_wb;
-    wire [    `CX_TYPE_RANGE] cx_type;
-    wire                      is_unsigned;
-    wire [   `ALU_TYPE_RANGE] alu_type;
-    wire                      is_word;
-    wire                      is_load;
-    wire                      is_imm;
-    wire                      is_store;
-    wire [               3:0] ls_size;
-    wire [`MULDIV_TYPE_RANGE] muldiv_type;
-    wire [         `PC_RANGE] pc;
-    wire [      `INSTR_RANGE] instr;
-
-    wire                      regfile_write_valid;
-    wire [     `RESULT_RANGE] regfile_write_data;
-    wire [               4:0] regfile_write_rd;
-    wire                      decoder_instr_valid;
-    wire [              47:0] decoder_pc_out;
-    wire [              47:0] decoder_inst_out;
+    wire                               chip_enable = 1'b1;
 
     //redirect
-    wire                      redirect_valid;
-    wire [         `PC_RANGE] redirect_target;
+    wire                               redirect_valid;
+    wire [                  `PC_RANGE] redirect_target;
     //mem stall
-    wire                      mem_stall;
-
-
-
+    wire                               mem_stall;
     // PC Channel Inputs and Outputs
-    wire                      pc_index_valid;  // Valid signal for pc_index
-    wire [              63:0] pc_index;  // 64-bit input for pc_index (Channel 1)
-    wire                      pc_index_ready;  // Ready signal for pc channel
+    wire                               pc_index_valid;  // Valid signal for pc_index
+    wire [                       63:0] pc_index;  // 64-bit input for pc_index (Channel 1)
+    wire                               pc_index_ready;  // Ready signal for pc channel
     wire [`ICACHE_FETCHWIDTH128_RANGE] pc_read_inst;  // Output burst read data for pc channel
-    wire                      pc_operation_done;
-
-
+    wire                               pc_operation_done;
     //trinity bus channel:lsu to dcache
-    wire                      tbus_index_valid;
-    wire                      tbus_index_ready;
-    wire [     `RESULT_RANGE] tbus_index;
-    wire [        `SRC_RANGE] tbus_write_data;
-    wire [              63:0] tbus_write_mask;
+    wire                               tbus_index_valid;
+    wire                               tbus_index_ready;
+    wire [              `RESULT_RANGE] tbus_index;
+    wire [                 `SRC_RANGE] tbus_write_data;
+    wire [                       63:0] tbus_write_mask;
 
-    wire [     `RESULT_RANGE] tbus_read_data;
-    wire                      tbus_operation_done;
-    wire [       `TBUS_OPTYPE_RANGE] tbus_operation_type;
-
-
+    wire [              `RESULT_RANGE] tbus_read_data;
+    wire                               tbus_operation_done;
+    wire [         `TBUS_OPTYPE_RANGE] tbus_operation_type;
 
 
-    wire [       `LREG_RANGE] exe_byp_rd;
-    wire                      exe_byp_need_to_wb;
-    wire [     `RESULT_RANGE] exe_byp_result;
-
-    wire [       `LREG_RANGE] mem_byp_rd;
-    wire                      mem_byp_need_to_wb;
-    wire [     `RESULT_RANGE] mem_byp_result;
-
-
-
-
-    reg                       dcache2arb_dbus_index_valid;
-    wire                      dcache2arb_dbus_index_ready;
-    reg  [     `RESULT_RANGE] dcache2arb_dbus_index;
-    reg  [        `SRC_RANGE] dcache2arb_dbus_write_data;
-    reg  [        `SRC_RANGE] dcache2arb_dbus_write_mask;
-    wire [ `CACHELINE512_RANGE] dcache2arb_dbus_read_data;
-    wire                      dcache2arb_dbus_operation_done;
-    wire [       `TBUS_OPTYPE_RANGE] dcache2arb_dbus_operation_type;
-    wire                      dcache2arb_dbus_burst_mode;
+    reg                                dcache2arb_dbus_index_valid;
+    wire                               dcache2arb_dbus_index_ready;
+    reg  [              `RESULT_RANGE] dcache2arb_dbus_index;
+    reg  [                 `SRC_RANGE] dcache2arb_dbus_write_data;
+    reg  [                 `SRC_RANGE] dcache2arb_dbus_write_mask;
+    wire [        `CACHELINE512_RANGE] dcache2arb_dbus_read_data;
+    wire                               dcache2arb_dbus_operation_done;
+    wire [         `TBUS_OPTYPE_RANGE] dcache2arb_dbus_operation_type;
+    wire                               dcache2arb_dbus_burst_mode;
 
 
-    reg                       icache2arb_dbus_index_valid;
-    wire                      icache2arb_dbus_index_ready;
-    reg  [     `RESULT_RANGE] icache2arb_dbus_index;
-    reg  [        `SRC_RANGE] icache2arb_dbus_write_data;
-    reg  [        `SRC_RANGE] icache2arb_dbus_write_mask;
-    wire [ `CACHELINE512_RANGE] icache2arb_dbus_read_data;
-    wire                      icache2arb_dbus_operation_done;
-    wire [       `TBUS_OPTYPE_RANGE] icache2arb_dbus_operation_type;
-    wire                      icache2arb_dbus_burst_mode;
+    reg                                icache2arb_dbus_index_valid;
+    wire                               icache2arb_dbus_index_ready;
+    reg  [              `RESULT_RANGE] icache2arb_dbus_index;
+    reg  [                 `SRC_RANGE] icache2arb_dbus_write_data;
+    reg  [                 `SRC_RANGE] icache2arb_dbus_write_mask;
+    wire [        `CACHELINE512_RANGE] icache2arb_dbus_read_data;
+    wire                               icache2arb_dbus_operation_done;
+    wire [         `TBUS_OPTYPE_RANGE] icache2arb_dbus_operation_type;
+    wire                               icache2arb_dbus_burst_mode;
 
 
 
@@ -150,7 +102,7 @@ module core_top #(
         .tbus_write_mask               ('b0),
         .tbus_read_data                (pc_read_inst),
         .tbus_operation_done           (pc_operation_done),
-        .tbus_operation_type           (2'b00),     
+        .tbus_operation_type           (2'b00),
         //icache channel for reading inst from ddr
         .icache2arb_dbus_index_valid   (icache2arb_dbus_index_valid),
         .icache2arb_dbus_index_ready   (icache2arb_dbus_index_ready),
@@ -173,80 +125,24 @@ module core_top #(
         .pc_read_inst       (pc_read_inst),
         .pc_index           (pc_index),
         .fifo_read_en       (~mem_stall),           //when mem stall,ibuf can not to read instr anymore!
-        //ibuffer out
+        //to backend
         .ibuffer_instr_valid(ibuffer_instr_valid),
-        .ibuffer_inst_out     (ibuffer_inst_out),
-        .ibuffer_pc_out   (ibuffer_pc_out),
-        //write back enable
-        .writeback_valid    (regfile_write_valid),
-        .writeback_rd       (regfile_write_rd),
-        .writeback_data     (regfile_write_data),
-
-        .exe_byp_rd        (exe_byp_rd),
-        .exe_byp_need_to_wb(exe_byp_need_to_wb),
-        .exe_byp_result    (exe_byp_result),
-        //.mem_byp_rd        (mem_byp_rd),
-        //.mem_byp_need_to_wb(mem_byp_need_to_wb),
-        //.mem_byp_result    (mem_byp_result),
-        .mem_stall         (mem_stall)
+        .ibuffer_inst_out   (ibuffer_inst_out),
+        .ibuffer_pc_out     (ibuffer_pc_out),
+        .mem_stall(mem_stall)
 
     );
-    wire                      out_valid;
-    wire [       `LREG_RANGE] out_rs1;
-    wire [       `LREG_RANGE] out_rs2;
-    wire [       `LREG_RANGE] out_rd;
-    wire [        `SRC_RANGE] out_src1;
-    wire [        `SRC_RANGE] out_src2;
-    wire [        `SRC_RANGE] out_imm;
-    wire                      out_src1_is_reg;
-    wire                      out_src2_is_reg;
-    wire                      out_need_to_wb;
-    wire [    `CX_TYPE_RANGE] out_cx_type;
-    wire                      out_is_unsigned;
-    wire [   `ALU_TYPE_RANGE] out_alu_type;
-    wire                      out_is_word;
-    wire                      out_is_load;
-    wire                      out_is_imm;
-    wire                      out_is_store;
-    wire [               3:0] out_ls_size;
-    wire [`MULDIV_TYPE_RANGE] out_muldiv_type;
-    wire                      out_instr_valid;
-    wire [         `PC_RANGE] out_pc;
-    wire [      `INSTR_RANGE] out_instr;
-
 
 
     backend u_backend (
         .clock              (clock),
         .reset_n            (reset_n),
-        .rs1                (out_rs1),
-        .rs2                (out_rs2),
-        .rd                 (out_rd),
-        .src1               (out_src1),
-        .src2               (out_src2),
-        .imm                (out_imm),
-        .src1_is_reg        (out_src1_is_reg),
-        .src2_is_reg        (out_src2_is_reg),
-        .need_to_wb         (out_need_to_wb),
-        .cx_type            (out_cx_type),
-        .is_unsigned        (out_is_unsigned),
-        .alu_type           (out_alu_type),
-        .is_word            (out_is_word),
-        .is_load            (out_is_load),
-        .is_imm             (out_is_imm),
-        .is_store           (out_is_store),
-        .ls_size            (out_ls_size),
-        .muldiv_type        (out_muldiv_type),
-        .instr_valid        (out_instr_valid),
-        .pc                 (out_pc),
-        .instr              (out_instr),
-        .regfile_write_valid(regfile_write_valid),
-        .regfile_write_rd   (regfile_write_rd),
-        .regfile_write_data (regfile_write_data),
-        .redirect_valid     (redirect_valid),//output
+        .ibuffer_instr_valid(ibuffer_instr_valid),
+        .ibuffer_inst_out   (ibuffer_inst_out),
+        .ibuffer_pc_out     (ibuffer_pc_out),
+        .redirect_valid     (redirect_valid),
         .redirect_target    (redirect_target),
         .mem_stall          (mem_stall),
-        //trinity bus channel
         .tbus_index_valid   (tbus_index_valid),
         .tbus_index_ready   (tbus_index_ready),
         .tbus_index         (tbus_index),
@@ -255,45 +151,39 @@ module core_top #(
         .tbus_read_data     (tbus_read_data),
         .tbus_operation_done(tbus_operation_done),
         .tbus_operation_type(tbus_operation_type),
-        .flop_commit_valid  (flop_commit_valid),
-        .exe_byp_rd         (exe_byp_rd),
-        .exe_byp_need_to_wb (exe_byp_need_to_wb),
-        .exe_byp_result     (exe_byp_result)
-        //.mem_byp_rd            (mem_byp_rd),
-        //.mem_byp_need_to_wb    (mem_byp_need_to_wb),
-        //.mem_byp_result        (mem_byp_result)
+        .flop_commit_valid  (flop_commit_valid)
     );
 
 
 
     channel_arb u_channel_arb (
-        .clock            (clock),
-        .reset_n          (reset_n),
+        .clock                         (clock),
+        .reset_n                       (reset_n),
         //icache channel
-        .icache2arb_dbus_index_valid     (icache2arb_dbus_index_valid   ),
-        .icache2arb_dbus_index           (icache2arb_dbus_index         ),
-        .icache2arb_dbus_index_ready     (icache2arb_dbus_index_ready   ),
-        .icache2arb_dbus_read_data       (icache2arb_dbus_read_data     ),
-        .icache2arb_dbus_operation_done  (icache2arb_dbus_operation_done),
+        .icache2arb_dbus_index_valid   (icache2arb_dbus_index_valid),
+        .icache2arb_dbus_index         (icache2arb_dbus_index),
+        .icache2arb_dbus_index_ready   (icache2arb_dbus_index_ready),
+        .icache2arb_dbus_read_data     (icache2arb_dbus_read_data),
+        .icache2arb_dbus_operation_done(icache2arb_dbus_operation_done),
         //dcache channel
-        .dcache2arb_dbus_index_valid     (dcache2arb_dbus_index_valid    ),
-        .dcache2arb_dbus_index_ready     (dcache2arb_dbus_index_ready    ),
-        .dcache2arb_dbus_index           (dcache2arb_dbus_index          ),
-        .dcache2arb_dbus_write_data      (dcache2arb_dbus_write_data     ),
-        .dcache2arb_dbus_write_mask      (dcache2arb_dbus_write_mask     ),
-        .dcache2arb_dbus_read_data       (dcache2arb_dbus_read_data      ),
-        .dcache2arb_dbus_operation_done  (dcache2arb_dbus_operation_done ),
-        .dcache2arb_dbus_operation_type  (dcache2arb_dbus_operation_type ),
+        .dcache2arb_dbus_index_valid   (dcache2arb_dbus_index_valid),
+        .dcache2arb_dbus_index_ready   (dcache2arb_dbus_index_ready),
+        .dcache2arb_dbus_index         (dcache2arb_dbus_index),
+        .dcache2arb_dbus_write_data    (dcache2arb_dbus_write_data),
+        .dcache2arb_dbus_write_mask    (dcache2arb_dbus_write_mask),
+        .dcache2arb_dbus_read_data     (dcache2arb_dbus_read_data),
+        .dcache2arb_dbus_operation_done(dcache2arb_dbus_operation_done),
+        .dcache2arb_dbus_operation_type(dcache2arb_dbus_operation_type),
         //ddr channel
-        .ddr_chip_enable    (ddr_chip_enable),
-        .ddr_index          (ddr_index),
-        .ddr_write_enable   (ddr_write_enable),
-        .ddr_burst_mode     (ddr_burst_mode),
-        .ddr_write_mask     (ddr_write_mask),
-        .ddr_write_data     (ddr_write_data),
-        .ddr_read_data      (ddr_read_data),
-        .ddr_operation_done (ddr_operation_done),
-        .ddr_ready          (ddr_ready)
+        .ddr_chip_enable               (ddr_chip_enable),
+        .ddr_index                     (ddr_index),
+        .ddr_write_enable              (ddr_write_enable),
+        .ddr_burst_mode                (ddr_burst_mode),
+        .ddr_write_mask                (ddr_write_mask),
+        .ddr_write_data                (ddr_write_data),
+        .ddr_read_data                 (ddr_read_data),
+        .ddr_operation_done            (ddr_operation_done),
+        .ddr_ready                     (ddr_ready)
         //.redirect_valid     (redirect_valid)
     );
 

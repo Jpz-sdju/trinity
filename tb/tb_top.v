@@ -14,30 +14,49 @@ module tb_top (
     /* verilator lint_off UNDRIVEN */
     /* verilator lint_off UNUSEDSIGNAL */
     /* verilator lint_off PINMISSING */
-    // 输入信号定义
-    // ibuffer 输出信号
-    reg         ibuffer_instr_valid;  // 指令有效信号
-    reg  [31:0] ibuffer_inst_out;  // 指令输出
-    reg  [47:0] ibuffer_pc_out;  // 指令地址（PC）
+    
+        reg         ibuffer_instr_valid;
     wire        ibuffer_ready;
+    reg  [31:0] ibuffer_inst_out;
+    reg  [`PC_RANGE] ibuffer_pc_out;
 
-    wire        to_issue_instr0_valid;
-    wire        to_issue_instr0_ready;
-    wire        to_issue_instr1_valid;
-    wire        to_issue_instr1_ready;
+    wire            redirect_valid;
+    wire [`PC_RANGE] redirect_target;
+    wire            mem_stall;
 
-    // 实例化 ctrlblock 模块
-    ctrlblock u_ctrlblock (
-        .clock                (clock),
-        .reset_n              (reset_n),
-        .ibuffer_instr_valid  (ibuffer_instr_valid),
-        .ibuffer_inst_out     (ibuffer_inst_out),
-        .ibuffer_pc_out       (ibuffer_pc_out),
-        .ibuffer_ready        (ibuffer_ready),
-        .to_issue_instr0_valid(to_issue_instr0_valid),
-        .to_issue_instr0_ready(to_issue_instr0_ready)
+    // Trinity Bus Signals
+    reg                  tbus_index_valid;
+    wire                 tbus_index_ready;
+    reg  [`RESULT_RANGE] tbus_index;
+    reg  [`SRC_RANGE]    tbus_write_data;
+    reg  [63:0]          tbus_write_mask;
+
+    wire [`RESULT_RANGE] tbus_read_data;
+    wire                 tbus_operation_done;
+    wire [`TBUS_OPTYPE_RANGE] tbus_operation_type;
+
+    backend uut (
+        .clock(clock),
+        .reset_n(reset_n),
+        .ibuffer_instr_valid(ibuffer_instr_valid),
+        .ibuffer_ready(ibuffer_ready),
+        .ibuffer_inst_out(ibuffer_inst_out),
+        .ibuffer_pc_out(ibuffer_pc_out),
+
+        .redirect_valid(redirect_valid),
+        .redirect_target(redirect_target),
+        .mem_stall(mem_stall),
+
+        .tbus_index_valid(tbus_index_valid),
+        .tbus_index_ready(tbus_index_ready),
+        .tbus_index(tbus_index),
+        .tbus_write_data(tbus_write_data),
+        .tbus_write_mask(tbus_write_mask),
+
+        .tbus_read_data(tbus_read_data),
+        .tbus_operation_done(tbus_operation_done),
+        .tbus_operation_type(tbus_operation_type)
     );
-
     /* verilator lint_off PINMISSING */
     /* verilator lint_off UNUSEDSIGNAL */
     /* verilator lint_off UNDRIVEN */

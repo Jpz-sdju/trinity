@@ -3,7 +3,7 @@
 module decoder (
     input wire        ibuffer_instr_valid,
     input wire [31:0] ibuffer_inst_out,
-    input wire [47:0] ibuffer_pc_out,
+    input wire [`PC_RANGE] ibuffer_pc_out,
   
     //to regfile read 
     output reg  [ 4:0] lrs1,
@@ -25,7 +25,7 @@ module decoder (
     output reg  [`MULDIV_TYPE_RANGE] muldiv_type,
     output wire  decoder_instr_valid,
     output wire [              `INSTR_RANGE] decoder_inst_out,
-    output wire [              47:0] decoder_pc_out
+    output wire [              `PC_RANGE] decoder_pc_out
 
 );
     assign decoder_pc_out   = ibuffer_pc_out;

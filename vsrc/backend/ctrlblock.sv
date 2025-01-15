@@ -9,7 +9,7 @@ module ctrlblock (
 
     input  wire                ibuffer_instr_valid,
     input  wire [`INSTR_RANGE] ibuffer_inst_out,
-    input  wire [        47:0] ibuffer_pc_out,
+    input  wire [   `PC_RANGE] ibuffer_pc_out,
     output wire                ibuffer_ready,
     /* ---------------------------- issue information --------------------------- */
     input  wire                to_issue_instr0_ready,
@@ -17,7 +17,7 @@ module ctrlblock (
     output wire [ `LREG_RANGE] to_issue_instr0_lrs1,
     output wire [ `LREG_RANGE] to_issue_instr0_lrs2,
     output wire [ `LREG_RANGE] to_issue_instr0_lrd,
-    output wire [        47:0] to_issue_instr0_pc,
+    output wire [   `PC_RANGE] to_issue_instr0_pc,
     output wire [        31:0] to_issue_instr0,
 
     output wire [              63:0] to_issue_instr0_imm,
@@ -39,13 +39,16 @@ module ctrlblock (
     output wire [`PREG_RANGE] to_issue_instr0_prd,
     output wire [`PREG_RANGE] to_issue_instr0_old_prd,
 
+    output wire to_issue_instr0_src1_state,
+    output wire to_issue_instr0_src2_state,
+
     output wire                     to_issue_instr0_robidx_flag,
     output wire [`ROB_SIZE_LOG-1:0] to_issue_instr0_robidx,
 
     /* ------------------------------ redirect sigs ----------------------------- */
     input wire                     redirect_valid,
     input wire [             63:0] redirect_target,
-    input wire                     redirect_robflag,
+    input wire                     redirect_robidx_flag,
     input wire [`ROB_SIZE_LOG-1:0] redirect_robidx
 
 
@@ -55,6 +58,8 @@ module ctrlblock (
     /* -------------------------------------------------------------------------- */
     /*                          stage 0: decode to rename ,read rat               */
     /* -------------------------------------------------------------------------- */
+    wire                      from_dec_instr0_valid;
+    wire                      from_dec_instr0_ready;
     wire [               4:0] from_dec_instr0_lrs1;
     wire [               4:0] from_dec_instr0_lrs2;
     wire [               4:0] from_dec_instr0_lrd;
@@ -71,10 +76,8 @@ module ctrlblock (
     wire                      from_dec_instr0_is_load;
     wire                      from_dec_instr0_is_store;
     wire [               3:0] from_dec_instr0_ls_size;
-    wire                      from_dec_instr0_valid;
-    wire                      from_dec_instr0_ready;
     wire [              31:0] from_dec_instr0;
-    wire [              47:0] from_dec_instr0_pc;
+    wire [         `PC_RANGE] from_dec_instr0_pc;
 
     assign ibuffer_ready = from_dec_instr0_ready;
     decode u_decoder (
@@ -103,6 +106,8 @@ module ctrlblock (
 
     );
 
+    wire                      to_rename_instr0_valid;
+    wire                      to_rename_instr0_ready;
     wire [               4:0] to_rename_instr0_lrs1;
     wire [               4:0] to_rename_instr0_lrs2;
     wire [               4:0] to_rename_instr0_lrd;
@@ -119,10 +124,8 @@ module ctrlblock (
     wire                      to_rename_instr0_is_store;
     wire [               3:0] to_rename_instr0_ls_size;
     wire [`MULDIV_TYPE_RANGE] to_rename_instr0_muldiv_type;
-    wire                      to_rename_instr0_valid;
-    wire                      to_rename_instr0_ready;
     wire [              31:0] to_rename_instr0;
-    wire [              47:0] to_rename_instr0_pc;
+    wire [         `PC_RANGE] to_rename_instr0_pc;
 
 
     `PIPE_BEFORE_RENAME(to_rename_instr0, from_dec_instr0, 1'b0)
@@ -175,7 +178,7 @@ module ctrlblock (
     wire [       `LREG_RANGE] from_rename_instr0_lrs1;
     wire [       `LREG_RANGE] from_rename_instr0_lrs2;
     wire [       `LREG_RANGE] from_rename_instr0_lrd;
-    wire [              47:0] from_rename_instr0_pc;
+    wire [         `PC_RANGE] from_rename_instr0_pc;
     wire [      `INSTR_RANGE] from_rename_instr0;
 
 
@@ -330,7 +333,7 @@ module ctrlblock (
     wire [       `LREG_RANGE] to_dispatch_instr0_lrs1;
     wire [       `LREG_RANGE] to_dispatch_instr0_lrs2;
     wire [       `LREG_RANGE] to_dispatch_instr0_lrd;
-    wire [              47:0] to_dispatch_instr0_pc;
+    wire [         `PC_RANGE] to_dispatch_instr0_pc;
     wire [      `INSTR_RANGE] to_dispatch_instr0;
 
     wire [              63:0] to_dispatch_instr0_imm;
@@ -480,14 +483,14 @@ module ctrlblock (
     wire [`LREG_RANGE] commits0_lrd;
     wire [`PREG_RANGE] commits0_prd;
     wire [       31:0] commits0_instr;
-    wire [       47:0] commits0_pc;
+    wire [  `PC_RANGE] commits0_pc;
 
     wire               commits1_valid;
     wire [`PREG_RANGE] commits1_old_prd;
     wire [`LREG_RANGE] commits1_lrd;
     wire [`PREG_RANGE] commits1_prd;
     wire [       31:0] commits1_instr;
-    wire [       47:0] commits1_pc;
+    wire [  `PC_RANGE] commits1_pc;
 
     rob u_rob (
         .clock                 (clock),
@@ -537,11 +540,12 @@ module ctrlblock (
         .commits1_pc           (commits1_pc),
         .redirect_valid        (redirect_valid),
         .redirect_target       (redirect_target),
-        .redirect_robflag      (redirect_robflag),
+        .redirect_robidx_flag      (redirect_robidx_flag),
         .redirect_robidx       (redirect_robidx)
     );
 
-
+    assign to_issue_instr0_src1_state = 'b0;
+    assign to_issue_instr0_src2_state = 'b0;
 
 
     /* verilator lint_off UNUSEDSIGNAL */

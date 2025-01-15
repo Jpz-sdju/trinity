@@ -1,5 +1,6 @@
 `define LREG_RANGE 4:0
 `define PREG_RANGE 5:0
+`define PREG_LENGTH 6
 `define SRC_RANGE 63:0
 `define SRC_WIDTH 64
 
@@ -24,8 +25,8 @@
     10 = AUIPC
 */
 `define ALU_TYPE_WIDTH 11
-`define PC_RANGE 47:0
-`define PC_WIDTH 48
+`define PC_RANGE 63:0
+`define PC_WIDTH 63
 `define INSTR_RANGE 31:0
 `define CX_TYPE_RANGE 5:0
 /*

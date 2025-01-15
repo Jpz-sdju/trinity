@@ -1,6 +1,6 @@
 `include "defines.sv"
 /* verilator lint_off UNDRIVEN */
-    /* verilator lint_off UNUSEDSIGNAL */
+/* verilator lint_off UNUSEDSIGNAL */
 module dispatch (
     input  wire               clock,
     input  wire               reset_n,
@@ -10,7 +10,7 @@ module dispatch (
     input  wire [`LREG_RANGE] instr0_lrs1,
     input  wire [`LREG_RANGE] instr0_lrs2,
     input  wire [`LREG_RANGE] instr0_lrd,
-    input  wire [       47:0] instr0_pc,
+    input  wire [       `PC_RANGE] instr0_pc,
     input  wire [       31:0] instr0,
 
     input wire [              63:0] instr0_imm,
@@ -38,7 +38,7 @@ module dispatch (
     input  wire [`LREG_RANGE] instr1_lrs1,
     input  wire [`LREG_RANGE] instr1_lrs2,
     input  wire [`LREG_RANGE] instr1_lrd,
-    input  wire [       47:0] instr1_pc,
+    input  wire [       `PC_RANGE] instr1_pc,
     input  wire [       31:0] instr1,
 
     input wire [              63:0] instr1_imm,
@@ -60,11 +60,6 @@ module dispatch (
     input wire [`PREG_RANGE] instr1_prd,
     input wire [`PREG_RANGE] instr1_old_prd,
 
-    /* -----------------------------  issuequeue ---------------------------- */
-    input  wire to_issue_instr0_ready,
-    input  wire to_issue_instr1_ready,
-
-
     /* ----------------------------------- rob ---------------------------------- */
     //counter(temp sig)
     input wire [`ROB_SIZE_LOG-1:0] counter,
@@ -73,10 +68,11 @@ module dispatch (
 
     /* ------------------------ issue instr0 and enq rob ------------------------ */
     output wire               to_issue_instr0_valid,
+    input  wire               to_issue_instr0_ready,
     output wire [`LREG_RANGE] to_issue_instr0_lrs1,
     output wire [`LREG_RANGE] to_issue_instr0_lrs2,
     output wire [`LREG_RANGE] to_issue_instr0_lrd,
-    output wire [       47:0] to_issue_instr0_pc,
+    output wire [       `PC_RANGE] to_issue_instr0_pc,
     output wire [       31:0] to_issue_instr0,
 
     output wire [              63:0] to_issue_instr0_imm,
@@ -98,15 +94,16 @@ module dispatch (
     output wire [`PREG_RANGE] to_issue_instr0_prd,
     output wire [`PREG_RANGE] to_issue_instr0_old_prd,
 
-    output wire                to_issue_instr0_robidx_flag,
+    output wire                     to_issue_instr0_robidx_flag,
     output wire [`ROB_SIZE_LOG-1:0] to_issue_instr0_robidx,
 
     /* ------------------------ issue instr1 and enq rob ------------------------ */
     output wire               to_issue_instr1_valid,
+    input  wire               to_issue_instr1_ready,
     output wire [`LREG_RANGE] to_issue_instr1_lrs1,
     output wire [`LREG_RANGE] to_issue_instr1_lrs2,
     output wire [`LREG_RANGE] to_issue_instr1_lrd,
-    output wire [       47:0] to_issue_instr1_pc,
+    output wire [       `PC_RANGE] to_issue_instr1_pc,
     output wire [       31:0] to_issue_instr1,
 
     output wire [              63:0] to_issue_instr1_imm,
@@ -128,11 +125,15 @@ module dispatch (
     output wire [`PREG_RANGE] to_issue_instr1_prd,
     output wire [`PREG_RANGE] to_issue_instr1_old_prd,
 
-    output wire                to_issue_instr1_robidx_flag,
+    output wire                     to_issue_instr1_robidx_flag,
     output wire [`ROB_SIZE_LOG-1:0] to_issue_instr1_robidx
 
 
 );
+
+
+
+
 
 
     assign instr0_ready = 'b0;

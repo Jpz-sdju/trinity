@@ -1,17 +1,18 @@
 `include "defines.sv"
-module mem (
-    input  wire                  clock,
-    input  wire                  reset_n,
-    input  wire                  is_load,
-    input  wire                  is_store,
-    input  wire                  is_unsigned,
-    input  wire [    `SRC_RANGE] imm,
-    input  wire [    `SRC_RANGE] src1,
-    input  wire [    `SRC_RANGE] src2,
-    input  wire [`LS_SIZE_RANGE] ls_size,
-    input  wire                  instr_valid,
-    input  wire [     `PC_RANGE] pc,
-    input  wire [  `INSTR_RANGE] instr,
+module memblock (
+    input wire                     clock,
+    input wire                     reset_n,
+    input wire                     instr_valid,
+    input wire [      `PREG_RANGE] prd,
+    input wire                     is_load,
+    input wire                     is_store,
+    input wire                     is_unsigned,
+    input wire [       `SRC_RANGE] imm,
+    input wire [       `SRC_RANGE] src1,
+    input wire [       `SRC_RANGE] src2,
+    input wire [   `LS_SIZE_RANGE] ls_size,
+    input wire                     robidx_flag,
+    input wire [`ROB_SIZE_LOG-1:0] robidx,
 
     //trinity bus channel
     output reg                  tbus_index_valid,
@@ -20,23 +21,26 @@ module mem (
     output reg  [   `SRC_RANGE] tbus_write_data,
     output reg  [         63:0] tbus_write_mask,
 
-    input  wire [ `RESULT_RANGE] tbus_read_data,
-    input  wire                 tbus_operation_done,
-    output wire [  `TBUS_OPTYPE_RANGE] tbus_operation_type,
+    input  wire [     `RESULT_RANGE] tbus_read_data,
+    input  wire                      tbus_operation_done,
+    output wire [`TBUS_OPTYPE_RANGE] tbus_operation_type,
 
-    // output valid, pc , inst
-    output wire                 instr_valid_out,
-    output wire [    `PC_RANGE] pc_out,
-    output wire [ `INSTR_RANGE] instr_out,
-    output wire [`RESULT_RANGE] ls_address,
+    // output valid
+    output wire               out_instr_valid,
+    output wire               out_need_to_wb,
+    output wire [`PREG_RANGE] out_prd,
+    output wire               out_mmio,
+
+    output wire                     out_robidx_flag,
+    output wire [`ROB_SIZE_LOG-1:0] out_robidx,
     //read data to wb stage
-    output wire [`RESULT_RANGE] opload_read_data_wb,
+    output wire [    `RESULT_RANGE] opload_read_data_wb,
     //mem stall
-    output wire                 mem_stall
+    output wire                     mem_stall
 
 
 );
-
+    wire [`RESULT_RANGE] ls_address;
     agu u_agu (
         .src1      (src1),
         .imm       (imm),
@@ -45,9 +49,8 @@ module mem (
 
 
 
-    assign instr_valid_out = instr_valid;
-    assign pc_out          = pc;
-    assign instr_out       = instr;
+    assign out_instr_valid = instr_valid;
+    assign out_need_to_wb  = is_load;
 
 
     localparam IDLE = 2'b00;
@@ -84,18 +87,18 @@ module mem (
     reg        outstanding_store_q;
 
     always @(posedge clock or negedge reset_n) begin
-        if(~reset_n)begin
+        if (~reset_n) begin
             outstanding_load_q <= 'b0;
-        end else if(read_fire & ~tbus_operation_done) begin
+        end else if (read_fire & ~tbus_operation_done) begin
             outstanding_load_q <= 'b1;
         end else if (tbus_operation_done) begin
             outstanding_load_q <= 'b0;
         end
     end
     always @(posedge clock or negedge reset_n) begin
-        if(~reset_n)begin
+        if (~reset_n) begin
             outstanding_store_q <= 'b0;
-        end else if(write_fire & ~tbus_operation_done) begin
+        end else if (write_fire & ~tbus_operation_done) begin
             outstanding_store_q <= 'b1;
         end else if (tbus_operation_done) begin
             outstanding_store_q <= 'b0;
@@ -105,9 +108,9 @@ module mem (
     wire opload_operation_done;
     wire opstore_operation_done;
 
-    assign opload_operation_done = outstanding_load_q & tbus_operation_done;
+    assign opload_operation_done  = outstanding_load_q & tbus_operation_done;
     assign opstore_operation_done = outstanding_store_q & tbus_operation_done;
-    
+
     wire                 mmio_valid = (is_load | is_store) & ('h30000000 <= ls_address) & (ls_address <= 'h40700000);
 
 
@@ -221,8 +224,11 @@ module mem (
 
     end
 
-    assign mem_stall =  (~ls_idle | tbus_index_valid) & //when tbus_index_valid = 1, means lsu have an req due to send, stall immediately
-                        ~((ls_outstanding) & (opload_operation_done | opstore_operation_done)); //when operation done, no need to stall anymore
-                         
+    assign mem_stall       = (~ls_idle | tbus_index_valid) &  //when tbus_index_valid = 1, means lsu have an req due to send, stall immediately
+ ~((ls_outstanding) & (opload_operation_done | opstore_operation_done));  //when operation done, no need to stall anymore
 
+    assign out_mmio        = (is_load | is_store) & instr_valid & ('h30000000 <= ls_address) & (ls_address <= 'h40700000);
+
+    assign out_robidx_flag = robidx_flag;
+    assign out_robidx      = robidx;
 endmodule

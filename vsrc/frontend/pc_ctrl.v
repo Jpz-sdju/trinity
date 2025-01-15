@@ -3,18 +3,18 @@ module pc_ctrl (
     input wire reset_n, // Active-low reset signal
 
     //boot and interrupt addr
-    input wire [47:0] boot_addr,        // 48-bit boot address
+    input wire [`PC_RANGE] boot_addr,        // 48-bit boot address
     //input wire        interrupt_valid,  // Interrupt valid signal
-    //input wire [47:0] interrupt_addr,   // 48-bit interrupt address
+    //input wire [`PC_RANGE] interrupt_addr,   // 48-bit interrupt address
 
     //port with pju
     input wire        redirect_valid,
-//    input wire [47:0] redirect_target,
+//    input wire [`PC_RANGE] redirect_target,
     input wire [63:0] redirect_target,
 
     //ports with ibuffer
     input  wire        fetch_inst,      // ibuffer level signal
-//    output reg  [47:0] pc,              // 48-bit Program Counter  
+//    output reg  [`PC_RANGE] pc,              // 48-bit Program Counter  
     output reg  [63:0] pc,              // 63-bit Program Counter   
 
     //ports with channel_arb

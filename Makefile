@@ -1,7 +1,11 @@
 V_FLAG = --cc --exe --build -Wall
 INCDIR = -I./tb/ \
 	-I./vsrc/\
+	-I./vsrc/pipereg\
 	-I./vsrc/backend\
+	-I./vsrc/backend/decode\
+	-I./vsrc/backend/rename\
+	-I./vsrc/backend/dispatch\
 	-I./vsrc/frontend\
 	-I./vsrc/include/
 SIM_CPP = ./csrc/sim.cpp

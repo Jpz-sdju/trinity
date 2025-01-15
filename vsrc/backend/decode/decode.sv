@@ -1,7 +1,4 @@
 module decode (
-    input wire clock,
-    input wire reset_n,
-
     input wire        ibuffer_instr_valid,
     input wire [31:0] ibuffer_inst_out,
     input wire [47:0] ibuffer_pc_out,
@@ -10,8 +7,6 @@ module decode (
     output wire [               4:0] rs1,
     output wire [               4:0] rs2,
     output wire [               4:0] rd,
-    output wire [              63:0] src1,
-    output wire [              63:0] src2,
     output wire [              63:0] imm,
     output wire                      src1_is_reg,
     output wire                      src2_is_reg,
@@ -31,17 +26,12 @@ module decode (
 );
 
     decoder u_decoder (
-        .clock              (clock),
-        .reset_n            (reset_n),
-        .fifo_empty         (),
         .ibuffer_instr_valid(ibuffer_instr_valid),
         .ibuffer_inst_out   (ibuffer_inst_out),
         .ibuffer_pc_out     (ibuffer_pc_out),
         .rs1                (rs1),
         .rs2                (rs2),
         .rd                 (rd),
-        .src1               (src1),
-        .src2               (src2),
         .imm                (imm),
         .src1_is_reg        (src1_is_reg),
         .src2_is_reg        (src2_is_reg),

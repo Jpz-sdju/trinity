@@ -24,6 +24,7 @@ module pipereg_2 (
     input wire [         `PC_RANGE] pc,
     input wire [      `INSTR_RANGE] instr,
 
+    //sig below is 
     input wire [`PREG_RANGE] prs1,
     input wire [`PREG_RANGE] prs2,
     input wire [`PREG_RANGE] prd,

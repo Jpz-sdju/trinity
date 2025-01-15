@@ -1,3 +1,4 @@
+
 module freelist #(
     parameter NUM_REGS = 32,  // Assume there are 32 physical registers
     parameter LOG_NUM_REGS = 5,  // Assume there are 32 physical registers
@@ -116,7 +117,7 @@ module freelist #(
         if (!reset_n) begin
             // Initialize freelist and available_count on reset
             for (i = 0; i < NUM_REGS; i = i + 1) begin
-                freelist_queue[i] = i[5:0];
+                freelist_queue[i] <= i[5:0];
             end
         end else begin
             if (write0_valid) begin
@@ -131,3 +132,4 @@ module freelist #(
     end
 
 endmodule
+

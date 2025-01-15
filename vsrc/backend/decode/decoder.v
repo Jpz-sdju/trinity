@@ -1,8 +1,6 @@
 `include "defines.sv"
+/* verilator lint_off UNUSEDSIGNAL */
 module decoder (
-    input wire        clock,
-    input wire        reset_n,
-    input wire        fifo_empty,
     input wire        ibuffer_instr_valid,
     input wire [31:0] ibuffer_inst_out,
     input wire [47:0] ibuffer_pc_out,
@@ -12,8 +10,6 @@ module decoder (
     output reg  [ 4:0] rs2,
 
     output reg  [               4:0] rd,
-    output reg  [              63:0] src1,
-    output reg  [              63:0] src2,
     output reg  [              63:0] imm,
     output reg                       src1_is_reg,
     output reg                       src2_is_reg,
@@ -27,8 +23,8 @@ module decoder (
     output reg                       is_store,
     output reg  [               3:0] ls_size,
     output reg  [`MULDIV_TYPE_RANGE] muldiv_type,
-    output wire [              47:0] decoder_instr_valid,
-    output wire [              47:0] decoder_inst_out,
+    output wire  decoder_instr_valid,
+    output wire [              `INSTR_RANGE] decoder_inst_out,
     output wire [              47:0] decoder_pc_out
 
 );
@@ -104,13 +100,13 @@ module decoder (
             need_to_wb       = 1'b0;
             cx_type          = 6'b0;
             is_unsigned      = 1'b0;
-            alu_type         = 10'b0;
+            alu_type         = 11'b0;
             is_word          = 1'b0;
             is_imm           = 1'b0;
             is_load          = 1'b0;
             is_store         = 1'b0;
             ls_size          = 4'b0;
-            muldiv_type      = 12'b0;
+            muldiv_type      = 13'b0;
 
 
 
@@ -412,3 +408,5 @@ module decoder (
 
 
 endmodule
+/* verilator lint_off UNUSEDSIGNAL */
+

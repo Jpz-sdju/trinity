@@ -1,4 +1,5 @@
 `include "defines.sv"
+/* verilator lint_off UNUSEDSIGNAL */
 module rename (
 
     //instr 0
@@ -136,6 +137,7 @@ module rename (
     assign to_dispatch_instr0_rs2         = instr0_rs2;
     assign to_dispatch_instr0_rd          = instr0_rd;
     assign to_dispatch_instr0_pc          = instr0_pc;
+    assign to_dispatch_instr0             = instr0;
     assign to_dispatch_instr0_old_prd     = instr0_rat_prd;
 
 
@@ -159,6 +161,8 @@ module rename (
     assign to_dispatch_instr1_rs2         = instr1_rs2;
     assign to_dispatch_instr1_rd          = instr1_rd;
     assign to_dispatch_instr1_pc          = instr1_pc;
+    assign to_dispatch_instr1             = instr1;
+
     assign to_dispatch_instr1_old_prd     = instr1_rat_prd;
 
 
@@ -221,3 +225,7 @@ module rename (
     assign instr1_rat_rename_addr  = instr1_rd;
     assign instr1_rat_rename_data  = instr1_freelist_resp;
 endmodule
+
+/* verilator lint_off UNUSEDSIGNAL */
+
+

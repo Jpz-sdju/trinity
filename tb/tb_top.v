@@ -15,7 +15,7 @@ module tb_top (
     /* verilator lint_off UNUSEDSIGNAL */
     // 输入信号定义
        // ibuffer 输出信号
-    reg [31:0] ibuffer_instr_valid;  // 指令有效信号
+    reg  ibuffer_instr_valid;  // 指令有效信号
     reg [31:0] ibuffer_inst_out;     // 指令输出
     reg [47:0] ibuffer_pc_out;       // 指令地址（PC）
 

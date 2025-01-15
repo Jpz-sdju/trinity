@@ -1,12 +1,13 @@
 module pipereg (
-    input wire               clock,
-    input wire               reset_n,
+    input wire clock,
+    input wire reset_n,
+    input      redirect_flush,
+
+    /* --------------------------------- level 1 -------------------------------- */
     input wire               stall,
     input wire [`LREG_RANGE] rs1,
     input wire [`LREG_RANGE] rs2,
     input wire [`LREG_RANGE] rd,
-    input wire [ `SRC_RANGE] src1,
-    input wire [ `SRC_RANGE] src2,
     input wire [ `SRC_RANGE] imm,
     input wire               src1_is_reg,
     input wire               src2_is_reg,
@@ -26,6 +27,15 @@ module pipereg (
     input wire [         `PC_RANGE] pc,
     input wire [      `INSTR_RANGE] instr,
 
+
+    /* --------------------------------- level 2 -------------------------------- */
+    //sig below is 
+    input wire [`PREG_RANGE] prs1,
+    input wire [`PREG_RANGE] prs2,
+    input wire [`PREG_RANGE] prd,
+    input wire [`PREG_RANGE] old_prd,
+
+    /* --------------------------------- level 3 -------------------------------- */
     //note: sig below is emerge from exu
     input wire [`RESULT_RANGE] ls_address,
     input wire [`RESULT_RANGE] alu_result,
@@ -35,10 +45,8 @@ module pipereg (
     //note: dont not to fill until mem stage done
     input wire [`RESULT_RANGE] opload_read_data_wb,
 
-    //flush
-    input redirect_flush,
 
-    // outputs
+    /* --------------------------------- outputs -------------------------------- */
     output reg [`LREG_RANGE] out_rs1,
     output reg [`LREG_RANGE] out_rs2,
     output reg [`LREG_RANGE] out_rd,
@@ -74,7 +82,7 @@ module pipereg (
 
     always @(posedge clock or negedge reset_n) begin
         if (~reset_n || redirect_flush & ~stall) begin
-            out_instr_valid               <= 'b0;
+            out_instr_valid         <= 'b0;
             out_rs1                 <= 'b0;
             out_rs2                 <= 'b0;
             out_rd                  <= 'b0;
@@ -103,7 +111,7 @@ module pipereg (
             out_muldiv_result       <= 'b0;
             out_opload_read_data_wb <= 'b0;
         end else if (stall) begin
-            out_instr_valid               <= out_instr_valid;
+            out_instr_valid         <= out_instr_valid;
             out_rs1                 <= out_rs1;
             out_rs2                 <= out_rs2;
             out_rd                  <= out_rd;
@@ -124,13 +132,20 @@ module pipereg (
             out_muldiv_type         <= out_muldiv_type;
             out_pc                  <= out_pc;
             out_instr               <= out_instr;
+
+
             out_ls_address          <= out_ls_address;
             out_alu_result          <= out_alu_result;
             out_bju_result          <= out_bju_result;
             out_muldiv_result       <= out_muldiv_result;
             out_opload_read_data_wb <= out_opload_read_data_wb;
+
+            out_prs1                <= out_prs1;
+            out_prs2                <= out_prs2;
+            out_prd                 <= out_prd;
+            out_old_prd             <= out_old_prd;
         end else begin
-            out_instr_valid               <= instr_valid;
+            out_instr_valid         <= instr_valid;
             out_rs1                 <= rs1;
             out_rs2                 <= rs2;
             out_rd                  <= rd;
@@ -159,6 +174,11 @@ module pipereg (
             out_muldiv_result       <= muldiv_result;
 
             out_opload_read_data_wb <= opload_read_data_wb;
+
+            out_prs1                <= prs1;
+            out_prs2                <= prs2;
+            out_prd                 <= prd;
+            out_old_prd             <= old_prd;
 
         end
     end

@@ -6,10 +6,10 @@ module decoder (
     input wire [47:0] ibuffer_pc_out,
   
     //to regfile read 
-    output reg  [ 4:0] rs1,
-    output reg  [ 4:0] rs2,
+    output reg  [ 4:0] lrs1,
+    output reg  [ 4:0] lrs2,
 
-    output reg  [               4:0] rd,
+    output reg  [               4:0] lrd,
     output reg  [              63:0] imm,
     output reg                       src1_is_reg,
     output reg                       src2_is_reg,
@@ -92,9 +92,9 @@ module decoder (
             imm_jtype_64     = {{43{imm_jtype[20]}}, imm_jtype};
 
 
-            rs1              = ibuffer_inst_out[19:15];
-            rs2              = ibuffer_inst_out[24:20];
-            rd               = ibuffer_inst_out[11:7];
+            lrs1              = ibuffer_inst_out[19:15];
+            lrs2              = ibuffer_inst_out[24:20];
+            lrd               = ibuffer_inst_out[11:7];
             src1_is_reg      = 1'b0;
             src2_is_reg      = 1'b0;
             need_to_wb       = 1'b0;

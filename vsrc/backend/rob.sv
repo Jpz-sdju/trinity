@@ -22,9 +22,11 @@ module rob (
     input wire [`PREG_RANGE] instr1_prd,
     input wire [`PREG_RANGE] instr1_old_prd,
     input wire [       47:0] instr1_pc,
+    //counter(temp sig)
+    output reg [`ROB_SIZE_LOG-1:0] counter,
+
 
     //robidx output put
-
     output reg                     enq_robidx_flag,
     output reg [`ROB_SIZE_LOG-1:0] enq_robidx,
 
@@ -65,7 +67,7 @@ module rob (
     input wire                     redirect_robflag,
     input wire [`ROB_SIZE_LOG-1:0] redirect_robidx
 
-    //
+
 
 );
 
@@ -263,6 +265,18 @@ module rob (
 
         end
     endgenerate
+    reg [`ROB_SIZE_LOG-1:0] counter_next;
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            counter <= 'b0;
+        end else begin
+            counter <= counter_next;
+        end
+    end
+
+always @(*) begin
+    counter_next = counter + enq_num[`ROB_SIZE_LOG-1:0] - deq_num[`ROB_SIZE_LOG-1:0];
+end
 endmodule
 /* verilator lint_off UNDRIVEN */
 /* verilator lint_off UNUSEDSIGNAL */

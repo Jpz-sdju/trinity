@@ -5,19 +5,19 @@ module renametable (
 
     //read req from decode
     input wire       instr0_src1_is_reg,
-    input wire [4:0] instr0_rs1,
+    input wire [4:0] instr0_lrs1,
     input wire       instr0_src2_is_reg,
-    input wire [4:0] instr0_rs2,
+    input wire [4:0] instr0_lrs2,
     input wire       instr0_need_to_wb,
-    input wire [4:0] instr0_rd,
+    input wire [4:0] instr0_lrd,
 
 
     input wire       instr1_src1_is_reg,
-    input wire [4:0] instr1_rs1,
+    input wire [4:0] instr1_lrs1,
     input wire       instr1_src2_is_reg,
-    input wire [4:0] instr1_rs2,
+    input wire [4:0] instr1_lrs2,
     input wire       instr1_need_to_wb,
-    input wire [4:0] instr1_rd,
+    input wire [4:0] instr1_lrd,
 
     //read data to rename
     output wire [`PREG_RANGE] instr0_rat_prs1,
@@ -29,29 +29,29 @@ module renametable (
     output wire [`PREG_RANGE] instr1_rat_prd,
 
     //write request from rename
-    input wire       instr0_rat_rename_valid,
-    input wire [4:0] instr0_rat_rename_addr,
+    input wire               instr0_rat_rename_valid,
+    input wire [        4:0] instr0_rat_rename_addr,
     input wire [`PREG_RANGE] instr0_rat_rename_data,
 
-    input wire       instr1_rat_rename_valid,
-    input wire [4:0] instr1_rat_rename_addr,
+    input wire               instr1_rat_rename_valid,
+    input wire [        4:0] instr1_rat_rename_addr,
     input wire [`PREG_RANGE] instr1_rat_rename_data
 
 );
 
-    reg [ `PREG_RANGE] renametables          [0:31];
+    reg [`PREG_RANGE] renametables          [0:31];
 
-    reg [31:0] renametables_wren_dec;
-    reg [ `PREG_RANGE] renametables_wdata_dec[0:31];
+    reg [       31:0] renametables_wren_dec;
+    reg [`PREG_RANGE] renametables_wdata_dec[0:31];
 
 
-    assign instr0_rat_prs1 = instr0_src1_is_reg ? renametables[instr0_rs1] : 'b0;  //could gate?
-    assign instr0_rat_prs2 = instr0_src2_is_reg ? renametables[instr0_rs2] : 'b0;
-    assign instr0_rat_prd  = instr0_need_to_wb ? renametables[instr0_rd] : 'b0;
+    assign instr0_rat_prs1 = instr0_src1_is_reg ? renametables[instr0_lrs1] : 'b0;  //could gate?
+    assign instr0_rat_prs2 = instr0_src2_is_reg ? renametables[instr0_lrs2] : 'b0;
+    assign instr0_rat_prd  = instr0_need_to_wb ? renametables[instr0_lrd] : 'b0;
 
-    assign instr1_rat_prs1 = instr1_src1_is_reg ? renametables[instr1_rs1] : 'b0;  //could gate?
-    assign instr1_rat_prs2 = instr1_src2_is_reg ? renametables[instr1_rs2] : 'b0;
-    assign instr1_rat_prd  = instr1_need_to_wb ? renametables[instr1_rd] : 'b0;
+    assign instr1_rat_prs1 = instr1_src1_is_reg ? renametables[instr1_lrs1] : 'b0;  //could gate?
+    assign instr1_rat_prs2 = instr1_src2_is_reg ? renametables[instr1_lrs2] : 'b0;
+    assign instr1_rat_prd  = instr1_need_to_wb ? renametables[instr1_lrd] : 'b0;
 
     always @(*) begin
         integer i;

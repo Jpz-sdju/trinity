@@ -64,11 +64,11 @@ module regfile64 (
                 registers[i] <= 64'b0;
             end
         end else begin
-            if (write0_en && write0_idx != `PREG_LENGTH'b0) begin
+            if (write0_en && (write0_idx != `PREG_LENGTH'b0)) begin
                 // Write to write0_idx only if write0_idx is not zero (x0 is always 0 in RISC-V)
                 registers[write0_idx] <= write0_data;
             end
-            if (write1_en && write1_idx != `PREG_LENGTH'b0) begin
+            if (write1_en && (write1_idx != `PREG_LENGTH'b0)) begin
                 // Write to write0_idx only if write0_idx is not zero (x0 is always 0 in RISC-V)
                 registers[write1_idx] <= write1_data;
             end
@@ -79,7 +79,7 @@ module regfile64 (
     always @(*) begin
         if (read0_en) begin
             // Forward write0_data if write0_en is active and addresses match
-            if (write0_en && write0_idx == read0_idx && write0_idx != `PREG_LENGTH'b0) begin
+            if (write0_en && (write0_idx == read0_idx) && (write0_idx != `PREG_LENGTH'b0)) begin
                 read0_data = write0_data;
             end else if (write1_en && write1_idx == read0_idx && write1_idx != `PREG_LENGTH'b0) begin
                 read0_data = write1_data;
@@ -92,9 +92,9 @@ module regfile64 (
     always @(*) begin
         if (read1_en) begin
             // Forward write0_data if write0_en is active and addresses match
-            if (write0_en && write0_idx == read1_idx && write0_idx != `PREG_LENGTH'b0) begin
+            if (write0_en && (write0_idx == read1_idx) && (write0_idx != `PREG_LENGTH'b0)) begin
                 read1_data = write0_data;
-            end else if (write1_en && write1_idx == read1_idx && write1_idx != `PREG_LENGTH'b0) begin
+            end else if (write1_en && (write1_idx == read1_idx) && (write1_idx != `PREG_LENGTH'b0)) begin
                 read1_data = write1_data;
             end else begin
                 read1_data = registers[read1_idx];

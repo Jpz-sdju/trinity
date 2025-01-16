@@ -43,6 +43,7 @@ module SimTop (
         end
     end
 
+
     core_top u_core_top (
         .clock                 (clock),
         .reset_n               (~reset),

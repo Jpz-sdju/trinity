@@ -68,8 +68,39 @@ module backend (
     wire                      to_issue_instr0_src1_state;
     wire                      to_issue_instr0_src2_state;
 
-
-
+    /* ------------------- debug:to pregfile read for difftest ------------------ */
+    wire [       `PREG_RANGE] debug_preg0;
+    wire [       `PREG_RANGE] debug_preg1;
+    wire [       `PREG_RANGE] debug_preg2;
+    wire [       `PREG_RANGE] debug_preg3;
+    wire [       `PREG_RANGE] debug_preg4;
+    wire [       `PREG_RANGE] debug_preg5;
+    wire [       `PREG_RANGE] debug_preg6;
+    wire [       `PREG_RANGE] debug_preg7;
+    wire [       `PREG_RANGE] debug_preg8;
+    wire [       `PREG_RANGE] debug_preg9;
+    wire [       `PREG_RANGE] debug_preg10;
+    wire [       `PREG_RANGE] debug_preg11;
+    wire [       `PREG_RANGE] debug_preg12;
+    wire [       `PREG_RANGE] debug_preg13;
+    wire [       `PREG_RANGE] debug_preg14;
+    wire [       `PREG_RANGE] debug_preg15;
+    wire [       `PREG_RANGE] debug_preg16;
+    wire [       `PREG_RANGE] debug_preg17;
+    wire [       `PREG_RANGE] debug_preg18;
+    wire [       `PREG_RANGE] debug_preg19;
+    wire [       `PREG_RANGE] debug_preg20;
+    wire [       `PREG_RANGE] debug_preg21;
+    wire [       `PREG_RANGE] debug_preg22;
+    wire [       `PREG_RANGE] debug_preg23;
+    wire [       `PREG_RANGE] debug_preg24;
+    wire [       `PREG_RANGE] debug_preg25;
+    wire [       `PREG_RANGE] debug_preg26;
+    wire [       `PREG_RANGE] debug_preg27;
+    wire [       `PREG_RANGE] debug_preg28;
+    wire [       `PREG_RANGE] debug_preg29;
+    wire [       `PREG_RANGE] debug_preg30;
+    wire [       `PREG_RANGE] debug_preg31;
 
     /* -------------------------------------------------------------------------- */
     /*                                ctrl block                                  */
@@ -123,7 +154,40 @@ module backend (
         .writeback1_need_to_wb      (writeback1_need_to_wb),
         .writeback1_mmio            (writeback1_mmio),
         .writeback1_robidx_flag     (writeback1_robidx_flag),
-        .writeback1_robidx          (writeback1_robidx)
+        .writeback1_robidx          (writeback1_robidx),
+        //debug
+        .debug_preg0                (debug_preg0),
+        .debug_preg1                (debug_preg1),
+        .debug_preg2                (debug_preg2),
+        .debug_preg3                (debug_preg3),
+        .debug_preg4                (debug_preg4),
+        .debug_preg5                (debug_preg5),
+        .debug_preg6                (debug_preg6),
+        .debug_preg7                (debug_preg7),
+        .debug_preg8                (debug_preg8),
+        .debug_preg9                (debug_preg9),
+        .debug_preg10               (debug_preg10),
+        .debug_preg11               (debug_preg11),
+        .debug_preg12               (debug_preg12),
+        .debug_preg13               (debug_preg13),
+        .debug_preg14               (debug_preg14),
+        .debug_preg15               (debug_preg15),
+        .debug_preg16               (debug_preg16),
+        .debug_preg17               (debug_preg17),
+        .debug_preg18               (debug_preg18),
+        .debug_preg19               (debug_preg19),
+        .debug_preg20               (debug_preg20),
+        .debug_preg21               (debug_preg21),
+        .debug_preg22               (debug_preg22),
+        .debug_preg23               (debug_preg23),
+        .debug_preg24               (debug_preg24),
+        .debug_preg25               (debug_preg25),
+        .debug_preg26               (debug_preg26),
+        .debug_preg27               (debug_preg27),
+        .debug_preg28               (debug_preg28),
+        .debug_preg29               (debug_preg29),
+        .debug_preg30               (debug_preg30),
+        .debug_preg31               (debug_preg31)
     );
 
     /* -------------------------------------------------------------------------- */
@@ -259,21 +323,54 @@ module backend (
     reg                      writeback1_robidx_flag;
     reg  [`ROB_SIZE_LOG-1:0] writeback1_robidx;
     regfile64 u_regfile64 (
-        .clock      (clock),
-        .reset_n    (reset_n),
-        .read0_en   (deq_instr0_src1_is_reg),
-        .read1_en   (deq_instr0_src2_is_reg),
-        .read0_idx  (deq_instr0_prs1),
-        .read1_idx  (deq_instr0_prs2),
-        .read0_data (deq_instr0_src1),
-        .read1_data (deq_instr0_src2),
-        .write0_en  (writeback0_instr_valid & writeback0_need_to_wb),
-        .write0_idx (writeback0_prd),
-        .write0_data(writeback0_result),
+        .clock       (clock),
+        .reset_n     (reset_n),
+        .read0_en    (deq_instr0_src1_is_reg),
+        .read1_en    (deq_instr0_src2_is_reg),
+        .read0_idx   (deq_instr0_prs1),
+        .read1_idx   (deq_instr0_prs2),
+        .read0_data  (deq_instr0_src1),
+        .read1_data  (deq_instr0_src2),
+        .write0_en   (writeback0_instr_valid & writeback0_need_to_wb),
+        .write0_idx  (writeback0_prd),
+        .write0_data (writeback0_result),
         //if mmio l/s,dont not to modify regfile to pass difftest
-        .write1_en  (writeback1_instr_valid & writeback1_need_to_wb & ~writeback1_mmio),
-        .write1_idx (writeback1_prd),
-        .write1_data(writeback1_result)
+        .write1_en   (writeback1_instr_valid & writeback1_need_to_wb & ~writeback1_mmio),
+        .write1_idx  (writeback1_prd),
+        .write1_data (writeback1_result),
+        //debug
+        .debug_preg0 (debug_preg0),
+        .debug_preg1 (debug_preg1),
+        .debug_preg2 (debug_preg2),
+        .debug_preg3 (debug_preg3),
+        .debug_preg4 (debug_preg4),
+        .debug_preg5 (debug_preg5),
+        .debug_preg6 (debug_preg6),
+        .debug_preg7 (debug_preg7),
+        .debug_preg8 (debug_preg8),
+        .debug_preg9 (debug_preg9),
+        .debug_preg10(debug_preg10),
+        .debug_preg11(debug_preg11),
+        .debug_preg12(debug_preg12),
+        .debug_preg13(debug_preg13),
+        .debug_preg14(debug_preg14),
+        .debug_preg15(debug_preg15),
+        .debug_preg16(debug_preg16),
+        .debug_preg17(debug_preg17),
+        .debug_preg18(debug_preg18),
+        .debug_preg19(debug_preg19),
+        .debug_preg20(debug_preg20),
+        .debug_preg21(debug_preg21),
+        .debug_preg22(debug_preg22),
+        .debug_preg23(debug_preg23),
+        .debug_preg24(debug_preg24),
+        .debug_preg25(debug_preg25),
+        .debug_preg26(debug_preg26),
+        .debug_preg27(debug_preg27),
+        .debug_preg28(debug_preg28),
+        .debug_preg29(debug_preg29),
+        .debug_preg30(debug_preg30),
+        .debug_preg31(debug_preg31)
     );
 
     //assign intblock valid

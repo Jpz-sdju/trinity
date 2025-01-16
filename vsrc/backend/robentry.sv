@@ -120,12 +120,16 @@ module robentry (
 
 
 
-    assign deq         = rob_entries_valid & rob_entries_complete;
-    assign deq_pc      = rob_entries_pc;
-    assign deq_instr   = rob_entries_instr;
-    assign deq_lrd     = rob_entries_lrd;
-    assign deq_prd     = rob_entries_prd;
-    assign deq_old_prd = rob_entries_old_prd;
+    assign deq            = rob_entries_valid & rob_entries_complete;
+    assign deq_pc         = rob_entries_pc;
+    assign deq_instr      = rob_entries_instr;
+    assign deq_lrd        = rob_entries_lrd;
+    assign deq_prd        = rob_entries_prd;
+    assign deq_old_prd    = rob_entries_old_prd;
+    assign deq_need_to_wb = rob_entries_need_to_wb;
+    assign deq_skip       = rob_entries_skip;
+
+
 endmodule
 
 /* verilator lint_off UNDRIVEN */

@@ -35,7 +35,53 @@ module renametable (
 
     input wire               instr1_rat_rename_valid,
     input wire [        4:0] instr1_rat_rename_addr,
-    input wire [`PREG_RANGE] instr1_rat_rename_data
+    input wire [`PREG_RANGE] instr1_rat_rename_data,
+
+
+    //arch rat write 
+    input wire               commits0_valid,
+    input wire               commits0_need_to_wb,
+    input wire [`LREG_RANGE] commits0_lrd,
+    input wire [`PREG_RANGE] commits0_prd,
+
+    input wire               commits1_valid,
+    input wire               commits1_need_to_wb,
+    input wire [`LREG_RANGE] commits1_lrd,
+    input wire [`PREG_RANGE] commits1_prd,
+
+    //debug
+    output wire [`PREG_RANGE] debug_preg0,
+    output wire [`PREG_RANGE] debug_preg1,
+    output wire [`PREG_RANGE] debug_preg2,
+    output wire [`PREG_RANGE] debug_preg3,
+    output wire [`PREG_RANGE] debug_preg4,
+    output wire [`PREG_RANGE] debug_preg5,
+    output wire [`PREG_RANGE] debug_preg6,
+    output wire [`PREG_RANGE] debug_preg7,
+    output wire [`PREG_RANGE] debug_preg8,
+    output wire [`PREG_RANGE] debug_preg9,
+    output wire [`PREG_RANGE] debug_preg10,
+    output wire [`PREG_RANGE] debug_preg11,
+    output wire [`PREG_RANGE] debug_preg12,
+    output wire [`PREG_RANGE] debug_preg13,
+    output wire [`PREG_RANGE] debug_preg14,
+    output wire [`PREG_RANGE] debug_preg15,
+    output wire [`PREG_RANGE] debug_preg16,
+    output wire [`PREG_RANGE] debug_preg17,
+    output wire [`PREG_RANGE] debug_preg18,
+    output wire [`PREG_RANGE] debug_preg19,
+    output wire [`PREG_RANGE] debug_preg20,
+    output wire [`PREG_RANGE] debug_preg21,
+    output wire [`PREG_RANGE] debug_preg22,
+    output wire [`PREG_RANGE] debug_preg23,
+    output wire [`PREG_RANGE] debug_preg24,
+    output wire [`PREG_RANGE] debug_preg25,
+    output wire [`PREG_RANGE] debug_preg26,
+    output wire [`PREG_RANGE] debug_preg27,
+    output wire [`PREG_RANGE] debug_preg28,
+    output wire [`PREG_RANGE] debug_preg29,
+    output wire [`PREG_RANGE] debug_preg30,
+    output wire [`PREG_RANGE] debug_preg31
 
 );
 
@@ -86,6 +132,56 @@ module renametable (
                 renametables[i] <= renametables_wdata_dec[i];
             end
         end
-
     end
+
+
+    /* -------------------------------------------------------------------------- */
+    /*                                  arch rat                                  */
+    /* -------------------------------------------------------------------------- */
+    archrenametable u_archrenametable (
+        .clock              (clock),
+        .reset_n            (reset_n),
+        .commits0_valid     (commits0_valid),
+        .commits0_need_to_wb(commits0_need_to_wb),
+        .commits0_lrd       (commits0_lrd),
+        .commits0_prd       (commits0_prd),
+        .commits1_valid     (commits1_valid),
+        .commits1_need_to_wb(commits1_need_to_wb),
+        .commits1_lrd       (commits1_lrd),
+        .commits1_prd       (commits1_prd),
+        //debug
+        .debug_preg0        (debug_preg0),
+        .debug_preg1        (debug_preg1),
+        .debug_preg2        (debug_preg2),
+        .debug_preg3        (debug_preg3),
+        .debug_preg4        (debug_preg4),
+        .debug_preg5        (debug_preg5),
+        .debug_preg6        (debug_preg6),
+        .debug_preg7        (debug_preg7),
+        .debug_preg8        (debug_preg8),
+        .debug_preg9        (debug_preg9),
+        .debug_preg10       (debug_preg10),
+        .debug_preg11       (debug_preg11),
+        .debug_preg12       (debug_preg12),
+        .debug_preg13       (debug_preg13),
+        .debug_preg14       (debug_preg14),
+        .debug_preg15       (debug_preg15),
+        .debug_preg16       (debug_preg16),
+        .debug_preg17       (debug_preg17),
+        .debug_preg18       (debug_preg18),
+        .debug_preg19       (debug_preg19),
+        .debug_preg20       (debug_preg20),
+        .debug_preg21       (debug_preg21),
+        .debug_preg22       (debug_preg22),
+        .debug_preg23       (debug_preg23),
+        .debug_preg24       (debug_preg24),
+        .debug_preg25       (debug_preg25),
+        .debug_preg26       (debug_preg26),
+        .debug_preg27       (debug_preg27),
+        .debug_preg28       (debug_preg28),
+        .debug_preg29       (debug_preg29),
+        .debug_preg30       (debug_preg30),
+        .debug_preg31       (debug_preg31)
+    );
+
 endmodule

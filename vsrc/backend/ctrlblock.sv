@@ -65,10 +65,41 @@ module ctrlblock (
     // input wire  [    `RESULT_RANGE] writeback1_result,
     input wire                     writeback1_mmio,
     input wire                     writeback1_robidx_flag,
-    input wire [`ROB_SIZE_LOG-1:0] writeback1_robidx
+    input wire [`ROB_SIZE_LOG-1:0] writeback1_robidx,
 
-
-
+    //debug
+    output wire [`PREG_RANGE] debug_preg0,
+    output wire [`PREG_RANGE] debug_preg1,
+    output wire [`PREG_RANGE] debug_preg2,
+    output wire [`PREG_RANGE] debug_preg3,
+    output wire [`PREG_RANGE] debug_preg4,
+    output wire [`PREG_RANGE] debug_preg5,
+    output wire [`PREG_RANGE] debug_preg6,
+    output wire [`PREG_RANGE] debug_preg7,
+    output wire [`PREG_RANGE] debug_preg8,
+    output wire [`PREG_RANGE] debug_preg9,
+    output wire [`PREG_RANGE] debug_preg10,
+    output wire [`PREG_RANGE] debug_preg11,
+    output wire [`PREG_RANGE] debug_preg12,
+    output wire [`PREG_RANGE] debug_preg13,
+    output wire [`PREG_RANGE] debug_preg14,
+    output wire [`PREG_RANGE] debug_preg15,
+    output wire [`PREG_RANGE] debug_preg16,
+    output wire [`PREG_RANGE] debug_preg17,
+    output wire [`PREG_RANGE] debug_preg18,
+    output wire [`PREG_RANGE] debug_preg19,
+    output wire [`PREG_RANGE] debug_preg20,
+    output wire [`PREG_RANGE] debug_preg21,
+    output wire [`PREG_RANGE] debug_preg22,
+    output wire [`PREG_RANGE] debug_preg23,
+    output wire [`PREG_RANGE] debug_preg24,
+    output wire [`PREG_RANGE] debug_preg25,
+    output wire [`PREG_RANGE] debug_preg26,
+    output wire [`PREG_RANGE] debug_preg27,
+    output wire [`PREG_RANGE] debug_preg28,
+    output wire [`PREG_RANGE] debug_preg29,
+    output wire [`PREG_RANGE] debug_preg30,
+    output wire [`PREG_RANGE] debug_preg31
 );
 
     /* -------------------------------------------------------------------------- */
@@ -146,13 +177,38 @@ module ctrlblock (
 
     `PIPE_BEFORE_RENAME(to_rename_instr0, from_dec_instr0, 1'b0)
     /* --------------------------- rat read data to rename -------------------------- */
-    wire [`PREG_RANGE] instr0_rat_prs1;
-    wire [`PREG_RANGE] instr0_rat_prs2;
-    wire [`PREG_RANGE] instr0_rat_prd;
+    wire [      `PREG_RANGE] instr0_rat_prs1;
+    wire [      `PREG_RANGE] instr0_rat_prs2;
+    wire [      `PREG_RANGE] instr0_rat_prd;
     /* ------------------------ write request from rename ----------------------- */
-    wire               instr0_rat_rename_valid;
-    wire [        4:0] instr0_rat_rename_addr;
-    wire [`PREG_RANGE] instr0_rat_rename_data;
+    wire                     instr0_rat_rename_valid;
+    wire [              4:0] instr0_rat_rename_addr;
+    wire [      `PREG_RANGE] instr0_rat_rename_data;
+
+
+    /* ---------------------------- commit & redirect --------------------------- */
+    //commit port
+    wire                     commits0_valid;
+    wire [      `PREG_RANGE] commits0_old_prd;
+    wire [      `LREG_RANGE] commits0_lrd;
+    wire [      `PREG_RANGE] commits0_prd;
+    wire [             31:0] commits0_instr;
+    wire [        `PC_RANGE] commits0_pc;
+    //debug
+    wire [`ROB_SIZE_LOG-1:0] commits0_robidx;
+    wire                     commits0_need_to_wb;
+    wire                     commits0_skip;
+
+    wire                     commits1_valid;
+    wire [      `PREG_RANGE] commits1_old_prd;
+    wire [      `LREG_RANGE] commits1_lrd;
+    wire [      `PREG_RANGE] commits1_prd;
+    wire [             31:0] commits1_instr;
+    wire [        `PC_RANGE] commits1_pc;
+    //debug
+    wire [`ROB_SIZE_LOG-1:0] commits1_robidx;
+    wire                     commits1_need_to_wb;
+    wire                     commits1_skip;
 
 
     renametable u_renametable (
@@ -181,7 +237,49 @@ module ctrlblock (
         .instr0_rat_rename_data (instr0_rat_rename_data),
         .instr1_rat_rename_valid(),
         .instr1_rat_rename_addr (),
-        .instr1_rat_rename_data ()
+        .instr1_rat_rename_data (),
+        //arch rat write 
+        .commits0_valid         (commits0_valid),
+        .commits0_need_to_wb    (commits0_need_to_wb),
+        .commits0_lrd           (commits0_lrd),
+        .commits0_prd           (commits0_prd),
+        .commits1_valid         (commits1_valid),
+        .commits1_need_to_wb    (commits1_need_to_wb),
+        .commits1_lrd           (commits1_lrd),
+        .commits1_prd           (commits1_prd),
+        //debug
+        .debug_preg0            (debug_preg0),
+        .debug_preg1            (debug_preg1),
+        .debug_preg2            (debug_preg2),
+        .debug_preg3            (debug_preg3),
+        .debug_preg4            (debug_preg4),
+        .debug_preg5            (debug_preg5),
+        .debug_preg6            (debug_preg6),
+        .debug_preg7            (debug_preg7),
+        .debug_preg8            (debug_preg8),
+        .debug_preg9            (debug_preg9),
+        .debug_preg10           (debug_preg10),
+        .debug_preg11           (debug_preg11),
+        .debug_preg12           (debug_preg12),
+        .debug_preg13           (debug_preg13),
+        .debug_preg14           (debug_preg14),
+        .debug_preg15           (debug_preg15),
+        .debug_preg16           (debug_preg16),
+        .debug_preg17           (debug_preg17),
+        .debug_preg18           (debug_preg18),
+        .debug_preg19           (debug_preg19),
+        .debug_preg20           (debug_preg20),
+        .debug_preg21           (debug_preg21),
+        .debug_preg22           (debug_preg22),
+        .debug_preg23           (debug_preg23),
+        .debug_preg24           (debug_preg24),
+        .debug_preg25           (debug_preg25),
+        .debug_preg26           (debug_preg26),
+        .debug_preg27           (debug_preg27),
+        .debug_preg28           (debug_preg28),
+        .debug_preg29           (debug_preg29),
+        .debug_preg30           (debug_preg30),
+        .debug_preg31           (debug_preg31)
     );
 
     /* -------------------------------------------------------------------------- */
@@ -492,30 +590,9 @@ module ctrlblock (
         .to_issue_instr1_robidx     ()
     );
 
-    /* ---------------------------- commit & redirect --------------------------- */
-    //commit port
-    wire                     commits0_valid;
-    wire [      `PREG_RANGE] commits0_old_prd;
-    wire [      `LREG_RANGE] commits0_lrd;
-    wire [      `PREG_RANGE] commits0_prd;
-    wire [             31:0] commits0_instr;
-    wire [        `PC_RANGE] commits0_pc;
-    //debug
-    wire [`ROB_SIZE_LOG-1:0] commits0_robidx;
-    wire                     commits0_need_to_wb;
-    wire                     commits0_skip;
-
-    wire                     commits1_valid;
-    wire [      `PREG_RANGE] commits1_old_prd;
-    wire [      `LREG_RANGE] commits1_lrd;
-    wire [      `PREG_RANGE] commits1_prd;
-    wire [             31:0] commits1_instr;
-    wire [        `PC_RANGE] commits1_pc;
-    //debug
-    wire [`ROB_SIZE_LOG-1:0] commits1_robidx;
-    wire                     commits1_need_to_wb;
-    wire                     commits1_skip;
-
+    /* -------------------------------------------------------------------------- */
+    /*                                     rob                                    */
+    /* -------------------------------------------------------------------------- */
     rob u_rob (
         .clock                 (clock),
         .reset_n               (reset_n),
@@ -581,7 +658,7 @@ module ctrlblock (
     DifftestInstrCommit u_DifftestInstrCommit (
         .clock     (clock),
         .enable    (commits0_valid),
-        .io_valid  ('b0),             //unuse!!!!
+        .io_valid  ('b0),                  //unuse!!!!
         .io_skip   (commits0_skip),
         .io_isRVC  (1'b0),
         .io_rfwen  (commits0_need_to_wb),
@@ -594,47 +671,14 @@ module ctrlblock (
         .io_robIdx (commits0_robidx),
         .io_lqIdx  ('b0),
         .io_sqIdx  ('b0),
-        .io_isLoad ('b0),             //load queue idx
-        .io_isStore('b0),             //store queue idx
+        .io_isLoad ('b0),                  //load queue idx
+        .io_isStore('b0),                  //store queue idx
         .io_nFused ('b0),
         .io_special('b0),
         .io_coreid ('b0),
         .io_index  ('b0)
     );
 
-    /* -------------------------------------------------------------------------- */
-    /*                                  arch rat                                  */
-    /* -------------------------------------------------------------------------- */
-
-    renametable arch_rat(
-        .clock                   (clock                   ),
-        .reset_n                 (reset_n                 ),
-        .instr0_src1_is_reg      (instr0_src1_is_reg      ),
-        .instr0_lrs1             (instr0_lrs1             ),
-        .instr0_src2_is_reg      (instr0_src2_is_reg      ),
-        .instr0_lrs2             (instr0_lrs2             ),
-        .instr0_need_to_wb       (instr0_need_to_wb       ),
-        .instr0_lrd              (instr0_lrd              ),
-        .instr1_src1_is_reg      (instr1_src1_is_reg      ),
-        .instr1_lrs1             (instr1_lrs1             ),
-        .instr1_src2_is_reg      (instr1_src2_is_reg      ),
-        .instr1_lrs2             (instr1_lrs2             ),
-        .instr1_need_to_wb       (instr1_need_to_wb       ),
-        .instr1_lrd              (instr1_lrd              ),
-        .instr0_rat_prs1         (instr0_rat_prs1         ),
-        .instr0_rat_prs2         (instr0_rat_prs2         ),
-        .instr0_rat_prd          (instr0_rat_prd          ),
-        .instr1_rat_prs1         (instr1_rat_prs1         ),
-        .instr1_rat_prs2         (instr1_rat_prs2         ),
-        .instr1_rat_prd          (instr1_rat_prd          ),
-        .instr0_rat_rename_valid (instr0_rat_rename_valid ),
-        .instr0_rat_rename_addr  (instr0_rat_rename_addr  ),
-        .instr0_rat_rename_data  (instr0_rat_rename_data  ),
-        .instr1_rat_rename_valid (instr1_rat_rename_valid ),
-        .instr1_rat_rename_addr  (instr1_rat_rename_addr  ),
-        .instr1_rat_rename_data  (instr1_rat_rename_data  )
-    );
-    
 
 
     /* verilator lint_off UNUSEDSIGNAL */

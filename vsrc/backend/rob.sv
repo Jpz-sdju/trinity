@@ -28,7 +28,6 @@ module rob (
     //counter(temp sig)
     output reg [`ROB_SIZE_LOG-1:0] counter,
 
-
     //robidx output put
     output reg                     enq_robidx_flag,
     output reg [`ROB_SIZE_LOG-1:0] enq_robidx,
@@ -62,6 +61,7 @@ module rob (
     output wire                     commits0_need_to_wb,
     output wire                     commits0_skip,
 
+
     output wire                     commits1_valid,
     output wire [        `PC_RANGE] commits1_pc,
     output wire [             31:0] commits1_instr,
@@ -78,8 +78,6 @@ module rob (
     input wire [             63:0] redirect_target,
     input wire                     redirect_robidx_flag,
     input wire [`ROB_SIZE_LOG-1:0] redirect_robidx
-
-
 
 );
 
@@ -150,6 +148,18 @@ module rob (
             end
             if (instr1_enq_valid & ((enq_idx + 1) == i[`ROB_SIZE_LOG-1:0])) begin
                 rob_entries_enq_instr_dec[i] = instr1;
+            end
+        end
+    end
+    always @(*) begin
+        integer i;
+        for (i = 0; i < `ROB_SIZE; i = i + 1) begin
+            rob_entries_enq_lrd_dec[i] = 'b0;
+            if (instr0_enq_valid & (enq_idx == i[`ROB_SIZE_LOG-1:0])) begin
+                rob_entries_enq_lrd_dec[i] = instr0_lrd;
+            end
+            if (instr1_enq_valid & ((enq_idx + 1) == i[`ROB_SIZE_LOG-1:0])) begin
+                rob_entries_enq_lrd_dec[i] = instr1_lrd;
             end
         end
     end
@@ -243,7 +253,7 @@ module rob (
         integer i;
         for (i = 0; i < `ROB_SIZE; i = i + 1) begin
             rob_entries_writeback_skip_dec[i] = 'b0;
-            if (writeback1_valid & writeback1_mmio &(writeback1_robidx == i[`ROB_SIZE_LOG-1:0])) begin
+            if (writeback1_valid & writeback1_mmio & (writeback1_robidx == i[`ROB_SIZE_LOG-1:0])) begin
                 rob_entries_writeback_skip_dec[i] = 1'b1;
             end
         end
@@ -258,7 +268,7 @@ module rob (
     always @(*) begin
         go_commit[`ROB_SIZE-1:0] = 'b0;
         go_commit[deq_idx]       = rob_entries_deq_dec[deq_idx];
-        go_commit[deq_idx+1]     = rob_entries_deq_dec[deq_idx+1] & go_commit[deq_idx];
+        // go_commit[deq_idx+1]     = rob_entries_deq_dec[deq_idx+1] & go_commit[deq_idx];
     end
 
 

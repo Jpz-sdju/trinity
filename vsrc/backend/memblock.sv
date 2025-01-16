@@ -1,18 +1,19 @@
 `include "defines.sv"
 module memblock (
-    input wire                     clock,
-    input wire                     reset_n,
-    input wire                     instr_valid,
-    input wire [      `PREG_RANGE] prd,
-    input wire                     is_load,
-    input wire                     is_store,
-    input wire                     is_unsigned,
-    input wire [       `SRC_RANGE] imm,
-    input wire [       `SRC_RANGE] src1,
-    input wire [       `SRC_RANGE] src2,
-    input wire [   `LS_SIZE_RANGE] ls_size,
-    input wire                     robidx_flag,
-    input wire [`ROB_SIZE_LOG-1:0] robidx,
+    input  wire                     clock,
+    input  wire                     reset_n,
+    input  wire                     instr_valid,
+    output wire                     instr_ready,
+    input  wire [      `PREG_RANGE] prd,
+    input  wire                     is_load,
+    input  wire                     is_store,
+    input  wire                     is_unsigned,
+    input  wire [       `SRC_RANGE] imm,
+    input  wire [       `SRC_RANGE] src1,
+    input  wire [       `SRC_RANGE] src2,
+    input  wire [   `LS_SIZE_RANGE] ls_size,
+    input  wire                     robidx_flag,
+    input  wire [`ROB_SIZE_LOG-1:0] robidx,
 
     //trinity bus channel
     output reg                  tbus_index_valid,
@@ -232,4 +233,6 @@ module memblock (
 
     assign out_robidx_flag = robidx_flag;
     assign out_robidx      = robidx;
+
+    assign instr_ready = ~mem_stall;
 endmodule

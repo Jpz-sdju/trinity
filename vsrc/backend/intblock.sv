@@ -3,6 +3,7 @@ module intblock (
     input  wire                      clock,
     input  wire                      reset_n,
     input  wire                      instr_valid,
+    output wire                      instr_ready,
     input  wire [       `PREG_RANGE] prd,
     input  wire [        `SRC_RANGE] src1,
     input  wire [        `SRC_RANGE] src2,
@@ -88,4 +89,5 @@ module intblock (
 
     assign out_robidx_flag = robidx_flag;
     assign out_robidx      = robidx;
+    assign instr_ready     = 1'b1;
 endmodule

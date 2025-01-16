@@ -36,12 +36,14 @@ module issuequeue (
     input wire enq_instr0_src1_state,
     input wire enq_instr0_src2_state,
 
-    /* ----------------------------- output to block ---------------------------- */
-    output reg               deq_instr0_valid,
-    output reg [`PREG_RANGE] deq_instr0_prs1,
-    output reg [`PREG_RANGE] deq_instr0_prs2,
-    output reg               deq_instr0_src1_is_reg,
-    output reg               deq_instr0_src2_is_reg,
+    /* ----------------------------- output to execute block ---------------------------- */
+    output reg                deq_instr0_valid,
+    //temp sig
+    input  wire               deq_instr0_ready,
+    output reg  [`PREG_RANGE] deq_instr0_prs1,
+    output reg  [`PREG_RANGE] deq_instr0_prs2,
+    output reg                deq_instr0_src1_is_reg,
+    output reg                deq_instr0_src2_is_reg,
 
     output reg [`PREG_RANGE] deq_instr0_prd,
     output reg [`PREG_RANGE] deq_instr0_old_prd,
@@ -63,36 +65,40 @@ module issuequeue (
 
     output reg                     deq_instr0_robidx_flag,
     output reg [`ROB_SIZE_LOG-1:0] deq_instr0_robidx
+
+
+    /* ---------------------------- write back wakeup --------------------------- */
+
 );
 
     // Internal queue storage
-    reg                      queue_valid      [`ISSUE_QUEUE_DEPTH-1:0];
-    reg [       `PREG_RANGE] queue_prs1       [`ISSUE_QUEUE_DEPTH-1:0];
-    reg [       `PREG_RANGE] queue_prs2       [`ISSUE_QUEUE_DEPTH-1:0];
-    reg                      queue_src1_is_reg[`ISSUE_QUEUE_DEPTH-1:0];
-    reg                      queue_src2_is_reg[`ISSUE_QUEUE_DEPTH-1:0];
-    reg                      queue_src1_state [`ISSUE_QUEUE_DEPTH-1:0];
-    reg                      queue_src2_state [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [`ISSUE_QUEUE_DEPTH-1:0] queue_valid;
+    reg [           `PREG_RANGE] queue_prs1        [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [           `PREG_RANGE] queue_prs2        [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [`ISSUE_QUEUE_DEPTH-1:0] queue_src1_is_reg;
+    reg [`ISSUE_QUEUE_DEPTH-1:0] queue_src2_is_reg;
+    reg [`ISSUE_QUEUE_DEPTH-1:0] queue_src1_state;
+    reg [`ISSUE_QUEUE_DEPTH-1:0] queue_src2_state;
 
-    reg [       `PREG_RANGE] queue_prd        [`ISSUE_QUEUE_DEPTH-1:0];
-    reg [       `PREG_RANGE] queue_old_prd    [`ISSUE_QUEUE_DEPTH-1:0];
-    reg [         `PC_RANGE] queue_pc         [`ISSUE_QUEUE_DEPTH-1:0];
-    reg [              31:0] queue            [`ISSUE_QUEUE_DEPTH-1:0];
-    reg [        `SRC_RANGE] queue_imm        [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [           `PREG_RANGE] queue_prd         [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [           `PREG_RANGE] queue_old_prd     [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [             `PC_RANGE] queue_pc          [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [                  31:0] queue             [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [            `SRC_RANGE] queue_imm         [`ISSUE_QUEUE_DEPTH-1:0];
 
-    reg                      queue_need_to_wb [`ISSUE_QUEUE_DEPTH-1:0];
-    reg [    `CX_TYPE_RANGE] queue_cx_type    [`ISSUE_QUEUE_DEPTH-1:0];
-    reg                      queue_is_unsigned[`ISSUE_QUEUE_DEPTH-1:0];
-    reg [   `ALU_TYPE_RANGE] queue_alu_type   [`ISSUE_QUEUE_DEPTH-1:0];
-    reg [`MULDIV_TYPE_RANGE] queue_muldiv_type[`ISSUE_QUEUE_DEPTH-1:0];
-    reg                      queue_is_word    [`ISSUE_QUEUE_DEPTH-1:0];
-    reg                      queue_is_imm     [`ISSUE_QUEUE_DEPTH-1:0];
-    reg                      queue_is_load    [`ISSUE_QUEUE_DEPTH-1:0];
-    reg                      queue_is_store   [`ISSUE_QUEUE_DEPTH-1:0];
-    reg [               3:0] queue_ls_size    [`ISSUE_QUEUE_DEPTH-1:0];
+    reg                          queue_need_to_wb  [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [        `CX_TYPE_RANGE] queue_cx_type     [`ISSUE_QUEUE_DEPTH-1:0];
+    reg                          queue_is_unsigned [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [       `ALU_TYPE_RANGE] queue_alu_type    [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [    `MULDIV_TYPE_RANGE] queue_muldiv_type [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [`ISSUE_QUEUE_DEPTH-1:0] queue_is_word;
+    reg [`ISSUE_QUEUE_DEPTH-1:0] queue_is_imm;
+    reg [`ISSUE_QUEUE_DEPTH-1:0] queue_is_load;
+    reg [`ISSUE_QUEUE_DEPTH-1:0] queue_is_store;
+    reg [                   3:0] queue_ls_size     [`ISSUE_QUEUE_DEPTH-1:0];
 
-    reg                      queue_robidx_flag[`ISSUE_QUEUE_DEPTH-1:0];
-    reg [ `ROB_SIZE_LOG-1:0] queue_robidx     [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [`ISSUE_QUEUE_DEPTH-1:0] queue_robidx_flag;
+    reg [     `ROB_SIZE_LOG-1:0] queue_robidx      [`ISSUE_QUEUE_DEPTH-1:0];
 
     reg [`ISSUE_QUEUE_LOG-1:0] head, tail;
     reg head_flag, tail_flag;
@@ -104,11 +110,12 @@ module issuequeue (
     // Enqueue logic
     assign enq_instr0_ready = (queue_valid[tail] == 0);
 
+    //when head is ready,go issue
+    wire head_is_ready = queue_valid[head] & (~queue_src1_state[head]) & (~queue_src2_state[head]) & deq_instr0_ready;
     always @(posedge clock or negedge reset_n) begin
         if (!reset_n) begin
-            queue_valid[tail] <= 'b0;
+
         end else if (enq_instr0_valid && enq_instr0_ready) begin
-            queue_valid[tail]       <= 1;
             queue_prs1[tail]        <= enq_instr0_prs1;
             queue_prs2[tail]        <= enq_instr0_prs2;
             queue_src1_is_reg[tail] <= enq_instr0_src1_is_reg;
@@ -134,12 +141,24 @@ module issuequeue (
             queue_robidx[tail]      <= enq_instr0_robidx;
         end
     end
+    always @(posedge clock or negedge reset_n) begin
+        if (!reset_n) begin
+            queue_valid <= 'b0;
+        end else begin
+            if (enq_instr0_valid && enq_instr0_ready) begin
+                queue_valid[tail] <= 1'b1;
+            end
+            if (head_is_ready) begin
+                queue_valid[head] <= 1'b0;
+            end
 
+        end
+    end
     // Dequeue logic
     always @(posedge clock or negedge reset_n) begin
         if (!reset_n) begin
             deq_instr0_valid <= 0;
-        end else if (queue_valid[head] & (~queue_src1_state[head]) & (~queue_src2_state[head])) begin
+        end else if (head_is_ready) begin
             deq_instr0_valid       <= 1;
             deq_instr0_prs1        <= queue_prs1[head];
             deq_instr0_prs2        <= queue_prs2[head];
@@ -169,7 +188,7 @@ module issuequeue (
 
 
     always @(*) begin
-        if ((queue_valid[head] && queue_src1_state[head] && queue_src2_state[head])) begin
+        if (head_is_ready) begin
             {head_flag_next, head_next} = {head_flag, head} + 'b1;
         end else begin
             {head_flag_next, head_next} = {head_flag, head};

@@ -108,8 +108,6 @@ module backend (
         .to_issue_instr0_old_prd    (to_issue_instr0_old_prd),
         .to_issue_instr0_robidx_flag(to_issue_instr0_robidx_flag),
         .to_issue_instr0_robidx     (to_issue_instr0_robidx),
-        .to_issue_instr0_src1_state (to_issue_instr0_src1_state),
-        .to_issue_instr0_src2_state (to_issue_instr0_src2_state),
         .redirect_valid             (redirect_valid),
         .redirect_target            (redirect_target),
         .redirect_robidx_flag       (redirect_robidx_flag),
@@ -132,6 +130,7 @@ module backend (
     /*                                 issue queue                                */
     /* -------------------------------------------------------------------------- */
     wire                      deq_instr0_valid;
+    wire                      deq_instr0_ready;
     wire [       `PREG_RANGE] deq_instr0_prs1;
     wire [       `PREG_RANGE] deq_instr0_prs2;
     wire                      deq_instr0_src1_is_reg;
@@ -216,6 +215,7 @@ module backend (
         .enq_instr0_src2_state (to_issue_instr0_src2_state),
         /* --------------------------------- output --------------------------------- */
         .deq_instr0_valid      (deq_instr0_valid),
+        .deq_instr0_ready      (deq_instr0_ready),
         .deq_instr0_prs1       (deq_instr0_prs1),
         .deq_instr0_prs2       (deq_instr0_prs2),
         .deq_instr0_src1_is_reg(deq_instr0_src1_is_reg),
@@ -278,8 +278,9 @@ module backend (
 
     //assign intblock valid
     wire                     intblock_instr_valid = deq_instr0_valid & ((|deq_instr0_cx_type) | (|deq_instr0_alu_type) | |(deq_instr0_muldiv_type));
+    wire                     intblock_instr_ready;
     wire                     memblock_instr_valid = deq_instr0_valid & (deq_instr0_is_load | deq_instr0_is_store);
-
+    wire                     memblock_instr_ready;
     /* -------------------------------------------------------------------------- */
     /*                                execute stage                               */
     /* -------------------------------------------------------------------------- */
@@ -291,11 +292,16 @@ module backend (
     wire [`ROB_SIZE_LOG-1:0] intblock_out_robidx;
     wire                     intblock_out_redirect_valid;
     wire [             63:0] intblock_out_redirect_target;
+
+    //assign issue ready to all ready!
+    assign deq_instr0_ready = intblock_instr_ready & memblock_instr_ready;
+
     //can use instr_valid to control a clock gate here to save power
     intblock u_intblock (
         .clock      (clock),
         .reset_n    (reset_n),
         .instr_valid(intblock_instr_valid),
+        .instr_ready(intblock_instr_ready),
         .prd        (deq_instr0_prd),
         .src1       (deq_instr0_src1),
         .src2       (deq_instr0_src2),
@@ -336,6 +342,7 @@ module backend (
         .clock      (clock),
         .reset_n    (reset_n),
         .instr_valid(memblock_instr_valid),
+        .instr_ready(memblock_instr_ready),
         .prd        (deq_instr0_prd),
         .is_load    (deq_instr0_is_load),
         .is_store   (deq_instr0_is_store),
@@ -416,29 +423,6 @@ module backend (
 
 
 
-    // DifftestInstrCommit u_DifftestInstrCommit (
-    //     .clock     (clock),
-    //     .enable    (flop_commit_valid),
-    //     .io_valid  ('b0),                 //unuse!!!!
-    //     .io_skip   (flop_mmio_valid),
-    //     .io_isRVC  (1'b0),
-    //     .io_rfwen  (flop_wb_need_to_wb),
-    //     .io_fpwen  (1'b0),
-    //     .io_vecwen (1'b0),
-    //     .io_wpdest (flop_wb_rd),
-    //     .io_wdest  (flop_wb_rd),
-    //     .io_pc     (flop_wb_pc),
-    //     .io_instr  (flop_wb_instr),
-    //     .io_robIdx ('b0),
-    //     .io_lqIdx  ('b0),
-    //     .io_sqIdx  ('b0),
-    //     .io_isLoad ('b0),
-    //     .io_isStore('b0),
-    //     .io_nFused ('b0),
-    //     .io_special('b0),
-    //     .io_coreid ('b0),
-    //     .io_index  ('b0)
-    // );
 
 
 

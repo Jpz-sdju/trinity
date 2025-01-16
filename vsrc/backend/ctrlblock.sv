@@ -39,9 +39,6 @@ module ctrlblock (
     output wire [`PREG_RANGE] to_issue_instr0_prd,
     output wire [`PREG_RANGE] to_issue_instr0_old_prd,
 
-    output wire to_issue_instr0_src1_state,
-    output wire to_issue_instr0_src2_state,
-
     output wire                     to_issue_instr0_robidx_flag,
     output wire [`ROB_SIZE_LOG-1:0] to_issue_instr0_robidx,
 
@@ -497,39 +494,49 @@ module ctrlblock (
 
     /* ---------------------------- commit & redirect --------------------------- */
     //commit port
-    wire               commits0_valid;
-    wire [`PREG_RANGE] commits0_old_prd;
-    wire [`LREG_RANGE] commits0_lrd;
-    wire [`PREG_RANGE] commits0_prd;
-    wire [       31:0] commits0_instr;
-    wire [  `PC_RANGE] commits0_pc;
+    wire                     commits0_valid;
+    wire [      `PREG_RANGE] commits0_old_prd;
+    wire [      `LREG_RANGE] commits0_lrd;
+    wire [      `PREG_RANGE] commits0_prd;
+    wire [             31:0] commits0_instr;
+    wire [        `PC_RANGE] commits0_pc;
+    //debug
+    wire [`ROB_SIZE_LOG-1:0] commits0_robidx;
+    wire                     commits0_need_to_wb;
+    wire                     commits0_skip;
 
-    wire               commits1_valid;
-    wire [`PREG_RANGE] commits1_old_prd;
-    wire [`LREG_RANGE] commits1_lrd;
-    wire [`PREG_RANGE] commits1_prd;
-    wire [       31:0] commits1_instr;
-    wire [  `PC_RANGE] commits1_pc;
+    wire                     commits1_valid;
+    wire [      `PREG_RANGE] commits1_old_prd;
+    wire [      `LREG_RANGE] commits1_lrd;
+    wire [      `PREG_RANGE] commits1_prd;
+    wire [             31:0] commits1_instr;
+    wire [        `PC_RANGE] commits1_pc;
+    //debug
+    wire [`ROB_SIZE_LOG-1:0] commits1_robidx;
+    wire                     commits1_need_to_wb;
+    wire                     commits1_skip;
 
     rob u_rob (
         .clock                 (clock),
         .reset_n               (reset_n),
         .instr0_enq_valid      (to_issue_instr0_valid),
+        .instr0_pc             (to_issue_instr0_pc),
         .instr0                (to_issue_instr0),
         .instr0_lrs1           (to_issue_instr0_lrs1),
         .instr0_lrs2           (to_issue_instr0_lrs2),
         .instr0_lrd            (to_issue_instr0_lrd),
         .instr0_prd            (to_issue_instr0_prd),
         .instr0_old_prd        (to_issue_instr0_old_prd),
-        .instr0_pc             (to_issue_instr0_pc),
+        .instr0_need_to_wb     (to_issue_instr0_need_to_wb),
         .instr1_enq_valid      (),
+        .instr1_pc             (),
         .instr1                (),
         .instr1_lrs1           (),
         .instr1_lrs2           (),
         .instr1_lrd            (),
         .instr1_prd            (),
         .instr1_old_prd        (),
-        .instr1_pc             (),
+        .instr1_need_to_wb     (),
         .counter               (counter),
         .enq_robidx_flag       (enq_robidx_flag),
         .enq_robidx            (enq_robidx),
@@ -547,25 +554,87 @@ module ctrlblock (
         .writeback2_robidx     (),
         .writeback2_need_to_wb (),
         .commits0_valid        (commits0_valid),
-        .commits0_old_prd      (commits0_old_prd),
+        .commits0_pc           (commits0_pc),
+        .commits0_instr        (commits0_instr),
         .commits0_lrd          (commits0_lrd),
         .commits0_prd          (commits0_prd),
-        .commits0_instr        (commits0_instr),
-        .commits0_pc           (commits0_pc),
+        .commits0_old_prd      (commits0_old_prd),
+        .commits0_robidx       (commits0_robidx),
+        .commits0_need_to_wb   (commits0_need_to_wb),
+        .commits0_skip         (commits0_skip),
         .commits1_valid        (commits1_valid),
-        .commits1_old_prd      (commits1_old_prd),
+        .commits1_pc           (commits1_pc),
+        .commits1_instr        (commits1_instr),
         .commits1_lrd          (commits1_lrd),
         .commits1_prd          (commits1_prd),
-        .commits1_instr        (commits1_instr),
-        .commits1_pc           (commits1_pc),
+        .commits1_old_prd      (commits1_old_prd),
+        .commits1_robidx       (commits1_robidx),
+        .commits1_need_to_wb   (commits1_need_to_wb),
+        .commits1_skip         (commits1_skip),
         .redirect_valid        (redirect_valid),
         .redirect_target       (redirect_target),
         .redirect_robidx_flag  (redirect_robidx_flag),
         .redirect_robidx       (redirect_robidx)
     );
 
-    assign to_issue_instr0_src1_state = 'b0;
-    assign to_issue_instr0_src2_state = 'b0;
+
+    DifftestInstrCommit u_DifftestInstrCommit (
+        .clock     (clock),
+        .enable    (commits0_valid),
+        .io_valid  ('b0),             //unuse!!!!
+        .io_skip   (commits0_skip),
+        .io_isRVC  (1'b0),
+        .io_rfwen  (commits0_need_to_wb),
+        .io_fpwen  (1'b0),
+        .io_vecwen (1'b0),
+        .io_wpdest ('b0),
+        .io_wdest  (commits0_lrd),
+        .io_pc     (commits0_pc),
+        .io_instr  (commits0_instr),
+        .io_robIdx (commits0_robidx),
+        .io_lqIdx  ('b0),
+        .io_sqIdx  ('b0),
+        .io_isLoad ('b0),             //load queue idx
+        .io_isStore('b0),             //store queue idx
+        .io_nFused ('b0),
+        .io_special('b0),
+        .io_coreid ('b0),
+        .io_index  ('b0)
+    );
+
+    /* -------------------------------------------------------------------------- */
+    /*                                  arch rat                                  */
+    /* -------------------------------------------------------------------------- */
+
+    renametable arch_rat(
+        .clock                   (clock                   ),
+        .reset_n                 (reset_n                 ),
+        .instr0_src1_is_reg      (instr0_src1_is_reg      ),
+        .instr0_lrs1             (instr0_lrs1             ),
+        .instr0_src2_is_reg      (instr0_src2_is_reg      ),
+        .instr0_lrs2             (instr0_lrs2             ),
+        .instr0_need_to_wb       (instr0_need_to_wb       ),
+        .instr0_lrd              (instr0_lrd              ),
+        .instr1_src1_is_reg      (instr1_src1_is_reg      ),
+        .instr1_lrs1             (instr1_lrs1             ),
+        .instr1_src2_is_reg      (instr1_src2_is_reg      ),
+        .instr1_lrs2             (instr1_lrs2             ),
+        .instr1_need_to_wb       (instr1_need_to_wb       ),
+        .instr1_lrd              (instr1_lrd              ),
+        .instr0_rat_prs1         (instr0_rat_prs1         ),
+        .instr0_rat_prs2         (instr0_rat_prs2         ),
+        .instr0_rat_prd          (instr0_rat_prd          ),
+        .instr1_rat_prs1         (instr1_rat_prs1         ),
+        .instr1_rat_prs2         (instr1_rat_prs2         ),
+        .instr1_rat_prd          (instr1_rat_prd          ),
+        .instr0_rat_rename_valid (instr0_rat_rename_valid ),
+        .instr0_rat_rename_addr  (instr0_rat_rename_addr  ),
+        .instr0_rat_rename_data  (instr0_rat_rename_data  ),
+        .instr1_rat_rename_valid (instr1_rat_rename_valid ),
+        .instr1_rat_rename_addr  (instr1_rat_rename_addr  ),
+        .instr1_rat_rename_data  (instr1_rat_rename_data  )
+    );
+    
 
 
     /* verilator lint_off UNUSEDSIGNAL */

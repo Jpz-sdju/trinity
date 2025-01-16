@@ -6,24 +6,27 @@ module rob (
     input wire               reset_n,
     //rob enq logic
     input wire               instr0_enq_valid,
+    input wire [  `PC_RANGE] instr0_pc,
     input wire [       31:0] instr0,
     input wire [`LREG_RANGE] instr0_lrs1,
     input wire [`LREG_RANGE] instr0_lrs2,
     input wire [`LREG_RANGE] instr0_lrd,
     input wire [`PREG_RANGE] instr0_prd,
     input wire [`PREG_RANGE] instr0_old_prd,
-    input wire [  `PC_RANGE] instr0_pc,
+    input wire               instr0_need_to_wb,
 
-    input  wire                     instr1_enq_valid,
-    input  wire [             31:0] instr1,
-    input  wire [      `LREG_RANGE] instr1_lrs1,
-    input  wire [      `LREG_RANGE] instr1_lrs2,
-    input  wire [      `LREG_RANGE] instr1_lrd,
-    input  wire [      `PREG_RANGE] instr1_prd,
-    input  wire [      `PREG_RANGE] instr1_old_prd,
-    input  wire [        `PC_RANGE] instr1_pc,
+    input wire               instr1_enq_valid,
+    input wire [  `PC_RANGE] instr1_pc,
+    input wire [       31:0] instr1,
+    input wire [`LREG_RANGE] instr1_lrs1,
+    input wire [`LREG_RANGE] instr1_lrs2,
+    input wire [`LREG_RANGE] instr1_lrd,
+    input wire [`PREG_RANGE] instr1_prd,
+    input wire [`PREG_RANGE] instr1_old_prd,
+    input wire               instr1_need_to_wb,
+
     //counter(temp sig)
-    output reg  [`ROB_SIZE_LOG-1:0] counter,
+    output reg [`ROB_SIZE_LOG-1:0] counter,
 
 
     //robidx output put
@@ -48,19 +51,27 @@ module rob (
     input wire                     writeback2_need_to_wb,
 
     //commit port
-    output wire               commits0_valid,
-    output wire [`PREG_RANGE] commits0_old_prd,
-    output wire [`LREG_RANGE] commits0_lrd,
-    output wire [`PREG_RANGE] commits0_prd,
-    output wire [       31:0] commits0_instr,
-    output wire [  `PC_RANGE] commits0_pc,
+    output wire                     commits0_valid,
+    output wire [        `PC_RANGE] commits0_pc,
+    output wire [             31:0] commits0_instr,
+    output wire [      `LREG_RANGE] commits0_lrd,
+    output wire [      `PREG_RANGE] commits0_prd,
+    output wire [      `PREG_RANGE] commits0_old_prd,
+    // debug
+    output wire [`ROB_SIZE_LOG-1:0] commits0_robidx,
+    output wire                     commits0_need_to_wb,
+    output wire                     commits0_skip,
 
-    output wire               commits1_valid,
-    output wire [`PREG_RANGE] commits1_old_prd,
-    output wire [`LREG_RANGE] commits1_lrd,
-    output wire [`PREG_RANGE] commits1_prd,
-    output wire [       31:0] commits1_instr,
-    output wire [  `PC_RANGE] commits1_pc,
+    output wire                     commits1_valid,
+    output wire [        `PC_RANGE] commits1_pc,
+    output wire [             31:0] commits1_instr,
+    output wire [      `LREG_RANGE] commits1_lrd,
+    output wire [      `PREG_RANGE] commits1_prd,
+    output wire [      `PREG_RANGE] commits1_old_prd,
+    // debug
+    output wire [`ROB_SIZE_LOG-1:0] commits1_robidx,
+    output wire                     commits1_need_to_wb,
+    output wire                     commits1_skip,
 
     //redirect
     input wire                     redirect_valid,
@@ -91,6 +102,7 @@ module rob (
     reg  [      `LREG_RANGE] rob_entries_enq_lrd_dec                  [0:`ROB_SIZE-1];
     reg  [      `PREG_RANGE] rob_entries_enq_prd_dec                  [0:`ROB_SIZE-1];
     reg  [      `PREG_RANGE] rob_entries_enq_old_prd_dec              [0:`ROB_SIZE-1];
+    reg  [    `ROB_SIZE-1:0] rob_entries_enq_need_to_wb_dec;
 
 
     wire [    `ROB_SIZE-1:0] rob_entries_deq_dec;
@@ -99,6 +111,8 @@ module rob (
     wire [      `LREG_RANGE] rob_entries_deq_lrd_dec                  [0:`ROB_SIZE-1];
     wire [      `PREG_RANGE] rob_entries_deq_prd_dec                  [0:`ROB_SIZE-1];
     wire [      `PREG_RANGE] rob_entries_deq_old_prd_dec              [0:`ROB_SIZE-1];
+    wire [    `ROB_SIZE-1:0] rob_entries_deq_need_to_wb_dec;
+    wire [    `ROB_SIZE-1:0] rob_entries_deq_skip_dec;
 
     /* -------------------------------------------------------------------------- */
     /*                        enq information to dec format                       */
@@ -163,8 +177,18 @@ module rob (
             end
         end
     end
-
-
+    always @(*) begin
+        integer i;
+        for (i = 0; i < `ROB_SIZE; i = i + 1) begin
+            rob_entries_enq_need_to_wb_dec[i] = 'b0;
+            if (instr0_enq_valid & (enq_idx == i[`ROB_SIZE_LOG-1:0])) begin
+                rob_entries_enq_need_to_wb_dec[i] = instr0_need_to_wb;
+            end
+            if (instr1_enq_valid & ((enq_idx + 1) == i[`ROB_SIZE_LOG-1:0])) begin
+                rob_entries_enq_need_to_wb_dec[i] = instr1_need_to_wb;
+            end
+        end
+    end
     /* -------------------------------------------------------------------------- */
     /*                                  enq logic                                 */
     /* -------------------------------------------------------------------------- */
@@ -172,8 +196,8 @@ module rob (
 
     always @(*) begin
         integer i;
+        enq_num = 'b0;
         for (i = 0; i < `ROB_SIZE; i = i + 1) begin
-            enq_num = 'b0;
             if (rob_entries_enq_dec[i]) begin
                 enq_num = enq_num + 1;
             end
@@ -189,10 +213,15 @@ module rob (
     `MACRO_DFF_NONEN(enq_idx, enq_idx_next, `ROB_SIZE_LOG)
 
 
+    //output for enq issue queue
+    assign enq_robidx_flag = enq_flag;
+    assign enq_robidx      = enq_idx;
+
     /* -------------------------------------------------------------------------- */
     /*                               writeback logic                              */
     /* -------------------------------------------------------------------------- */
     reg [`ROB_SIZE-1:0] rob_entries_writeback_dec;
+    reg [`ROB_SIZE-1:0] rob_entries_writeback_skip_dec;
     always @(*) begin
         integer i;
         for (i = 0; i < `ROB_SIZE; i = i + 1) begin
@@ -209,11 +238,21 @@ module rob (
         end
     end
 
+    //for now only l/s could trigger skip
+    always @(*) begin
+        integer i;
+        for (i = 0; i < `ROB_SIZE; i = i + 1) begin
+            rob_entries_writeback_skip_dec[i] = 'b0;
+            if (writeback1_valid & writeback1_mmio &(writeback1_robidx == i[`ROB_SIZE_LOG-1:0])) begin
+                rob_entries_writeback_skip_dec[i] = 1'b1;
+            end
+        end
+    end
+
     /* -------------------------------------------------------------------------- */
     /*                                commit logic (deq)                          */
     /* -------------------------------------------------------------------------- */
     reg [`ROB_SIZE-1:0] go_commit;  //max hot = 2,cause commit width is 2
-
 
     //jpz note:below is a very ugly logic!!
     always @(*) begin
@@ -225,8 +264,8 @@ module rob (
 
     always @(*) begin
         integer i;
+        deq_num = 'b0;
         for (i = 0; i < `ROB_SIZE; i = i + 1) begin
-            deq_num = 'b0;
             if (go_commit[i]) begin
                 deq_num = deq_num + 1;
             end
@@ -241,31 +280,47 @@ module rob (
     `MACRO_DFF_NONEN(deq_flag, deq_flag_next, 1)
     `MACRO_DFF_NONEN(deq_idx, deq_idx_next, `ROB_SIZE_LOG)
 
-
+    assign commits0_valid      = rob_entries_deq_dec[deq_idx];
+    assign commits0_pc         = rob_entries_deq_pc_dec[deq_idx];
+    assign commits0_instr      = rob_entries_deq_instr_dec[deq_idx];
+    assign commits0_lrd        = rob_entries_deq_lrd_dec[deq_idx];
+    assign commits0_prd        = rob_entries_deq_prd_dec[deq_idx];
+    assign commits0_old_prd    = rob_entries_deq_old_prd_dec[deq_idx];
+    //debug
+    assign commits0_robidx     = deq_idx;
+    assign commits0_need_to_wb = rob_entries_deq_need_to_wb_dec[deq_idx];
+    assign commits0_skip       = rob_entries_deq_skip_dec[deq_idx];
 
     genvar i;
     generate
         for (i = 0; i < `ROB_SIZE; i = i + 1) begin : rob_entity
             robentry u_robentry (
-                .clock      (clock),
-                .reset_n    (reset_n),
-                .enq        (rob_entries_enq_dec[i]),
-                .enq_pc     (rob_entries_enq_pc_dec[i]),
-                .enq_instr  (rob_entries_enq_instr_dec[i]),
-                .enq_lrd    (rob_entries_enq_lrd_dec[i]),
-                .enq_prd    (rob_entries_enq_prd_dec[i]),
-                .enq_old_prd(rob_entries_enq_old_prd_dec[i]),
-                .writeback  (rob_entries_writeback_dec[i]),
-                .deq        (rob_entries_deq_dec[i]),
-                .deq_pc     (rob_entries_deq_pc_dec[i]),
-                .deq_instr  (rob_entries_deq_instr_dec[i]),
-                .deq_lrd    (rob_entries_deq_lrd_dec[i]),
-                .deq_prd    (rob_entries_deq_prd_dec[i]),
-                .deq_old_prd(rob_entries_deq_old_prd_dec[i])
+                .clock         (clock),
+                .reset_n       (reset_n),
+                .enq           (rob_entries_enq_dec[i]),
+                .enq_pc        (rob_entries_enq_pc_dec[i]),
+                .enq_instr     (rob_entries_enq_instr_dec[i]),
+                .enq_lrd       (rob_entries_enq_lrd_dec[i]),
+                .enq_prd       (rob_entries_enq_prd_dec[i]),
+                .enq_old_prd   (rob_entries_enq_old_prd_dec[i]),
+                .enq_need_to_wb(rob_entries_enq_need_to_wb_dec[i]),
+                .enq_skip      ('b0),
+                .writeback     (rob_entries_writeback_dec[i]),
+                .writeback_skip(rob_entries_writeback_skip_dec[i]),
+                .deq           (rob_entries_deq_dec[i]),
+                .deq_pc        (rob_entries_deq_pc_dec[i]),
+                .deq_instr     (rob_entries_deq_instr_dec[i]),
+                .deq_lrd       (rob_entries_deq_lrd_dec[i]),
+                .deq_prd       (rob_entries_deq_prd_dec[i]),
+                .deq_old_prd   (rob_entries_deq_old_prd_dec[i]),
+                .deq_need_to_wb(rob_entries_deq_need_to_wb_dec[i]),
+                .deq_skip      (rob_entries_deq_skip_dec[i]),
+                //commit,clear valid
+                .commit        (go_commit[i])
             );
-
         end
     endgenerate
+
     reg [`ROB_SIZE_LOG-1:0] counter_next;
     always @(posedge clock or negedge reset_n) begin
         if (~reset_n) begin

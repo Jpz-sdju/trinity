@@ -227,6 +227,7 @@ module memblock (
     assign mem_stall       = (~ls_idle | tbus_index_valid) &  //when tbus_index_valid = 1, means lsu have an req due to send, stall immediately
  ~((ls_outstanding) & (opload_operation_done | opstore_operation_done));  //when operation done, no need to stall anymore
 
+    assign out_prd         = prd;
     assign out_mmio        = (is_load | is_store) & instr_valid & ('h30000000 <= ls_address) & (ls_address <= 'h40700000);
 
     assign out_robidx_flag = robidx_flag;

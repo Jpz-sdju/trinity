@@ -117,7 +117,7 @@ module freelist #(
         if (!reset_n) begin
             // Initialize freelist and available_count on reset
             for (i = 0; i < NUM_REGS; i = i + 1) begin
-                freelist_queue[i] <= i[5:0];
+                freelist_queue[i] <= (i[5:0] + 6'd32);
             end
         end else begin
             if (write0_valid) begin

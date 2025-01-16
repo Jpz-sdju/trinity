@@ -133,6 +133,8 @@
 `define ROB_SIZE_LOG 6
 `define ROB_SIZE 64
 
+`define ISSUE_QUEUE_DEPTH 8
+`define ISSUE_QUEUE_LOG 3
 `define MACRO_DFF_NONEN(dff_data_q, dff_data_in, dff_data_width) \
 always @(posedge clock or negedge reset_n) begin \
     if(reset_n == 1'b0) \

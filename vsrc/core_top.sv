@@ -23,6 +23,8 @@ module core_top #(
     //redirect
     wire                               redirect_valid;
     wire [                  `PC_RANGE] redirect_target;
+    wire                               redirect_robidx_flag;
+    wire [          `ROB_SIZE_LOG-1:0] redirect_robidx;
     //mem stall
     wire                               mem_stall;
     // PC Channel Inputs and Outputs
@@ -114,6 +116,13 @@ module core_top #(
         .icache2arb_dbus_operation_type()
     );
 
+
+
+    //from frontend
+    wire             ibuffer_instr_valid;
+    wire             ibuffer_ready;
+    wire [     31:0] ibuffer_inst_out;
+    wire [`PC_RANGE] ibuffer_pc_out;
     frontend u_frontend (
         .clock              (clock),
         .reset_n            (reset_n),
@@ -129,29 +138,32 @@ module core_top #(
         .ibuffer_instr_valid(ibuffer_instr_valid),
         .ibuffer_inst_out   (ibuffer_inst_out),
         .ibuffer_pc_out     (ibuffer_pc_out),
-        .mem_stall(mem_stall)
+        .mem_stall          (mem_stall)
 
     );
 
 
+
     backend u_backend (
-        .clock              (clock),
-        .reset_n            (reset_n),
-        .ibuffer_instr_valid(ibuffer_instr_valid),
-        .ibuffer_inst_out   (ibuffer_inst_out),
-        .ibuffer_pc_out     (ibuffer_pc_out),
-        .redirect_valid     (redirect_valid),
-        .redirect_target    (redirect_target),
-        .mem_stall          (mem_stall),
-        .tbus_index_valid   (tbus_index_valid),
-        .tbus_index_ready   (tbus_index_ready),
-        .tbus_index         (tbus_index),
-        .tbus_write_data    (tbus_write_data),
-        .tbus_write_mask    (tbus_write_mask),
-        .tbus_read_data     (tbus_read_data),
-        .tbus_operation_done(tbus_operation_done),
-        .tbus_operation_type(tbus_operation_type),
-        .flop_commit_valid  (flop_commit_valid)
+        .clock               (clock),
+        .reset_n             (reset_n),
+        .ibuffer_instr_valid (ibuffer_instr_valid),
+        .ibuffer_ready       (ibuffer_ready),
+        .ibuffer_inst_out    (ibuffer_inst_out),
+        .ibuffer_pc_out      (ibuffer_pc_out),
+        .redirect_valid      (redirect_valid),
+        .redirect_target     (redirect_target),
+        .redirect_robidx_flag(redirect_robidx_flag),
+        .redirect_robidx     (redirect_robidx),
+        .mem_stall           (mem_stall),
+        .tbus_index_valid    (tbus_index_valid),
+        .tbus_index_ready    (tbus_index_ready),
+        .tbus_index          (tbus_index),
+        .tbus_write_data     (tbus_write_data),
+        .tbus_write_mask     (tbus_write_mask),
+        .tbus_read_data      (tbus_read_data),
+        .tbus_operation_done (tbus_operation_done),
+        .tbus_operation_type (tbus_operation_type)
     );
 
 

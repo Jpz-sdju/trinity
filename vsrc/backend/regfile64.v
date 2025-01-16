@@ -40,30 +40,34 @@ module regfile64 (
             end
         end
     end
-
+    /* verilator lint_off LATCH */
     // Combinational read logic with forwarding
     always @(*) begin
-        // Forward write0_data if write0_en is active and addresses match
-        if (write0_en && write0_idx == read0_idx && write0_idx != `PREG_LENGTH'b0) begin
-            read0_data = write0_data;
-        end else if (write1_en && write1_idx == read0_idx && write1_idx != `PREG_LENGTH'b0) begin
-            read0_data = write1_data;
-        end else begin
-            read0_data = registers[read0_idx];
+        if (read0_en) begin
+            // Forward write0_data if write0_en is active and addresses match
+            if (write0_en && write0_idx == read0_idx && write0_idx != `PREG_LENGTH'b0) begin
+                read0_data = write0_data;
+            end else if (write1_en && write1_idx == read0_idx && write1_idx != `PREG_LENGTH'b0) begin
+                read0_data = write1_data;
+            end else begin
+                read0_data = registers[read0_idx];
+            end
         end
     end
     // Combinational read logic with forwarding
     always @(*) begin
-        // Forward write0_data if write0_en is active and addresses match
-        if (write0_en && write0_idx == read1_idx && write0_idx != `PREG_LENGTH'b0) begin
-            read1_data = write0_data;
-        end else if (write1_en && write1_idx == read1_idx && write1_idx != `PREG_LENGTH'b0) begin
-            read1_data = write1_data;
-        end else begin
-            read1_data = registers[read1_idx];
+        if (read1_en) begin
+            // Forward write0_data if write0_en is active and addresses match
+            if (write0_en && write0_idx == read1_idx && write0_idx != `PREG_LENGTH'b0) begin
+                read1_data = write0_data;
+            end else if (write1_en && write1_idx == read1_idx && write1_idx != `PREG_LENGTH'b0) begin
+                read1_data = write1_data;
+            end else begin
+                read1_data = registers[read1_idx];
+            end
         end
     end
-
+    /* verilator lint_off LATCH */
     DifftestArchIntRegState u_DifftestArchIntRegState (
         .clock      (clock),
         .enable     (1'b1),

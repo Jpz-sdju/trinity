@@ -49,7 +49,26 @@ module ctrlblock (
     input wire                     redirect_valid,
     input wire [             63:0] redirect_target,
     input wire                     redirect_robidx_flag,
-    input wire [`ROB_SIZE_LOG-1:0] redirect_robidx
+    input wire [`ROB_SIZE_LOG-1:0] redirect_robidx,
+
+    /* -------------------------------- writeback ------------------------------- */
+    input wire                     writeback0_valid,
+    input wire                     writeback0_need_to_wb,
+    // input wire  [      `PREG_RANGE] writeback0_prd,
+    // input wire  [    `RESULT_RANGE] writeback0_result,
+    input wire                     writeback0_redirect_valid,
+    input wire [    `RESULT_RANGE] writeback0_redirect_target,
+    input wire                     writeback0_robidx_flag,
+    input wire [`ROB_SIZE_LOG-1:0] writeback0_robidx,
+
+
+    input wire                     writeback1_valid,
+    input wire                     writeback1_need_to_wb,
+    // input wire  [      `PREG_RANGE] writeback1_prd,
+    // input wire  [    `RESULT_RANGE] writeback1_result,
+    input wire                     writeback1_mmio,
+    input wire                     writeback1_robidx_flag,
+    input wire [`ROB_SIZE_LOG-1:0] writeback1_robidx
 
 
 
@@ -514,18 +533,19 @@ module ctrlblock (
         .counter               (counter),
         .enq_robidx_flag       (enq_robidx_flag),
         .enq_robidx            (enq_robidx),
-        .writebacks0_valid     (),
-        .writebacks0_robflag   (),
-        .writebacks0_robidx    (),
-        .writebacks0_need_to_wb(),
-        .writebacks1_valid     (),
-        .writebacks1_robflag   (),
-        .writebacks1_robidx    (),
-        .writebacks1_need_to_wb(),
-        .writebacks2_valid     (),
-        .writebacks2_robflag   (),
-        .writebacks2_robidx    (),
-        .writebacks2_need_to_wb(),
+        .writeback0_valid      (writeback0_valid),
+        .writeback0_robidx_flag(writeback0_robidx_flag),
+        .writeback0_robidx     (writeback0_robidx),
+        .writeback0_need_to_wb (writeback0_need_to_wb),
+        .writeback1_valid      (writeback1_valid),
+        .writeback1_robidx_flag(writeback1_robidx_flag),
+        .writeback1_robidx     (writeback1_robidx),
+        .writeback1_need_to_wb (writeback1_need_to_wb),
+        .writeback1_mmio       (writeback1_mmio),
+        .writeback2_valid      (),
+        .writeback2_robidx_flag(),
+        .writeback2_robidx     (),
+        .writeback2_need_to_wb (),
         .commits0_valid        (commits0_valid),
         .commits0_old_prd      (commits0_old_prd),
         .commits0_lrd          (commits0_lrd),
@@ -540,7 +560,7 @@ module ctrlblock (
         .commits1_pc           (commits1_pc),
         .redirect_valid        (redirect_valid),
         .redirect_target       (redirect_target),
-        .redirect_robidx_flag      (redirect_robidx_flag),
+        .redirect_robidx_flag  (redirect_robidx_flag),
         .redirect_robidx       (redirect_robidx)
     );
 

@@ -12,18 +12,18 @@ module rob (
     input wire [`LREG_RANGE] instr0_lrd,
     input wire [`PREG_RANGE] instr0_prd,
     input wire [`PREG_RANGE] instr0_old_prd,
-    input wire [       `PC_RANGE] instr0_pc,
+    input wire [  `PC_RANGE] instr0_pc,
 
-    input wire               instr1_enq_valid,
-    input wire [       31:0] instr1,
-    input wire [`LREG_RANGE] instr1_lrs1,
-    input wire [`LREG_RANGE] instr1_lrs2,
-    input wire [`LREG_RANGE] instr1_lrd,
-    input wire [`PREG_RANGE] instr1_prd,
-    input wire [`PREG_RANGE] instr1_old_prd,
-    input wire [       `PC_RANGE] instr1_pc,
+    input  wire                     instr1_enq_valid,
+    input  wire [             31:0] instr1,
+    input  wire [      `LREG_RANGE] instr1_lrs1,
+    input  wire [      `LREG_RANGE] instr1_lrs2,
+    input  wire [      `LREG_RANGE] instr1_lrd,
+    input  wire [      `PREG_RANGE] instr1_prd,
+    input  wire [      `PREG_RANGE] instr1_old_prd,
+    input  wire [        `PC_RANGE] instr1_pc,
     //counter(temp sig)
-    output reg [`ROB_SIZE_LOG-1:0] counter,
+    output reg  [`ROB_SIZE_LOG-1:0] counter,
 
 
     //robidx output put
@@ -31,20 +31,21 @@ module rob (
     output reg [`ROB_SIZE_LOG-1:0] enq_robidx,
 
     //write back port
-    input wire                     writebacks0_valid,
-    input wire                     writebacks0_robflag,
-    input wire [`ROB_SIZE_LOG-1:0] writebacks0_robidx,
-    input wire                     writebacks0_need_to_wb,
+    input wire                     writeback0_valid,
+    input wire                     writeback0_robidx_flag,
+    input wire [`ROB_SIZE_LOG-1:0] writeback0_robidx,
+    input wire                     writeback0_need_to_wb,
 
-    input wire                     writebacks1_valid,
-    input wire                     writebacks1_robflag,
-    input wire [`ROB_SIZE_LOG-1:0] writebacks1_robidx,
-    input wire                     writebacks1_need_to_wb,
+    input wire                     writeback1_valid,
+    input wire                     writeback1_robidx_flag,
+    input wire [`ROB_SIZE_LOG-1:0] writeback1_robidx,
+    input wire                     writeback1_need_to_wb,
+    input wire                     writeback1_mmio,
 
-    input wire                     writebacks2_valid,
-    input wire                     writebacks2_robflag,
-    input wire [`ROB_SIZE_LOG-1:0] writebacks2_robidx,
-    input wire                     writebacks2_need_to_wb,
+    input wire                     writeback2_valid,
+    input wire                     writeback2_robidx_flag,
+    input wire [`ROB_SIZE_LOG-1:0] writeback2_robidx,
+    input wire                     writeback2_need_to_wb,
 
     //commit port
     output wire               commits0_valid,
@@ -52,14 +53,14 @@ module rob (
     output wire [`LREG_RANGE] commits0_lrd,
     output wire [`PREG_RANGE] commits0_prd,
     output wire [       31:0] commits0_instr,
-    output wire [       `PC_RANGE] commits0_pc,
+    output wire [  `PC_RANGE] commits0_pc,
 
     output wire               commits1_valid,
     output wire [`PREG_RANGE] commits1_old_prd,
     output wire [`LREG_RANGE] commits1_lrd,
     output wire [`PREG_RANGE] commits1_prd,
     output wire [       31:0] commits1_instr,
-    output wire [       `PC_RANGE] commits1_pc,
+    output wire [  `PC_RANGE] commits1_pc,
 
     //redirect
     input wire                     redirect_valid,
@@ -85,7 +86,7 @@ module rob (
     reg  [  `ROB_SIZE_LOG:0] deq_num;  //add one bit to adapt flag bit
 
     reg  [    `ROB_SIZE-1:0] rob_entries_enq_dec;
-    reg  [             `PC_RANGE] rob_entries_enq_pc_dec                   [0:`ROB_SIZE-1];
+    reg  [        `PC_RANGE] rob_entries_enq_pc_dec                   [0:`ROB_SIZE-1];
     reg  [             31:0] rob_entries_enq_instr_dec                [0:`ROB_SIZE-1];
     reg  [      `LREG_RANGE] rob_entries_enq_lrd_dec                  [0:`ROB_SIZE-1];
     reg  [      `PREG_RANGE] rob_entries_enq_prd_dec                  [0:`ROB_SIZE-1];
@@ -93,7 +94,7 @@ module rob (
 
 
     wire [    `ROB_SIZE-1:0] rob_entries_deq_dec;
-    wire [             `PC_RANGE] rob_entries_deq_pc_dec                   [0:`ROB_SIZE-1];
+    wire [        `PC_RANGE] rob_entries_deq_pc_dec                   [0:`ROB_SIZE-1];
     wire [             31:0] rob_entries_deq_instr_dec                [0:`ROB_SIZE-1];
     wire [      `LREG_RANGE] rob_entries_deq_lrd_dec                  [0:`ROB_SIZE-1];
     wire [      `PREG_RANGE] rob_entries_deq_prd_dec                  [0:`ROB_SIZE-1];
@@ -196,13 +197,13 @@ module rob (
         integer i;
         for (i = 0; i < `ROB_SIZE; i = i + 1) begin
             rob_entries_writeback_dec[i] = 'b0;
-            if (writebacks0_valid & (writebacks0_robidx == i[`ROB_SIZE_LOG-1:0])) begin
+            if (writeback0_valid & (writeback0_robidx == i[`ROB_SIZE_LOG-1:0])) begin
                 rob_entries_writeback_dec[i] = 1'b1;
             end
-            if (writebacks1_valid & (writebacks1_robidx == i[`ROB_SIZE_LOG-1:0])) begin
+            if (writeback1_valid & (writeback1_robidx == i[`ROB_SIZE_LOG-1:0])) begin
                 rob_entries_writeback_dec[i] = 1'b1;
             end
-            if (writebacks2_valid & (writebacks2_robidx == i[`ROB_SIZE_LOG-1:0])) begin
+            if (writeback2_valid & (writeback2_robidx == i[`ROB_SIZE_LOG-1:0])) begin
                 rob_entries_writeback_dec[i] = 1'b1;
             end
         end
@@ -274,9 +275,9 @@ module rob (
         end
     end
 
-always @(*) begin
-    counter_next = counter + enq_num[`ROB_SIZE_LOG-1:0] - deq_num[`ROB_SIZE_LOG-1:0];
-end
+    always @(*) begin
+        counter_next = counter + enq_num[`ROB_SIZE_LOG-1:0] - deq_num[`ROB_SIZE_LOG-1:0];
+    end
 endmodule
 /* verilator lint_off UNDRIVEN */
 /* verilator lint_off UNUSEDSIGNAL */

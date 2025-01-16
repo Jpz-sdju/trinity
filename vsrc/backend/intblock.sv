@@ -12,10 +12,8 @@ module intblock (
     input  wire                      is_unsigned,
     input  wire [   `ALU_TYPE_RANGE] alu_type,
     input  wire                      is_word,
-    input  wire                      is_load,
     input  wire                      is_imm,
-    input  wire                      is_store,
-    input  wire [               3:0] ls_size,
+    // input  wire [               3:0] ls_size,
     input  wire [`MULDIV_TYPE_RANGE] muldiv_type,
     input  wire [         `PC_RANGE] pc,
     input  wire                      robidx_flag,
@@ -41,7 +39,6 @@ module intblock (
 
     //exu logic
     wire        alu_valid = (|alu_type) & instr_valid;
-    wire        agu_valid = (is_load | is_store) & instr_valid;
     wire        bju_valid = (|cx_type) & instr_valid;
     wire        muldiv_valid = (|muldiv_type) & instr_valid;
 

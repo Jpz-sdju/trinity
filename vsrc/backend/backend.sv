@@ -1,6 +1,7 @@
 `include "defines.sv"
 module backend (
     /* verilator lint_off PINCONNECTEMPTY */
+    /* verilator lint_off UNUSEDSIGNAL */
     input  wire             clock,
     input  wire             reset_n,
     //from frontend
@@ -112,7 +113,19 @@ module backend (
         .redirect_valid             (redirect_valid),
         .redirect_target            (redirect_target),
         .redirect_robidx_flag       (redirect_robidx_flag),
-        .redirect_robidx            (redirect_robidx)
+        .redirect_robidx            (redirect_robidx),
+        /* -------------------------------- writeback ------------------------------- */
+        .writeback0_valid           (writeback0_instr_valid),
+        .writeback0_need_to_wb      (writeback0_need_to_wb),
+        .writeback0_redirect_valid  (writeback0_redirect_valid),
+        .writeback0_redirect_target (writeback0_redirect_target),
+        .writeback0_robidx_flag     (writeback0_robidx_flag),
+        .writeback0_robidx          (writeback0_robidx),
+        .writeback1_valid           (writeback1_instr_valid),
+        .writeback1_need_to_wb      (writeback1_need_to_wb),
+        .writeback1_mmio            (writeback1_mmio),
+        .writeback1_robidx_flag     (writeback1_robidx_flag),
+        .writeback1_robidx          (writeback1_robidx)
     );
 
     /* -------------------------------------------------------------------------- */
@@ -143,6 +156,33 @@ module backend (
 
     wire                      deq_instr0_robidx_flag;
     wire [ `ROB_SIZE_LOG-1:0] deq_instr0_robidx;
+
+
+    /* -------------------------------------------------------------------------- */
+    /*                                 busy table                                 */
+    /* -------------------------------------------------------------------------- */
+
+    busytable u_busytable (
+        .clock      (clock),
+        .reset_n    (reset_n),
+        .read_addr0 (to_issue_instr0_prs1),
+        .read_addr1 (to_issue_instr0_prs2),
+        .read_addr2 (),
+        .read_addr3 (),
+        .busy_out0  (to_issue_instr0_src1_state),
+        .busy_out1  (to_issue_instr0_src2_state),
+        .busy_out2  (),
+        .busy_out3  (),
+        .alloc_addr0(to_issue_instr0_prd),
+        .alloc_en0  (to_issue_instr0_need_to_wb),
+        .alloc_addr1(),
+        .alloc_en1  (),
+        .free_addr0 (),
+        .free_en0   (),
+        .free_addr1 (),
+        .free_en1   ()
+    );
+
     issuequeue u_issuequeue (
         .clock                 (clock),
         .reset_n               (reset_n),
@@ -181,7 +221,7 @@ module backend (
         .deq_instr0_src1_is_reg(deq_instr0_src1_is_reg),
         .deq_instr0_src2_is_reg(deq_instr0_src2_is_reg),
         .deq_instr0_prd        (deq_instr0_prd),
-        .deq_instr0_old_prd    (deq_instr0_old_prd),
+        .deq_instr0_old_prd    (  /*not used*/),
         .deq_instr0_pc         (deq_instr0_pc),
         .deq_instr0_imm        (deq_instr0_imm),
         .deq_instr0_need_to_wb (deq_instr0_need_to_wb),
@@ -249,6 +289,8 @@ module backend (
     wire [             63:0] intblock_out_result;
     wire                     intblock_out_robidx_flag;
     wire [`ROB_SIZE_LOG-1:0] intblock_out_robidx;
+    wire                     intblock_out_redirect_valid;
+    wire [             63:0] intblock_out_redirect_target;
     //can use instr_valid to control a clock gate here to save power
     intblock u_intblock (
         .clock      (clock),
@@ -263,10 +305,7 @@ module backend (
         .is_unsigned(deq_instr0_is_unsigned),
         .alu_type   (deq_instr0_alu_type),
         .is_word    (deq_instr0_is_word),
-        .is_load    (deq_instr0_is_load),
         .is_imm     (deq_instr0_is_imm),
-        .is_store   (deq_instr0_is_store),
-        .ls_size    (deq_instr0_ls_size),
         .muldiv_type(deq_instr0_muldiv_type),
         .pc         (deq_instr0_pc),
         .robidx_flag(deq_instr0_robidx_flag),
@@ -279,8 +318,8 @@ module backend (
         .out_result     (intblock_out_result),
         .out_robidx_flag(intblock_out_robidx_flag),
         .out_robidx     (intblock_out_robidx),
-        .redirect_valid (redirect_valid),
-        .redirect_target(redirect_target)
+        .redirect_valid (intblock_out_redirect_valid),
+        .redirect_target(intblock_out_redirect_target)
     );
 
 
@@ -327,7 +366,7 @@ module backend (
         .out_robidx         (memblock_out_robidx),
         .mem_stall          (memblock_out_stall)
     );
-
+    assign mem_stall = memblock_out_stall;
 
     /* -------------------------------------------------------------------------- */
     /*                              stage:   write back                           */
@@ -336,12 +375,13 @@ module backend (
     `MACRO_DFF_NONEN(writeback0_need_to_wb, intblock_out_need_to_wb, 1)
     `MACRO_DFF_NONEN(writeback0_prd, intblock_out_prd, `PREG_LENGTH)
     `MACRO_DFF_NONEN(writeback0_result, intblock_out_result, 64)
-    `MACRO_DFF_NONEN(writeback0_redirect_valid, redirect_valid, 1)
-    `MACRO_DFF_NONEN(writeback0_redirect_target, redirect_target, 64)
+    `MACRO_DFF_NONEN(writeback0_redirect_valid, intblock_out_redirect_valid, 1)
+    `MACRO_DFF_NONEN(writeback0_redirect_target, intblock_out_redirect_target, 64)
     `MACRO_DFF_NONEN(writeback0_robidx_flag, intblock_out_robidx_flag, 1)
     `MACRO_DFF_NONEN(writeback0_robidx, intblock_out_robidx, `ROB_SIZE_LOG)
 
-
+    assign redirect_valid       = writeback0_redirect_valid;
+    assign redirect_target      = writeback0_redirect_target;
     assign redirect_robidx_flag = writeback0_robidx_flag;
     assign redirect_robidx      = writeback0_robidx;
 
@@ -403,5 +443,5 @@ module backend (
 
 
     /* verilator lint_off PINCONNECTEMPTY */
-
+    /* verilator lint_off UNUSEDSIGNAL */
 endmodule

@@ -7,7 +7,7 @@ module issuequeue (
     input  wire [`LREG_RANGE] enq_instr0_lrs1,
     input  wire [`LREG_RANGE] enq_instr0_lrs2,
     input  wire [`LREG_RANGE] enq_instr0_lrd,
-    input  wire [       `PC_RANGE] enq_instr0_pc,
+    input  wire [  `PC_RANGE] enq_instr0_pc,
     input  wire [       31:0] enq_instr0,
 
     input wire [              63:0] enq_instr0_imm,
@@ -37,35 +37,174 @@ module issuequeue (
     input wire enq_instr0_src2_state,
 
     /* ----------------------------- output to block ---------------------------- */
-    output wire               deq_instr0_valid,
-    output wire [`PREG_RANGE] deq_instr0_prs1,
-    output wire [`PREG_RANGE] deq_instr0_prs2,
-    output wire               deq_instr0_src1_is_reg,
-    output wire               deq_instr0_src2_is_reg,
+    output reg               deq_instr0_valid,
+    output reg [`PREG_RANGE] deq_instr0_prs1,
+    output reg [`PREG_RANGE] deq_instr0_prs2,
+    output reg               deq_instr0_src1_is_reg,
+    output reg               deq_instr0_src2_is_reg,
 
-    output wire [`PREG_RANGE] deq_instr0_prd,
-    output wire [`PREG_RANGE] deq_instr0_old_prd,
+    output reg [`PREG_RANGE] deq_instr0_prd,
+    output reg [`PREG_RANGE] deq_instr0_old_prd,
 
-    output wire [`SRC_RANGE] deq_instr0_pc,
-    output wire [`SRC_RANGE] deq_instr0_imm,
+    output reg [`SRC_RANGE] deq_instr0_pc,
+    // output reg [`INSTR_RANGE] deq_instr0,
+    output reg [`SRC_RANGE] deq_instr0_imm,
 
-    output wire                      deq_instr0_need_to_wb,
-    output wire [    `CX_TYPE_RANGE] deq_instr0_cx_type,
-    output wire                      deq_instr0_is_unsigned,
-    output wire [   `ALU_TYPE_RANGE] deq_instr0_alu_type,
-    output wire [`MULDIV_TYPE_RANGE] deq_instr0_muldiv_type,
-    output wire                      deq_instr0_is_word,
-    output wire                      deq_instr0_is_imm,
-    output wire                      deq_instr0_is_load,
-    output wire                      deq_instr0_is_store,
-    output wire [               3:0] deq_instr0_ls_size,
+    output reg                      deq_instr0_need_to_wb,
+    output reg [    `CX_TYPE_RANGE] deq_instr0_cx_type,
+    output reg                      deq_instr0_is_unsigned,
+    output reg [   `ALU_TYPE_RANGE] deq_instr0_alu_type,
+    output reg [`MULDIV_TYPE_RANGE] deq_instr0_muldiv_type,
+    output reg                      deq_instr0_is_word,
+    output reg                      deq_instr0_is_imm,
+    output reg                      deq_instr0_is_load,
+    output reg                      deq_instr0_is_store,
+    output reg [               3:0] deq_instr0_ls_size,
 
-    output wire                     deq_instr0_robidx_flag,
-    output wire [`ROB_SIZE_LOG-1:0] deq_instr0_robidx
-
-
+    output reg                     deq_instr0_robidx_flag,
+    output reg [`ROB_SIZE_LOG-1:0] deq_instr0_robidx
 );
 
+    // Internal queue storage
+    reg                      queue_valid      [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [       `PREG_RANGE] queue_prs1       [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [       `PREG_RANGE] queue_prs2       [`ISSUE_QUEUE_DEPTH-1:0];
+    reg                      queue_src1_is_reg[`ISSUE_QUEUE_DEPTH-1:0];
+    reg                      queue_src2_is_reg[`ISSUE_QUEUE_DEPTH-1:0];
+    reg                      queue_src1_state [`ISSUE_QUEUE_DEPTH-1:0];
+    reg                      queue_src2_state [`ISSUE_QUEUE_DEPTH-1:0];
+
+    reg [       `PREG_RANGE] queue_prd        [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [       `PREG_RANGE] queue_old_prd    [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [         `PC_RANGE] queue_pc         [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [              31:0] queue            [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [        `SRC_RANGE] queue_imm        [`ISSUE_QUEUE_DEPTH-1:0];
+
+    reg                      queue_need_to_wb [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [    `CX_TYPE_RANGE] queue_cx_type    [`ISSUE_QUEUE_DEPTH-1:0];
+    reg                      queue_is_unsigned[`ISSUE_QUEUE_DEPTH-1:0];
+    reg [   `ALU_TYPE_RANGE] queue_alu_type   [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [`MULDIV_TYPE_RANGE] queue_muldiv_type[`ISSUE_QUEUE_DEPTH-1:0];
+    reg                      queue_is_word    [`ISSUE_QUEUE_DEPTH-1:0];
+    reg                      queue_is_imm     [`ISSUE_QUEUE_DEPTH-1:0];
+    reg                      queue_is_load    [`ISSUE_QUEUE_DEPTH-1:0];
+    reg                      queue_is_store   [`ISSUE_QUEUE_DEPTH-1:0];
+    reg [               3:0] queue_ls_size    [`ISSUE_QUEUE_DEPTH-1:0];
+
+    reg                      queue_robidx_flag[`ISSUE_QUEUE_DEPTH-1:0];
+    reg [ `ROB_SIZE_LOG-1:0] queue_robidx     [`ISSUE_QUEUE_DEPTH-1:0];
+
+    reg [`ISSUE_QUEUE_LOG-1:0] head, tail;
+    reg head_flag, tail_flag;
+    reg [`ISSUE_QUEUE_LOG-1:0] head_next, tail_next;
+    reg head_flag_next, tail_flag_next;
 
 
+
+    // Enqueue logic
+    assign enq_instr0_ready = (queue_valid[tail] == 0);
+
+    always @(posedge clock or negedge reset_n) begin
+        if (!reset_n) begin
+            queue_valid[tail] <= 'b0;
+        end else if (enq_instr0_valid && enq_instr0_ready) begin
+            queue_valid[tail]       <= 1;
+            queue_prs1[tail]        <= enq_instr0_prs1;
+            queue_prs2[tail]        <= enq_instr0_prs2;
+            queue_src1_is_reg[tail] <= enq_instr0_src1_is_reg;
+            queue_src2_is_reg[tail] <= enq_instr0_src2_is_reg;
+            queue_src1_state[tail]  <= enq_instr0_src1_state;
+            queue_src2_state[tail]  <= enq_instr0_src2_state;
+            queue_prd[tail]         <= enq_instr0_prd;
+            queue_old_prd[tail]     <= enq_instr0_old_prd;
+            queue_pc[tail]          <= enq_instr0_pc;
+            queue[tail]             <= enq_instr0;
+            queue_imm[tail]         <= enq_instr0_imm;
+            queue_need_to_wb[tail]  <= enq_instr0_need_to_wb;
+            queue_cx_type[tail]     <= enq_instr0_cx_type;
+            queue_is_unsigned[tail] <= enq_instr0_is_unsigned;
+            queue_alu_type[tail]    <= enq_instr0_alu_type;
+            queue_muldiv_type[tail] <= enq_instr0_muldiv_type;
+            queue_is_word[tail]     <= enq_instr0_is_word;
+            queue_is_imm[tail]      <= enq_instr0_is_imm;
+            queue_is_load[tail]     <= enq_instr0_is_load;
+            queue_is_store[tail]    <= enq_instr0_is_store;
+            queue_ls_size[tail]     <= enq_instr0_ls_size;
+            queue_robidx_flag[tail] <= enq_instr0_robidx_flag;
+            queue_robidx[tail]      <= enq_instr0_robidx;
+        end
+    end
+
+    // Dequeue logic
+    always @(posedge clock or negedge reset_n) begin
+        if (!reset_n) begin
+            deq_instr0_valid <= 0;
+        end else if (queue_valid[head] & (~queue_src1_state[head]) & (~queue_src2_state[head])) begin
+            deq_instr0_valid       <= 1;
+            deq_instr0_prs1        <= queue_prs1[head];
+            deq_instr0_prs2        <= queue_prs2[head];
+            deq_instr0_src1_is_reg <= queue_src1_is_reg[head];
+            deq_instr0_src2_is_reg <= queue_src2_is_reg[head];
+            deq_instr0_prd         <= queue_prd[head];
+            deq_instr0_old_prd     <= queue_old_prd[head];
+            deq_instr0_pc          <= queue_pc[head];
+            // deq_instr0             <= queue[head];
+            deq_instr0_imm         <= queue_imm[head];
+            deq_instr0_need_to_wb  <= queue_need_to_wb[head];
+            deq_instr0_cx_type     <= queue_cx_type[head];
+            deq_instr0_is_unsigned <= queue_is_unsigned[head];
+            deq_instr0_alu_type    <= queue_alu_type[head];
+            deq_instr0_muldiv_type <= queue_muldiv_type[head];
+            deq_instr0_is_word     <= queue_is_word[head];
+            deq_instr0_is_imm      <= queue_is_imm[head];
+            deq_instr0_is_load     <= queue_is_load[head];
+            deq_instr0_is_store    <= queue_is_store[head];
+            deq_instr0_ls_size     <= queue_ls_size[head];
+            deq_instr0_robidx_flag <= queue_robidx_flag[head];
+            deq_instr0_robidx      <= queue_robidx[head];
+        end else begin
+            deq_instr0_valid <= 0;
+        end
+    end
+
+
+    always @(*) begin
+        if ((queue_valid[head] && queue_src1_state[head] && queue_src2_state[head])) begin
+            {head_flag_next, head_next} = {head_flag, head} + 'b1;
+        end else begin
+            {head_flag_next, head_next} = {head_flag, head};
+        end
+    end
+
+    `MACRO_DFF_NONEN(head_flag, head_flag_next, 1)
+    `MACRO_DFF_NONEN(head, head_next, `ISSUE_QUEUE_LOG)
+
+    always @(*) begin
+        if ((enq_instr0_valid & enq_instr0_ready)) begin
+            {tail_flag_next, tail_next} = {tail_flag, tail} + 'b1;
+        end else begin
+            {tail_flag_next, tail_next} = {tail_flag, tail};
+        end
+    end
+
+    `MACRO_DFF_NONEN(tail_flag, tail_flag_next, 1)
+    `MACRO_DFF_NONEN(tail, tail_next, `ISSUE_QUEUE_LOG)
+
+    // // Update head logic
+    // always @(posedge clock or negedge reset_n) begin
+    //     if (!reset_n) begin
+    //         head <= 0;
+    //     end else if (queue_valid[head] && queue_src1_state[head] && queue_src2_state[head]) begin
+    //         head <= (head + 1) % `ISSUE_QUEUE_DEPTH;
+    //     end
+    // end
+
+    // // Update head logic
+    // always @(posedge clock or negedge reset_n) begin
+    //     if (!reset_n) begin
+    //         tail <= 0;
+    //     end else if (enq_instr0_valid && enq_instr0_ready) begin
+    //         tail <= (tail + 1) % `ISSUE_QUEUE_DEPTH;
+    //     end
+    // end
 endmodule

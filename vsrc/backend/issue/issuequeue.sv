@@ -64,11 +64,16 @@ module issuequeue (
     output reg [               3:0] deq_instr0_ls_size,
 
     output reg                     deq_instr0_robidx_flag,
-    output reg [`ROB_SIZE_LOG-1:0] deq_instr0_robidx
-
+    output reg [`ROB_SIZE_LOG-1:0] deq_instr0_robidx,
 
     /* ---------------------------- write back wakeup --------------------------- */
+    input wire               writeback0_valid,
+    input wire               writeback0_need_to_wb,
+    input wire [`PREG_RANGE] writeback0_prd,
 
+    input wire               writeback1_valid,
+    input wire               writeback1_need_to_wb,
+    input wire [`PREG_RANGE] writeback1_prd
 );
 
     // Internal queue storage
@@ -141,6 +146,8 @@ module issuequeue (
             queue_robidx[tail]      <= enq_instr0_robidx;
         end
     end
+
+
     always @(posedge clock or negedge reset_n) begin
         if (!reset_n) begin
             queue_valid <= 'b0;
@@ -154,7 +161,56 @@ module issuequeue (
 
         end
     end
-    // Dequeue logic
+
+
+
+    /* -------------------------------------------------------------------------- */
+    /*                                wakeup logic                                */
+    /* -------------------------------------------------------------------------- */
+    wire writeback0_to_wakeup;
+    wire writeback1_to_wakeup;
+    assign writeback0_to_wakeup = writeback0_valid & writeback0_need_to_wb;
+    assign writeback1_to_wakeup = writeback1_valid & writeback1_need_to_wb;
+    always @(posedge clock or negedge reset_n) begin
+        integer i;
+        if (~reset_n) begin
+            queue_src1_state <= 'b0;
+        end else begin
+            if (enq_instr0_valid & enq_instr0_ready) begin
+                queue_src1_state[tail] <= enq_instr0_src1_state;
+            end
+            for (i = 0; i < `ISSUE_QUEUE_LOG; i = i + 1) begin
+                if (writeback0_to_wakeup & (queue_prs1[i] == writeback0_prd) & queue_src1_is_reg) begin
+                    queue_src1_state[i] <= 'b0;
+                end
+                if (writeback1_to_wakeup & (queue_prs1[i] == writeback1_prd) & queue_src1_is_reg) begin
+                    queue_src1_state[i] <= 'b0;
+                end
+            end
+        end
+    end
+
+    always @(posedge clock or negedge reset_n) begin
+        integer i;
+        if (~reset_n) begin
+            queue_src2_state <= 'b0;
+        end else begin
+            if (enq_instr0_valid & enq_instr0_ready) begin
+                queue_src2_state[tail] <= enq_instr0_src2_state;
+            end
+            for (i = 0; i < `ISSUE_QUEUE_LOG; i = i + 1) begin
+                if (writeback0_to_wakeup & (queue_prs2[i] == writeback0_prd) & queue_src2_is_reg) begin
+                    queue_src2_state[i] <= 'b0;
+                end
+                if (writeback1_to_wakeup & (queue_prs2[i] == writeback1_prd) & queue_src2_is_reg) begin
+                    queue_src2_state[i] <= 'b0;
+                end
+            end
+        end
+    end
+    /* -------------------------------------------------------------------------- */
+    /*                                Dequeue logic                               */
+    /* -------------------------------------------------------------------------- */
     always @(posedge clock or negedge reset_n) begin
         if (!reset_n) begin
             deq_instr0_valid <= 0;
@@ -209,21 +265,5 @@ module issuequeue (
     `MACRO_DFF_NONEN(tail_flag, tail_flag_next, 1)
     `MACRO_DFF_NONEN(tail, tail_next, `ISSUE_QUEUE_LOG)
 
-    // // Update head logic
-    // always @(posedge clock or negedge reset_n) begin
-    //     if (!reset_n) begin
-    //         head <= 0;
-    //     end else if (queue_valid[head] && queue_src1_state[head] && queue_src2_state[head]) begin
-    //         head <= (head + 1) % `ISSUE_QUEUE_DEPTH;
-    //     end
-    // end
 
-    // // Update head logic
-    // always @(posedge clock or negedge reset_n) begin
-    //     if (!reset_n) begin
-    //         tail <= 0;
-    //     end else if (enq_instr0_valid && enq_instr0_ready) begin
-    //         tail <= (tail + 1) % `ISSUE_QUEUE_DEPTH;
-    //     end
-    // end
 endmodule

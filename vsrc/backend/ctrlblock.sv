@@ -42,6 +42,10 @@ module ctrlblock (
     output wire                     to_issue_instr0_robidx_flag,
     output wire [`ROB_SIZE_LOG-1:0] to_issue_instr0_robidx,
 
+    //src state
+    output wire to_issue_instr0_src1_state,
+    output wire to_issue_instr0_src2_state,
+
     /* ------------------------------ redirect sigs ----------------------------- */
     input wire                     redirect_valid,
     input wire [             63:0] redirect_target,
@@ -51,7 +55,7 @@ module ctrlblock (
     /* -------------------------------- writeback ------------------------------- */
     input wire                     writeback0_valid,
     input wire                     writeback0_need_to_wb,
-    // input wire  [      `PREG_RANGE] writeback0_prd,
+    input wire [      `PREG_RANGE] writeback0_prd,
     // input wire  [    `RESULT_RANGE] writeback0_result,
     input wire                     writeback0_redirect_valid,
     input wire [    `RESULT_RANGE] writeback0_redirect_target,
@@ -61,7 +65,7 @@ module ctrlblock (
 
     input wire                     writeback1_valid,
     input wire                     writeback1_need_to_wb,
-    // input wire  [      `PREG_RANGE] writeback1_prd,
+    input wire [      `PREG_RANGE] writeback1_prd,
     // input wire  [    `RESULT_RANGE] writeback1_result,
     input wire                     writeback1_mmio,
     input wire                     writeback1_robidx_flag,
@@ -590,6 +594,34 @@ module ctrlblock (
         .to_issue_instr1_robidx     ()
     );
 
+
+    /* -------------------------------------------------------------------------- */
+    /*                                 busy table                                 */
+    /* -------------------------------------------------------------------------- */
+    wire commits0_free;
+    wire commits1_free;
+    assign commits0_free = commits0_valid & commits0_need_to_wb;
+    assign commits1_free = commits1_valid & commits1_need_to_wb;
+    busytable u_busytable (
+        .clock      (clock),
+        .reset_n    (reset_n),
+        .read_addr0 (to_issue_instr0_prs1),
+        .read_addr1 (to_issue_instr0_prs2),
+        .read_addr2 (),
+        .read_addr3 (),
+        .busy_out0  (to_issue_instr0_src1_state),
+        .busy_out1  (to_issue_instr0_src2_state),
+        .busy_out2  (),
+        .busy_out3  (),
+        .alloc_en0  (to_issue_instr0_need_to_wb),
+        .alloc_addr0(to_issue_instr0_prd),
+        .alloc_en1  (),
+        .alloc_addr1(),
+        .free_en0   (commits0_free),
+        .free_addr0 (commits0_prd),
+        .free_en1   (commits1_free),
+        .free_addr1 (commits1_prd)
+    );
     /* -------------------------------------------------------------------------- */
     /*                                     rob                                    */
     /* -------------------------------------------------------------------------- */
@@ -654,31 +686,79 @@ module ctrlblock (
         .redirect_robidx       (redirect_robidx)
     );
 
+    /* -------------------------------------------------------------------------- */
+    /*                               difftest region                              */
+    /* -------------------------------------------------------------------------- */
+    reg                     flop_commits0_valid;
+    reg                     flop_commits0_skip;
+    reg                     flop_commits0_need_to_wb;
+    reg [      `LREG_RANGE] flop_commits0_lrd;
+    reg [        `PC_RANGE] flop_commits0_pc;
+    reg [     `INSTR_RANGE] flop_commits0_instr;
+    reg [`ROB_SIZE_LOG-1:0] flop_commits0_robidx;
+
+    `MACRO_DFF_NONEN(flop_commits0_valid, commits0_valid, 1)
+    `MACRO_DFF_NONEN(flop_commits0_skip, commits0_skip, 1)
+    `MACRO_DFF_NONEN(flop_commits0_need_to_wb, commits0_need_to_wb, 1)
+    `MACRO_DFF_NONEN(flop_commits0_lrd, commits0_lrd, 5)
+    `MACRO_DFF_NONEN(flop_commits0_pc, commits0_pc, `PC_WIDTH)
+    `MACRO_DFF_NONEN(flop_commits0_instr, commits0_instr, 32)
+    `MACRO_DFF_NONEN(flop_commits0_robidx, commits0_robidx, `ROB_SIZE_LOG)
+
 
     DifftestInstrCommit u_DifftestInstrCommit (
         .clock     (clock),
-        .enable    (commits0_valid),
-        .io_valid  ('b0),                  //unuse!!!!
-        .io_skip   (commits0_skip),
+        .enable    (flop_commits0_valid),
+        .io_valid  ('b0),                       //unuse!!!!
+        .io_skip   (flop_commits0_skip),
         .io_isRVC  (1'b0),
-        .io_rfwen  (commits0_need_to_wb),
+        .io_rfwen  (flop_commits0_need_to_wb),
         .io_fpwen  (1'b0),
         .io_vecwen (1'b0),
         .io_wpdest ('b0),
-        .io_wdest  (commits0_lrd),
-        .io_pc     (commits0_pc),
-        .io_instr  (commits0_instr),
-        .io_robIdx (commits0_robidx),
+        .io_wdest  (flop_commits0_lrd),
+        .io_pc     (flop_commits0_pc),
+        .io_instr  (flop_commits0_instr),
+        .io_robIdx (flop_commits0_robidx),
         .io_lqIdx  ('b0),
         .io_sqIdx  ('b0),
-        .io_isLoad ('b0),                  //load queue idx
-        .io_isStore('b0),                  //store queue idx
+        .io_isLoad ('b0),                       //load queue idx
+        .io_isStore('b0),                       //store queue idx
         .io_nFused ('b0),
         .io_special('b0),
         .io_coreid ('b0),
         .io_index  ('b0)
     );
 
+
+    reg [63:0] commit_cnt;
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            commit_cnt <= 0;
+        end else if (commits0_valid) begin
+            commit_cnt <= commit_cnt + 1;
+        end
+    end
+    reg [63:0] cycle_cnt;
+    always @(posedge clock) begin
+        if (~reset_n) begin
+            cycle_cnt <= 'b0;
+        end else begin
+            cycle_cnt <= cycle_cnt + 1'b1;
+        end
+
+    end
+    DifftestTrapEvent u_DifftestTrapEvent (
+        .clock      (clock),
+        .enable     (1'b1),
+        .io_hasTrap (1'b0),
+        .io_cycleCnt(cycle_cnt),
+        .io_instrCnt(commit_cnt),
+        .io_hasWFI  ('b0),
+        .io_code    ('b0),
+        .io_pc      ('b0),
+        .io_coreid  ('b0)
+    );
 
 
     /* verilator lint_off UNUSEDSIGNAL */

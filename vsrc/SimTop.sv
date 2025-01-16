@@ -32,16 +32,7 @@ module SimTop (
     wire [ 511:0] ddr_read_data;  // 64-bit data output for lw channel read
     wire         ddr_operation_done;
     wire         ddr_ready;  // Indicates if DDR is ready for new operation
-    wire         flop_commit_valid;
-    reg  [ 63:0] commit_valid_cnt;
 
-    always @(posedge clock or negedge reset) begin
-        if (reset) begin
-            commit_valid_cnt <= 0;
-        end else if (flop_commit_valid) begin
-            commit_valid_cnt <= commit_valid_cnt + 1;
-        end
-    end
 
 
     core_top u_core_top (
@@ -55,8 +46,7 @@ module SimTop (
         .ddr_write_data(ddr_write_data),
         .ddr_read_data  (ddr_read_data),
         .ddr_operation_done    (ddr_operation_done),
-        .ddr_ready             (ddr_ready),
-        .flop_commit_valid     (flop_commit_valid)
+        .ddr_ready             (ddr_ready)
     );
 
 
@@ -76,27 +66,6 @@ module SimTop (
         .ddr_ready         (ddr_ready)
     );
 
-
-    reg [63:0] cycle_cnt;
-    always @(posedge clock) begin
-        if (reset) begin
-            cycle_cnt <= 'b0;
-        end else begin
-            cycle_cnt <= cycle_cnt + 1'b1;
-        end
-
-    end
-    DifftestTrapEvent u_DifftestTrapEvent (
-        .clock      (clock),
-        .enable     (1'b1),
-        .io_hasTrap (1'b0),
-        .io_cycleCnt(cycle_cnt),
-        .io_instrCnt(commit_valid_cnt),
-        .io_hasWFI  ('b0),
-        .io_code    ('b0),
-        .io_pc      ('b0),
-        .io_coreid  ('b0)
-    );
 
 
     DifftestArchEvent u_DifftestArchEvent (

@@ -1,6 +1,8 @@
 `define LREG_RANGE 4:0
 `define PREG_RANGE 5:0
 `define PREG_LENGTH 6
+`define PREG_SIZE 64
+
 `define SRC_RANGE 63:0
 `define SRC_WIDTH 64
 

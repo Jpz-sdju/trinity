@@ -13,8 +13,7 @@ module core_top #(
     output wire [511:0] ddr_write_data,      // Output write data for opstore channel
     input  wire [511:0] ddr_read_data,       // 64-bit data output for lw channel read
     input  wire         ddr_operation_done,
-    input  wire         ddr_ready,           // Indicates if DDR is ready for new operation
-    output reg          flop_commit_valid
+    input  wire         ddr_ready           // Indicates if DDR is ready for new operation
 );
 
 

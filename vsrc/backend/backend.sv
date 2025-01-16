@@ -18,9 +18,9 @@ module backend (
     //stall pipeline
     output wire                     mem_stall,
 
-    /*
-        TO L1 D$/MEM
-    */
+    /* -------------------------------------------------------------------------- */
+    /*                                TO L1 D$/MEM                                */
+    /* -------------------------------------------------------------------------- */
     // LSU store Channel Inputs and Outputs
     //trinity bus channel
     output reg                  tbus_index_valid,
@@ -139,6 +139,9 @@ module backend (
         .to_issue_instr0_old_prd    (to_issue_instr0_old_prd),
         .to_issue_instr0_robidx_flag(to_issue_instr0_robidx_flag),
         .to_issue_instr0_robidx     (to_issue_instr0_robidx),
+        //src state
+        .to_issue_instr0_src1_state(to_issue_instr0_src1_state),
+        .to_issue_instr0_src2_state(to_issue_instr0_src2_state),
         .redirect_valid             (redirect_valid),
         .redirect_target            (redirect_target),
         .redirect_robidx_flag       (redirect_robidx_flag),
@@ -146,48 +149,51 @@ module backend (
         /* -------------------------------- writeback ------------------------------- */
         .writeback0_valid           (writeback0_instr_valid),
         .writeback0_need_to_wb      (writeback0_need_to_wb),
+        .writeback0_prd             (writeback0_prd),
         .writeback0_redirect_valid  (writeback0_redirect_valid),
         .writeback0_redirect_target (writeback0_redirect_target),
         .writeback0_robidx_flag     (writeback0_robidx_flag),
         .writeback0_robidx          (writeback0_robidx),
-        .writeback1_valid           (writeback1_instr_valid),
-        .writeback1_need_to_wb      (writeback1_need_to_wb),
-        .writeback1_mmio            (writeback1_mmio),
-        .writeback1_robidx_flag     (writeback1_robidx_flag),
-        .writeback1_robidx          (writeback1_robidx),
+
+        .writeback1_valid      (writeback1_instr_valid),
+        .writeback1_need_to_wb (writeback1_need_to_wb),
+        .writeback1_prd        (writeback1_prd),
+        .writeback1_mmio       (writeback1_mmio),
+        .writeback1_robidx_flag(writeback1_robidx_flag),
+        .writeback1_robidx     (writeback1_robidx),
         //debug
-        .debug_preg0                (debug_preg0),
-        .debug_preg1                (debug_preg1),
-        .debug_preg2                (debug_preg2),
-        .debug_preg3                (debug_preg3),
-        .debug_preg4                (debug_preg4),
-        .debug_preg5                (debug_preg5),
-        .debug_preg6                (debug_preg6),
-        .debug_preg7                (debug_preg7),
-        .debug_preg8                (debug_preg8),
-        .debug_preg9                (debug_preg9),
-        .debug_preg10               (debug_preg10),
-        .debug_preg11               (debug_preg11),
-        .debug_preg12               (debug_preg12),
-        .debug_preg13               (debug_preg13),
-        .debug_preg14               (debug_preg14),
-        .debug_preg15               (debug_preg15),
-        .debug_preg16               (debug_preg16),
-        .debug_preg17               (debug_preg17),
-        .debug_preg18               (debug_preg18),
-        .debug_preg19               (debug_preg19),
-        .debug_preg20               (debug_preg20),
-        .debug_preg21               (debug_preg21),
-        .debug_preg22               (debug_preg22),
-        .debug_preg23               (debug_preg23),
-        .debug_preg24               (debug_preg24),
-        .debug_preg25               (debug_preg25),
-        .debug_preg26               (debug_preg26),
-        .debug_preg27               (debug_preg27),
-        .debug_preg28               (debug_preg28),
-        .debug_preg29               (debug_preg29),
-        .debug_preg30               (debug_preg30),
-        .debug_preg31               (debug_preg31)
+        .debug_preg0           (debug_preg0),
+        .debug_preg1           (debug_preg1),
+        .debug_preg2           (debug_preg2),
+        .debug_preg3           (debug_preg3),
+        .debug_preg4           (debug_preg4),
+        .debug_preg5           (debug_preg5),
+        .debug_preg6           (debug_preg6),
+        .debug_preg7           (debug_preg7),
+        .debug_preg8           (debug_preg8),
+        .debug_preg9           (debug_preg9),
+        .debug_preg10          (debug_preg10),
+        .debug_preg11          (debug_preg11),
+        .debug_preg12          (debug_preg12),
+        .debug_preg13          (debug_preg13),
+        .debug_preg14          (debug_preg14),
+        .debug_preg15          (debug_preg15),
+        .debug_preg16          (debug_preg16),
+        .debug_preg17          (debug_preg17),
+        .debug_preg18          (debug_preg18),
+        .debug_preg19          (debug_preg19),
+        .debug_preg20          (debug_preg20),
+        .debug_preg21          (debug_preg21),
+        .debug_preg22          (debug_preg22),
+        .debug_preg23          (debug_preg23),
+        .debug_preg24          (debug_preg24),
+        .debug_preg25          (debug_preg25),
+        .debug_preg26          (debug_preg26),
+        .debug_preg27          (debug_preg27),
+        .debug_preg28          (debug_preg28),
+        .debug_preg29          (debug_preg29),
+        .debug_preg30          (debug_preg30),
+        .debug_preg31          (debug_preg31)
     );
 
     /* -------------------------------------------------------------------------- */
@@ -220,32 +226,9 @@ module backend (
     wire                      deq_instr0_robidx_flag;
     wire [ `ROB_SIZE_LOG-1:0] deq_instr0_robidx;
 
-
     /* -------------------------------------------------------------------------- */
-    /*                                 busy table                                 */
+    /*                                 issue queue                                */
     /* -------------------------------------------------------------------------- */
-
-    busytable u_busytable (
-        .clock      (clock),
-        .reset_n    (reset_n),
-        .read_addr0 (to_issue_instr0_prs1),
-        .read_addr1 (to_issue_instr0_prs2),
-        .read_addr2 (),
-        .read_addr3 (),
-        .busy_out0  (to_issue_instr0_src1_state),
-        .busy_out1  (to_issue_instr0_src2_state),
-        .busy_out2  (),
-        .busy_out3  (),
-        .alloc_addr0(to_issue_instr0_prd),
-        .alloc_en0  (to_issue_instr0_need_to_wb),
-        .alloc_addr1(),
-        .alloc_en1  (),
-        .free_addr0 (),
-        .free_en0   (),
-        .free_addr1 (),
-        .free_en1   ()
-    );
-
     issuequeue u_issuequeue (
         .clock                 (clock),
         .reset_n               (reset_n),
@@ -299,7 +282,14 @@ module backend (
         .deq_instr0_is_store   (deq_instr0_is_store),
         .deq_instr0_ls_size    (deq_instr0_ls_size),
         .deq_instr0_robidx_flag(deq_instr0_robidx_flag),
-        .deq_instr0_robidx     (deq_instr0_robidx)
+        .deq_instr0_robidx     (deq_instr0_robidx),
+        /* ------------------------- writeback wakeup logic ------------------------- */
+        .writeback0_valid      (writeback0_instr_valid),
+        .writeback0_need_to_wb (writeback0_need_to_wb),
+        .writeback0_prd        (writeback0_prd),
+        .writeback1_valid      (writeback1_instr_valid),
+        .writeback1_need_to_wb (writeback1_need_to_wb),
+        .writeback1_prd        (writeback1_prd)
     );
     //pregfile read data
     wire [             63:0] deq_instr0_src1;
@@ -496,32 +486,6 @@ module backend (
     `MACRO_DFF_NONEN(writeback1_mmio, memblock_out_mmio, 1)
     `MACRO_DFF_NONEN(writeback1_robidx_flag, memblock_out_robidx_flag, 1)
     `MACRO_DFF_NONEN(writeback1_robidx, memblock_out_robidx, `ROB_SIZE_LOG)
-
-
-
-    /* -------------------------------------------------------------------------- */
-    /*                                  difftest                                  */
-    /* -------------------------------------------------------------------------- */
-    // wire                commit_valid = ((|wb_alu_type) | (|wb_cx_type) | (|wb_muldiv_type) | wb_is_load | wb_is_store) & wb_valid;
-    // reg                 flop_wb_need_to_wb;
-    // reg  [         4:0] flop_wb_rd;
-    // reg  [   `PC_RANGE] flop_wb_pc;
-    // reg  [`INSTR_RANGE] flop_wb_instr;
-    // reg                 flop_mmio_valid;
-
-
-    // `MACRO_DFF_NONEN(flop_commit_valid, commit_valid, 1)
-    // `MACRO_DFF_NONEN(flop_wb_need_to_wb, regfile_write_valid, 1)
-    // `MACRO_DFF_NONEN(flop_wb_rd, wb_rd, 5)
-    // `MACRO_DFF_NONEN(flop_wb_pc, wb_pc, `PC_WIDTH)
-    // `MACRO_DFF_NONEN(flop_wb_instr, wb_instr, 32)
-    // `MACRO_DFF_NONEN(flop_mmio_valid, wb_mmio_valid, 1)
-
-
-
-
-
-
 
     /* verilator lint_off PINCONNECTEMPTY */
     /* verilator lint_off UNUSEDSIGNAL */

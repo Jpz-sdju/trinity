@@ -140,12 +140,12 @@ module backend (
         .to_issue_instr0_robidx_flag(to_issue_instr0_robidx_flag),
         .to_issue_instr0_robidx     (to_issue_instr0_robidx),
         //src state
-        .to_issue_instr0_src1_state(to_issue_instr0_src1_state),
-        .to_issue_instr0_src2_state(to_issue_instr0_src2_state),
-        .redirect_valid             (redirect_valid),
-        .redirect_target            (redirect_target),
-        .redirect_robidx_flag       (redirect_robidx_flag),
-        .redirect_robidx            (redirect_robidx),
+        .to_issue_instr0_src1_state (to_issue_instr0_src1_state),
+        .to_issue_instr0_src2_state (to_issue_instr0_src2_state),
+        .flush_valid                (redirect_valid),
+        .flush_target               (redirect_target),
+        .flush_robidx_flag          (redirect_robidx_flag),
+        .flush_robidx               (redirect_robidx),
         /* -------------------------------- writeback ------------------------------- */
         .writeback0_valid           (writeback0_instr_valid),
         .writeback0_need_to_wb      (writeback0_need_to_wb),
@@ -289,7 +289,11 @@ module backend (
         .writeback0_prd        (writeback0_prd),
         .writeback1_valid      (writeback1_instr_valid),
         .writeback1_need_to_wb (writeback1_need_to_wb),
-        .writeback1_prd        (writeback1_prd)
+        .writeback1_prd        (writeback1_prd),
+        /* -------------------------- redirect flush logic -------------------------- */
+        .flush_valid           (redirect_valid),
+        .flush_robidx_flag     (redirect_robidx_flag),
+        .flush_robidx          (redirect_robidx)
     );
     //pregfile read data
     wire [             63:0] deq_instr0_src1;
@@ -405,14 +409,18 @@ module backend (
         .robidx     (deq_instr0_robidx),
 
         //output
-        .out_instr_valid(intblock_out_instr_valid),
-        .out_need_to_wb (intblock_out_need_to_wb),
-        .out_prd        (intblock_out_prd),
-        .out_result     (intblock_out_result),
-        .out_robidx_flag(intblock_out_robidx_flag),
-        .out_robidx     (intblock_out_robidx),
-        .redirect_valid (intblock_out_redirect_valid),
-        .redirect_target(intblock_out_redirect_target)
+        .out_instr_valid  (intblock_out_instr_valid),
+        .out_need_to_wb   (intblock_out_need_to_wb),
+        .out_prd          (intblock_out_prd),
+        .out_result       (intblock_out_result),
+        .out_robidx_flag  (intblock_out_robidx_flag),
+        .out_robidx       (intblock_out_robidx),
+        .redirect_valid   (intblock_out_redirect_valid),
+        .redirect_target  (intblock_out_redirect_target),
+        /* -------------------------- redirect flush logic -------------------------- */
+        .flush_valid      (redirect_valid),
+        .flush_robidx_flag(redirect_robidx_flag),
+        .flush_robidx     (redirect_robidx)
     );
 
 
@@ -458,7 +466,11 @@ module backend (
         .out_mmio           (memblock_out_mmio),
         .out_robidx_flag    (memblock_out_robidx_flag),
         .out_robidx         (memblock_out_robidx),
-        .mem_stall          (memblock_out_stall)
+        .mem_stall          (memblock_out_stall),
+        /* -------------------------- redirect flush logic -------------------------- */
+        .flush_valid        (redirect_valid),
+        .flush_robidx_flag  (redirect_robidx_flag),
+        .flush_robidx       (redirect_robidx)
     );
     assign mem_stall = memblock_out_stall;
 

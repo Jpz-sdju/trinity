@@ -73,11 +73,11 @@ module rob (
     output wire                     commits1_need_to_wb,
     output wire                     commits1_skip,
 
-    //redirect
-    input wire                     redirect_valid,
-    input wire [             63:0] redirect_target,
-    input wire                     redirect_robidx_flag,
-    input wire [`ROB_SIZE_LOG-1:0] redirect_robidx
+    //flush
+    input wire                     flush_valid,
+    input wire [             63:0] flush_target,
+    input wire                     flush_robidx_flag,
+    input wire [`ROB_SIZE_LOG-1:0] flush_robidx
 
 );
 

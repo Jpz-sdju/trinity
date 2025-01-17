@@ -20,22 +20,22 @@ module renametable (
     input wire [4:0] instr1_lrd,
 
     //read data to rename
-    output reg [`PREG_RANGE] instr0_rat_prs1,
-    output reg [`PREG_RANGE] instr0_rat_prs2,
-    output reg [`PREG_RANGE] instr0_rat_prd,
+    output reg [`PREG_RANGE] rat2rename_instr0_prs1,
+    output reg [`PREG_RANGE] rat2rename_instr0_prs2,
+    output reg [`PREG_RANGE] rat2rename_instr0_prd,
 
-    output reg [`PREG_RANGE] instr1_rat_prs1,
-    output reg [`PREG_RANGE] instr1_rat_prs2,
-    output reg [`PREG_RANGE] instr1_rat_prd,
+    output reg [`PREG_RANGE] rat2rename_instr1_prs1,
+    output reg [`PREG_RANGE] rat2rename_instr1_prs2,
+    output reg [`PREG_RANGE] rat2rename_instr1_prd,
 
     //write request from rename
-    input wire               instr0_rat_rename_valid,
-    input wire [        4:0] instr0_rat_rename_addr,
-    input wire [`PREG_RANGE] instr0_rat_rename_data,
+    input wire               rename2rat_instr0_rename_valid,
+    input wire [        4:0] rename2rat_instr0_rename_addr,
+    input wire [`PREG_RANGE] rename2rat_instr0_rename_data,
 
-    input wire               instr1_rat_rename_valid,
-    input wire [        4:0] instr1_rat_rename_addr,
-    input wire [`PREG_RANGE] instr1_rat_rename_data,
+    input wire               rename2rat_instr1_rename_valid,
+    input wire [        4:0] rename2rat_instr1_rename_addr,
+    input wire [`PREG_RANGE] rename2rat_instr1_rename_data,
 
 
     //arch rat write 
@@ -120,22 +120,22 @@ module renametable (
     wire               instr0_prd_byp;
     wire               instr1_prd_byp;
 
-    assign instr0_prs1_bypass_rename0 = instr0_rat_rename_valid & (instr0_rat_rename_addr == instr0_lrs1);
-    assign instr0_prs1_bypass_rename1 = instr1_rat_rename_valid & (instr1_rat_rename_addr == instr0_lrs1);
-    assign instr0_prs2_bypass_rename0 = instr0_rat_rename_valid & (instr0_rat_rename_addr == instr0_lrs2);
-    assign instr0_prs2_bypass_rename1 = instr1_rat_rename_valid & (instr1_rat_rename_addr == instr0_lrs2);
+    assign instr0_prs1_bypass_rename0 = rename2rat_instr0_rename_valid & (rename2rat_instr0_rename_addr == instr0_lrs1);
+    assign instr0_prs1_bypass_rename1 = rename2rat_instr1_rename_valid & (rename2rat_instr1_rename_addr == instr0_lrs1);
+    assign instr0_prs2_bypass_rename0 = rename2rat_instr0_rename_valid & (rename2rat_instr0_rename_addr == instr0_lrs2);
+    assign instr0_prs2_bypass_rename1 = rename2rat_instr1_rename_valid & (rename2rat_instr1_rename_addr == instr0_lrs2);
 
-    assign instr1_prs1_bypass_rename0 = instr1_rat_rename_valid & (instr0_rat_rename_addr == instr1_lrs1);
-    assign instr1_prs1_bypass_rename1 = instr1_rat_rename_valid & (instr1_rat_rename_addr == instr1_lrs1);
-    assign instr1_prs2_bypass_rename0 = instr1_rat_rename_valid & (instr0_rat_rename_addr == instr1_lrs2);
-    assign instr1_prs2_bypass_rename1 = instr1_rat_rename_valid & (instr1_rat_rename_addr == instr1_lrs2);
+    assign instr1_prs1_bypass_rename0 = rename2rat_instr1_rename_valid & (rename2rat_instr0_rename_addr == instr1_lrs1);
+    assign instr1_prs1_bypass_rename1 = rename2rat_instr1_rename_valid & (rename2rat_instr1_rename_addr == instr1_lrs1);
+    assign instr1_prs2_bypass_rename0 = rename2rat_instr1_rename_valid & (rename2rat_instr0_rename_addr == instr1_lrs2);
+    assign instr1_prs2_bypass_rename1 = rename2rat_instr1_rename_valid & (rename2rat_instr1_rename_addr == instr1_lrs2);
 
     //rd bypass
-    assign instr0_prd_bypass_rename0  = instr0_rat_rename_valid & (instr0_rat_rename_addr == instr0_lrd);
-    assign instr0_prd_bypass_rename1  = instr1_rat_rename_valid & (instr1_rat_rename_addr == instr0_lrd);
+    assign instr0_prd_bypass_rename0  = rename2rat_instr0_rename_valid & (rename2rat_instr0_rename_addr == instr0_lrd);
+    assign instr0_prd_bypass_rename1  = rename2rat_instr1_rename_valid & (rename2rat_instr1_rename_addr == instr0_lrd);
 
-    assign instr1_prd_bypass_rename0  = instr0_rat_rename_valid & (instr0_rat_rename_addr == instr1_lrd);
-    assign instr1_prd_bypass_rename1  = instr1_rat_rename_valid & (instr1_rat_rename_addr == instr1_lrd);
+    assign instr1_prd_bypass_rename0  = rename2rat_instr0_rename_valid & (rename2rat_instr0_rename_addr == instr1_lrd);
+    assign instr1_prd_bypass_rename1  = rename2rat_instr1_rename_valid & (rename2rat_instr1_rename_addr == instr1_lrd);
 
 
     assign instr0_prs1_byp            = instr0_prs1_bypass_rename1 | instr0_prs1_bypass_rename0;
@@ -148,15 +148,15 @@ module renametable (
     assign instr1_prd_byp             = instr1_prd_bypass_rename1 | instr1_prd_bypass_rename0;
 
 
-    assign instr0_prs1_byp_res        = instr0_prs1_bypass_rename1 ? instr1_rat_rename_data : instr0_prs1_bypass_rename0 ? instr0_rat_rename_data : 'hB;
-    assign instr0_prs2_byp_res        = instr0_prs2_bypass_rename1 ? instr1_rat_rename_data : instr0_prs2_bypass_rename0 ? instr0_rat_rename_data : 'hB;
-    assign instr1_prs1_byp_res        = instr1_prs1_bypass_rename1 ? instr1_rat_rename_data : instr1_prs1_bypass_rename0 ? instr1_rat_rename_data : 'hB;
-    assign instr1_prs2_byp_res        = instr1_prs2_bypass_rename1 ? instr1_rat_rename_data : instr1_prs2_bypass_rename0 ? instr1_rat_rename_data : 'hB;
+    assign instr0_prs1_byp_res        = instr0_prs1_bypass_rename1 ? rename2rat_instr1_rename_data : instr0_prs1_bypass_rename0 ? rename2rat_instr0_rename_data : 'hB;
+    assign instr0_prs2_byp_res        = instr0_prs2_bypass_rename1 ? rename2rat_instr1_rename_data : instr0_prs2_bypass_rename0 ? rename2rat_instr0_rename_data : 'hB;
+    assign instr1_prs1_byp_res        = instr1_prs1_bypass_rename1 ? rename2rat_instr1_rename_data : instr1_prs1_bypass_rename0 ? rename2rat_instr1_rename_data : 'hB;
+    assign instr1_prs2_byp_res        = instr1_prs2_bypass_rename1 ? rename2rat_instr1_rename_data : instr1_prs2_bypass_rename0 ? rename2rat_instr1_rename_data : 'hB;
 
 
     //rd bypass
-    assign instr0_prd_byp_res         = instr0_prd_bypass_rename1 ? instr1_rat_rename_data : instr0_prd_bypass_rename0 ? instr0_rat_rename_data : 'hB;
-    assign instr1_prd_byp_res         = instr1_prd_bypass_rename1 ? instr1_rat_rename_data : instr1_prd_bypass_rename0 ? instr1_rat_rename_data : 'hB;
+    assign instr0_prd_byp_res         = instr0_prd_bypass_rename1 ? rename2rat_instr1_rename_data : instr0_prd_bypass_rename0 ? rename2rat_instr0_rename_data : 'hB;
+    assign instr1_prd_byp_res         = instr1_prd_bypass_rename1 ? rename2rat_instr1_rename_data : instr1_prd_bypass_rename0 ? rename2rat_instr1_rename_data : 'hB;
 
 
     //read data to rename
@@ -178,20 +178,20 @@ module renametable (
     assign instr1_rat_prs2_raw = instr1_src2_is_reg ? instr1_prs2_byp ? instr1_prs2_byp_res : renametables[instr1_lrs2] : 'b0;
     assign instr1_rat_prd_raw  = instr1_need_to_wb ? instr1_prd_byp ? instr1_prd_byp_res : renametables[instr1_lrd] : 'b0;
 
-    `MACRO_DFF_NONEN(instr0_rat_prs1, instr0_rat_prs1_raw, `PREG_LENGTH)
-    `MACRO_DFF_NONEN(instr0_rat_prs2, instr0_rat_prs2_raw, `PREG_LENGTH)
-    `MACRO_DFF_NONEN(instr0_rat_prd, instr0_rat_prd_raw, `PREG_LENGTH)
+    `MACRO_DFF_NONEN(rat2rename_instr0_prs1, instr0_rat_prs1_raw, `PREG_LENGTH)
+    `MACRO_DFF_NONEN(rat2rename_instr0_prs2, instr0_rat_prs2_raw, `PREG_LENGTH)
+    `MACRO_DFF_NONEN(rat2rename_instr0_prd, instr0_rat_prd_raw, `PREG_LENGTH)
 
-    `MACRO_DFF_NONEN(instr1_rat_prs1, instr1_rat_prs1_raw, `PREG_LENGTH)
-    `MACRO_DFF_NONEN(instr1_rat_prs2, instr1_rat_prs2_raw, `PREG_LENGTH)
-    `MACRO_DFF_NONEN(instr1_rat_prd, instr1_rat_prd_raw, `PREG_LENGTH)
+    `MACRO_DFF_NONEN(rat2rename_instr1_prs1, instr1_rat_prs1_raw, `PREG_LENGTH)
+    `MACRO_DFF_NONEN(rat2rename_instr1_prs2, instr1_rat_prs2_raw, `PREG_LENGTH)
+    `MACRO_DFF_NONEN(rat2rename_instr1_prd, instr1_rat_prd_raw, `PREG_LENGTH)
 
 
     always @(*) begin
         integer i;
         for (i = 0; i < 32; i = i + 1) begin
             renametables_wren_dec[i] = 'b0;
-            if (instr0_rat_rename_valid & (instr0_rat_rename_addr == i[4:0]) | instr1_rat_rename_valid & (instr1_rat_rename_addr == i[4:0])) begin
+            if (rename2rat_instr0_rename_valid & (rename2rat_instr0_rename_addr == i[4:0]) | rename2rat_instr1_rename_valid & (rename2rat_instr1_rename_addr == i[4:0])) begin
                 renametables_wren_dec[i] = 1'b1;
             end
         end
@@ -201,10 +201,10 @@ module renametable (
         integer i;
         for (i = 0; i < 32; i = i + 1) begin
             renametables_wdata_dec[i] = 'b0;
-            if (instr0_rat_rename_valid & (instr0_rat_rename_addr == i[4:0])) begin
-                renametables_wdata_dec[i] = instr0_rat_rename_data;
-            end else if (instr1_rat_rename_valid & (instr1_rat_rename_addr == i[4:0])) begin
-                renametables_wdata_dec[i] = instr1_rat_rename_data;
+            if (rename2rat_instr0_rename_valid & (rename2rat_instr0_rename_addr == i[4:0])) begin
+                renametables_wdata_dec[i] = rename2rat_instr0_rename_data;
+            end else if (rename2rat_instr1_rename_valid & (rename2rat_instr1_rename_addr == i[4:0])) begin
+                renametables_wdata_dec[i] = rename2rat_instr1_rename_data;
             end
         end
     end

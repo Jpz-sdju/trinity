@@ -23,19 +23,19 @@ module freelist #(
 );
     integer                      i;
 
-    // Queue implementation: Use FIFO (queue head stores free register addresses)
+    // Queue implementation: Use FIFO (queue deq stores free register addresses)
     reg     [PREG_IDX_WIDTH-1:0] freelist_queue[0:NUM_REGS-1];  // Array of physical register addresses
-    reg [LOG_NUM_REGS:0] queue_head, queue_tail;  // 1 bit flag, LOG_NUM_REGS bit value
-    reg [LOG_NUM_REGS:0] queue_head_next, queue_tail_next;  // 1 bit flag, LOG_NUM_REGS bit value
+    reg [LOG_NUM_REGS-1:0] deq_idx, enq_idx;  // LOG_NUM_REGS bit value
+    reg [LOG_NUM_REGS-1:0] deq_idx_next, enq_idx_next;  // LOG_NUM_REGS bit value
 
     // Counter for available registers
-    reg  [LOG_NUM_REGS:0] available_count;  // Number of available registers (range from 0 to NUM_REGS)
+    reg  [LOG_NUM_REGS-1:0] available_count;  // Number of available registers (range from 0 to NUM_REGS)
 
-    reg  [LOG_NUM_REGS:0] enq_count;  // Number of available registers (range from 0 to NUM_REGS)
-    reg  [LOG_NUM_REGS:0] deq_count;  // Number of available registers (range from 0 to NUM_REGS)
+    reg  [LOG_NUM_REGS-1:0] enq_count;  // Number of available registers (range from 0 to NUM_REGS)
+    reg  [LOG_NUM_REGS-1:0] deq_count;  // Number of available registers (range from 0 to NUM_REGS)
 
-    wire [   ENQ_NUM-1:0] enq_vec;
-    wire [   DEQ_NUM-1:0] deq_vec;
+    wire [     ENQ_NUM-1:0] enq_vec;
+    wire [     DEQ_NUM-1:0] deq_vec;
 
     assign enq_vec = {write1_valid, write0_valid};
     assign deq_vec = {req1_valid, req0_valid};
@@ -58,38 +58,38 @@ module freelist #(
         end
     end
 
-    // Queue tail pointer update logic
+    // Queue enq pointer update logic
     always @(posedge clock or negedge reset_n) begin
         if (!reset_n) begin
-            queue_tail <= 'h31;  // Reset tail on reset
+            enq_idx <= 'h0;  // Reset enq on reset
         end else begin
-            queue_tail <= queue_tail_next;
+            enq_idx <= enq_idx_next;
         end
     end
 
     always @(*) begin
-        queue_tail_next = queue_tail + enq_count;
+        enq_idx_next = enq_idx + enq_count;
     end
 
 
 
-    // Queue head pointer update logic (dequeue logic)
+    // Queue deq pointer update logic (dequeue logic)
     always @(posedge clock or negedge reset_n) begin
         if (!reset_n) begin
-            queue_head <= 'h0;  // Reset head on reset
+            deq_idx <= 'h0;  // Reset deq on reset
         end else begin
-            queue_head <= queue_head_next;
+            deq_idx <= deq_idx_next;
         end
     end
 
     always @(*) begin
-        queue_head_next = queue_head + deq_count;
+        deq_idx_next = deq_idx + deq_count;
     end
 
 
     always @(posedge clock or negedge reset_n) begin
         if (!reset_n) begin
-            available_count <= NUM_REGS;  // Reset tail on reset
+            available_count <= NUM_REGS;  // Reset enq on reset
         end else begin
             available_count <= available_count + enq_count - deq_count;
         end
@@ -102,13 +102,13 @@ module freelist #(
         req1_data = {PREG_IDX_WIDTH{1'bx}};  // Default to invalid value
 
         if (req0_valid && available_count > 0) begin
-            // Allocate a register for req0 from the head of the queue
-            req0_data = freelist_queue[queue_head[LOG_NUM_REGS-1 :0 ]];
+            // Allocate a register for req0 from the deq of the queue
+            req0_data = freelist_queue[deq_idx[LOG_NUM_REGS-1 : 0]];
         end
 
         if (req1_valid && available_count > 1) begin
-            // Allocate a register for req1 from the head of the queue
-            req1_data = freelist_queue[queue_head[LOG_NUM_REGS-1 :0 ]+1];
+            // Allocate a register for req1 from the deq of the queue
+            req1_data = freelist_queue[deq_idx[LOG_NUM_REGS-1 : 0]+1];
         end
     end
 
@@ -122,11 +122,11 @@ module freelist #(
         end else begin
             if (write0_valid) begin
                 // Write register back to the queue from write port 0
-                freelist_queue[queue_tail[LOG_NUM_REGS-1 :0 ]] <= write0_data;  // Add to the queue
+                freelist_queue[enq_idx[LOG_NUM_REGS-1 : 0]] <= write0_data;  // Add to the queue
             end
             if (write1_valid) begin
                 // Write register back to the queue from write port 1
-                freelist_queue[queue_tail[LOG_NUM_REGS-1 :0 ]] <= write1_data;  // Add to the queue
+                freelist_queue[enq_idx[LOG_NUM_REGS-1 : 0]] <= write1_data;  // Add to the queue
             end
         end
     end

@@ -73,7 +73,12 @@ module issuequeue (
 
     input wire               writeback1_valid,
     input wire               writeback1_need_to_wb,
-    input wire [`PREG_RANGE] writeback1_prd
+    input wire [`PREG_RANGE] writeback1_prd,
+
+    /* -------------------------- redirect flush logic -------------------------- */
+    input wire                     flush_valid,
+    input wire                     flush_robidx_flag,
+    input wire [`ROB_SIZE_LOG-1:0] flush_robidx
 );
 
     // Internal queue storage
@@ -105,60 +110,96 @@ module issuequeue (
     reg [`ISSUE_QUEUE_DEPTH-1:0] queue_robidx_flag;
     reg [     `ROB_SIZE_LOG-1:0] queue_robidx      [`ISSUE_QUEUE_DEPTH-1:0];
 
-    reg [`ISSUE_QUEUE_LOG-1:0] head, tail;
-    reg head_flag, tail_flag;
-    reg [`ISSUE_QUEUE_LOG-1:0] head_next, tail_next;
-    reg head_flag_next, tail_flag_next;
-
-
+    reg deq_idx_flag, enq_idx_flag;
+    reg [`ISSUE_QUEUE_LOG-1:0] deq_idx, enq_idx;
+    reg deq_idx_flag_next, enq_idx_flag_next;
+    reg [`ISSUE_QUEUE_LOG-1:0] deq_idx_next, enq_idx_next;
 
     // Enqueue logic
-    assign enq_instr0_ready = (queue_valid[tail] == 0);
+    assign enq_instr0_ready = (queue_valid[enq_idx] == 0);
 
-    //when head is ready,go issue
-    wire head_is_ready = queue_valid[head] & (~queue_src1_state[head]) & (~queue_src2_state[head]) & deq_instr0_ready;
+    //when deq_idx is ready,go issue
+    wire deq_is_ready = queue_valid[deq_idx] & (~queue_src1_state[deq_idx]) & (~queue_src2_state[deq_idx]) & deq_instr0_ready;
     always @(posedge clock or negedge reset_n) begin
         if (!reset_n) begin
 
         end else if (enq_instr0_valid && enq_instr0_ready) begin
-            queue_prs1[tail]        <= enq_instr0_prs1;
-            queue_prs2[tail]        <= enq_instr0_prs2;
-            queue_src1_is_reg[tail] <= enq_instr0_src1_is_reg;
-            queue_src2_is_reg[tail] <= enq_instr0_src2_is_reg;
-            queue_src1_state[tail]  <= enq_instr0_src1_state;
-            queue_src2_state[tail]  <= enq_instr0_src2_state;
-            queue_prd[tail]         <= enq_instr0_prd;
-            queue_old_prd[tail]     <= enq_instr0_old_prd;
-            queue_pc[tail]          <= enq_instr0_pc;
-            queue[tail]             <= enq_instr0;
-            queue_imm[tail]         <= enq_instr0_imm;
-            queue_need_to_wb[tail]  <= enq_instr0_need_to_wb;
-            queue_cx_type[tail]     <= enq_instr0_cx_type;
-            queue_is_unsigned[tail] <= enq_instr0_is_unsigned;
-            queue_alu_type[tail]    <= enq_instr0_alu_type;
-            queue_muldiv_type[tail] <= enq_instr0_muldiv_type;
-            queue_is_word[tail]     <= enq_instr0_is_word;
-            queue_is_imm[tail]      <= enq_instr0_is_imm;
-            queue_is_load[tail]     <= enq_instr0_is_load;
-            queue_is_store[tail]    <= enq_instr0_is_store;
-            queue_ls_size[tail]     <= enq_instr0_ls_size;
-            queue_robidx_flag[tail] <= enq_instr0_robidx_flag;
-            queue_robidx[tail]      <= enq_instr0_robidx;
+            queue_prs1[enq_idx]        <= enq_instr0_prs1;
+            queue_prs2[enq_idx]        <= enq_instr0_prs2;
+            queue_src1_is_reg[enq_idx] <= enq_instr0_src1_is_reg;
+            queue_src2_is_reg[enq_idx] <= enq_instr0_src2_is_reg;
+            queue_src1_state[enq_idx]  <= enq_instr0_src1_state;
+            queue_src2_state[enq_idx]  <= enq_instr0_src2_state;
+            queue_prd[enq_idx]         <= enq_instr0_prd;
+            queue_old_prd[enq_idx]     <= enq_instr0_old_prd;
+            queue_pc[enq_idx]          <= enq_instr0_pc;
+            queue[enq_idx]             <= enq_instr0;
+            queue_imm[enq_idx]         <= enq_instr0_imm;
+            queue_need_to_wb[enq_idx]  <= enq_instr0_need_to_wb;
+            queue_cx_type[enq_idx]     <= enq_instr0_cx_type;
+            queue_is_unsigned[enq_idx] <= enq_instr0_is_unsigned;
+            queue_alu_type[enq_idx]    <= enq_instr0_alu_type;
+            queue_muldiv_type[enq_idx] <= enq_instr0_muldiv_type;
+            queue_is_word[enq_idx]     <= enq_instr0_is_word;
+            queue_is_imm[enq_idx]      <= enq_instr0_is_imm;
+            queue_is_load[enq_idx]     <= enq_instr0_is_load;
+            queue_is_store[enq_idx]    <= enq_instr0_is_store;
+            queue_ls_size[enq_idx]     <= enq_instr0_ls_size;
+            queue_robidx_flag[enq_idx] <= enq_instr0_robidx_flag;
+            queue_robidx[enq_idx]      <= enq_instr0_robidx;
+        end
+    end
+
+    reg [`ISSUE_QUEUE_DEPTH-1:0] enq_oh;
+    reg [`ISSUE_QUEUE_DEPTH-1:0] deq_oh;
+    reg [`ISSUE_QUEUE_DEPTH-1:0] flush_dec;
+
+    always @(*) begin
+        integer i;
+        enq_oh = 'b0;
+        for (i = 0; i < `ISSUE_QUEUE_DEPTH; i = i + 1) begin
+            if (enq_idx == i[`ISSUE_QUEUE_LOG-1:0]) begin
+                enq_oh[i] = 1'b1;
+            end
+        end
+    end
+    always @(*) begin
+        integer i;
+        deq_oh = 'b0;
+        for (i = 0; i < `ISSUE_QUEUE_DEPTH; i = i + 1) begin
+            if (deq_idx == i[`ISSUE_QUEUE_LOG-1:0]) begin
+                deq_oh[i] = 1'b1;
+            end
+        end
+    end
+    always @(flush_valid or flush_robidx or flush_robidx_flag) begin
+        integer i;
+        flush_dec = 'b0;
+        for (i = 0; i < `ISSUE_QUEUE_DEPTH; i = i + 1) begin
+            if (flush_valid) begin
+                if (flush_valid & queue_valid[i] & ((flush_robidx_flag ^ queue_robidx_flag[i]) ^ (flush_robidx < queue_robidx[i]))) begin
+                    flush_dec[i] = 1'b1;
+                end
+            end
         end
     end
 
 
     always @(posedge clock or negedge reset_n) begin
-        if (!reset_n) begin
-            queue_valid <= 'b0;
-        end else begin
-            if (enq_instr0_valid && enq_instr0_ready) begin
-                queue_valid[tail] <= 1'b1;
+        integer i;
+        for (i = 0; i < `ISSUE_QUEUE_DEPTH; i = i + 1) begin
+            if (~reset_n) begin
+                queue_valid[i] <= 1'b0;
+            end else begin
+                //not need to consider flush hit enq,cause dispatch will cover this situation
+                if (enq_oh[i] & enq_instr0_valid && enq_instr0_ready) begin
+                    queue_valid[i] <= 1'b1;
+                end else if (flush_dec[i]) begin
+                    queue_valid[i] <= 1'b0;
+                end else if (deq_oh[i] & deq_is_ready) begin
+                    queue_valid[i] <= 1'b0;
+                end
             end
-            if (head_is_ready) begin
-                queue_valid[head] <= 1'b0;
-            end
-
         end
     end
 
@@ -177,7 +218,7 @@ module issuequeue (
             queue_src1_state <= 'b0;
         end else begin
             if (enq_instr0_valid & enq_instr0_ready) begin
-                queue_src1_state[tail] <= enq_instr0_src1_state;
+                queue_src1_state[enq_idx] <= enq_instr0_src1_state;
             end
             for (i = 0; i < `ISSUE_QUEUE_LOG; i = i + 1) begin
                 if (writeback0_to_wakeup & (queue_prs1[i] == writeback0_prd) & queue_src1_is_reg) begin
@@ -196,7 +237,7 @@ module issuequeue (
             queue_src2_state <= 'b0;
         end else begin
             if (enq_instr0_valid & enq_instr0_ready) begin
-                queue_src2_state[tail] <= enq_instr0_src2_state;
+                queue_src2_state[enq_idx] <= enq_instr0_src2_state;
             end
             for (i = 0; i < `ISSUE_QUEUE_LOG; i = i + 1) begin
                 if (writeback0_to_wakeup & (queue_prs2[i] == writeback0_prd) & queue_src2_is_reg) begin
@@ -214,29 +255,29 @@ module issuequeue (
     always @(posedge clock or negedge reset_n) begin
         if (!reset_n) begin
             deq_instr0_valid <= 0;
-        end else if (head_is_ready) begin
+        end else if (deq_is_ready) begin
             deq_instr0_valid       <= 1;
-            deq_instr0_prs1        <= queue_prs1[head];
-            deq_instr0_prs2        <= queue_prs2[head];
-            deq_instr0_src1_is_reg <= queue_src1_is_reg[head];
-            deq_instr0_src2_is_reg <= queue_src2_is_reg[head];
-            deq_instr0_prd         <= queue_prd[head];
-            deq_instr0_old_prd     <= queue_old_prd[head];
-            deq_instr0_pc          <= queue_pc[head];
-            // deq_instr0             <= queue[head];
-            deq_instr0_imm         <= queue_imm[head];
-            deq_instr0_need_to_wb  <= queue_need_to_wb[head];
-            deq_instr0_cx_type     <= queue_cx_type[head];
-            deq_instr0_is_unsigned <= queue_is_unsigned[head];
-            deq_instr0_alu_type    <= queue_alu_type[head];
-            deq_instr0_muldiv_type <= queue_muldiv_type[head];
-            deq_instr0_is_word     <= queue_is_word[head];
-            deq_instr0_is_imm      <= queue_is_imm[head];
-            deq_instr0_is_load     <= queue_is_load[head];
-            deq_instr0_is_store    <= queue_is_store[head];
-            deq_instr0_ls_size     <= queue_ls_size[head];
-            deq_instr0_robidx_flag <= queue_robidx_flag[head];
-            deq_instr0_robidx      <= queue_robidx[head];
+            deq_instr0_prs1        <= queue_prs1[deq_idx];
+            deq_instr0_prs2        <= queue_prs2[deq_idx];
+            deq_instr0_src1_is_reg <= queue_src1_is_reg[deq_idx];
+            deq_instr0_src2_is_reg <= queue_src2_is_reg[deq_idx];
+            deq_instr0_prd         <= queue_prd[deq_idx];
+            deq_instr0_old_prd     <= queue_old_prd[deq_idx];
+            deq_instr0_pc          <= queue_pc[deq_idx];
+            // deq_instr0             <= queue[deq_idx];
+            deq_instr0_imm         <= queue_imm[deq_idx];
+            deq_instr0_need_to_wb  <= queue_need_to_wb[deq_idx];
+            deq_instr0_cx_type     <= queue_cx_type[deq_idx];
+            deq_instr0_is_unsigned <= queue_is_unsigned[deq_idx];
+            deq_instr0_alu_type    <= queue_alu_type[deq_idx];
+            deq_instr0_muldiv_type <= queue_muldiv_type[deq_idx];
+            deq_instr0_is_word     <= queue_is_word[deq_idx];
+            deq_instr0_is_imm      <= queue_is_imm[deq_idx];
+            deq_instr0_is_load     <= queue_is_load[deq_idx];
+            deq_instr0_is_store    <= queue_is_store[deq_idx];
+            deq_instr0_ls_size     <= queue_ls_size[deq_idx];
+            deq_instr0_robidx_flag <= queue_robidx_flag[deq_idx];
+            deq_instr0_robidx      <= queue_robidx[deq_idx];
         end else begin
             deq_instr0_valid <= 0;
         end
@@ -244,26 +285,26 @@ module issuequeue (
 
 
     always @(*) begin
-        if (head_is_ready) begin
-            {head_flag_next, head_next} = {head_flag, head} + 'b1;
+        if (deq_is_ready) begin
+            {deq_idx_flag_next, deq_idx_next} = {deq_idx_flag, deq_idx} + 'b1;
         end else begin
-            {head_flag_next, head_next} = {head_flag, head};
+            {deq_idx_flag_next, deq_idx_next} = {deq_idx_flag, deq_idx};
         end
     end
 
-    `MACRO_DFF_NONEN(head_flag, head_flag_next, 1)
-    `MACRO_DFF_NONEN(head, head_next, `ISSUE_QUEUE_LOG)
+    `MACRO_DFF_NONEN(deq_idx_flag, deq_idx_flag_next, 1)
+    `MACRO_DFF_NONEN(deq_idx, deq_idx_next, `ISSUE_QUEUE_LOG)
 
     always @(*) begin
         if ((enq_instr0_valid & enq_instr0_ready)) begin
-            {tail_flag_next, tail_next} = {tail_flag, tail} + 'b1;
+            {enq_idx_flag_next, enq_idx_next} = {enq_idx_flag, enq_idx} + 'b1;
         end else begin
-            {tail_flag_next, tail_next} = {tail_flag, tail};
+            {enq_idx_flag_next, enq_idx_next} = {enq_idx_flag, enq_idx};
         end
     end
 
-    `MACRO_DFF_NONEN(tail_flag, tail_flag_next, 1)
-    `MACRO_DFF_NONEN(tail, tail_next, `ISSUE_QUEUE_LOG)
+    `MACRO_DFF_NONEN(enq_idx_flag, enq_idx_flag_next, 1)
+    `MACRO_DFF_NONEN(enq_idx, enq_idx_next, `ISSUE_QUEUE_LOG)
 
 
 endmodule

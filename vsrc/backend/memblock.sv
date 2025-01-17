@@ -37,10 +37,22 @@ module memblock (
     //read data to wb stage
     output wire [    `RESULT_RANGE] opload_read_data_wb,
     //mem stall
-    output wire                     mem_stall
-
+    output wire                     mem_stall,
+    /* -------------------------- redirect flush logic -------------------------- */
+    input  wire                     flush_valid,
+    input  wire                     flush_robidx_flag,
+    input  wire [`ROB_SIZE_LOG-1:0] flush_robidx
 
 );
+
+
+    //redirect flush logic 
+    wire need_flush;
+    assign need_flush      = flush_valid & ((flush_robidx_flag ^ out_robidx_flag) ^ (flush_robidx < out_robidx));
+    //when flush instr older than you,could not high out valid!
+    assign out_instr_valid = instr_valid & ~need_flush;
+
+
     wire [`RESULT_RANGE] ls_address;
     agu u_agu (
         .src1      (src1),
@@ -48,10 +60,7 @@ module memblock (
         .ls_address(ls_address)
     );
 
-
-
-    assign out_instr_valid = instr_valid;
-    assign out_need_to_wb  = is_load;
+    assign out_need_to_wb = is_load;
 
 
     localparam IDLE = 2'b00;
@@ -234,5 +243,5 @@ module memblock (
     assign out_robidx_flag = robidx_flag;
     assign out_robidx      = robidx;
 
-    assign instr_ready = ~mem_stall;
+    assign instr_ready     = ~mem_stall;
 endmodule

@@ -46,11 +46,11 @@ module ctrlblock (
     output wire to_issue_instr0_src1_state,
     output wire to_issue_instr0_src2_state,
 
-    /* ------------------------------ redirect sigs ----------------------------- */
-    input wire                     redirect_valid,
-    input wire [             63:0] redirect_target,
-    input wire                     redirect_robidx_flag,
-    input wire [`ROB_SIZE_LOG-1:0] redirect_robidx,
+    /* ------------------------------ flush sigs ----------------------------- */
+    input wire                     flush_valid,
+    input wire [             63:0] flush_target,
+    input wire                     flush_robidx_flag,
+    input wire [`ROB_SIZE_LOG-1:0] flush_robidx,
 
     /* -------------------------------- writeback ------------------------------- */
     input wire                     writeback0_valid,
@@ -179,15 +179,15 @@ module ctrlblock (
     wire [         `PC_RANGE] to_rename_instr0_pc;
 
 
-    `PIPE_BEFORE_RENAME(to_rename_instr0, from_dec_instr0, 1'b0)
+    `PIPE_BEFORE_RENAME(to_rename_instr0, from_dec_instr0, writeback0_redirect_valid)
     /* --------------------------- rat read data to rename -------------------------- */
-    wire [      `PREG_RANGE] instr0_rat_prs1;
-    wire [      `PREG_RANGE] instr0_rat_prs2;
-    wire [      `PREG_RANGE] instr0_rat_prd;
+    wire [      `PREG_RANGE] rat2rename_instr0_prs1;
+    wire [      `PREG_RANGE] rat2rename_instr0_prs2;
+    wire [      `PREG_RANGE] rat2rename_instr0_prd;
     /* ------------------------ write request from rename ----------------------- */
-    wire                     instr0_rat_rename_valid;
-    wire [              4:0] instr0_rat_rename_addr;
-    wire [      `PREG_RANGE] instr0_rat_rename_data;
+    wire                     rename2rat_instr0_rename_valid;
+    wire [              4:0] rename2rat_instr0_rename_addr;
+    wire [      `PREG_RANGE] rename2rat_instr0_rename_data;
 
 
     /* ---------------------------- commit & redirect --------------------------- */
@@ -216,74 +216,74 @@ module ctrlblock (
 
 
     renametable u_renametable (
-        .clock                  (clock),
-        .reset_n                (reset_n),
-        .instr0_src1_is_reg     (from_dec_instr0_src1_is_reg),
-        .instr0_lrs1            (from_dec_instr0_lrs1),
-        .instr0_src2_is_reg     (from_dec_instr0_src2_is_reg),
-        .instr0_lrs2            (from_dec_instr0_lrs2),
-        .instr0_need_to_wb      (from_dec_instr0_need_to_wb),
-        .instr0_lrd             (from_dec_instr0_lrd),
-        .instr1_src1_is_reg     (),
-        .instr1_lrs1            (),
-        .instr1_src2_is_reg     (),
-        .instr1_lrs2            (),
-        .instr1_need_to_wb      (),
-        .instr1_lrd             (),
-        .instr0_rat_prs1        (instr0_rat_prs1),
-        .instr0_rat_prs2        (instr0_rat_prs2),
-        .instr0_rat_prd         (instr0_rat_prd),
-        .instr1_rat_prs1        (),
-        .instr1_rat_prs2        (),
-        .instr1_rat_prd         (),
-        .instr0_rat_rename_valid(instr0_rat_rename_valid),
-        .instr0_rat_rename_addr (instr0_rat_rename_addr),
-        .instr0_rat_rename_data (instr0_rat_rename_data),
-        .instr1_rat_rename_valid(),
-        .instr1_rat_rename_addr (),
-        .instr1_rat_rename_data (),
+        .clock                         (clock),
+        .reset_n                       (reset_n),
+        .instr0_src1_is_reg            (from_dec_instr0_src1_is_reg),
+        .instr0_lrs1                   (from_dec_instr0_lrs1),
+        .instr0_src2_is_reg            (from_dec_instr0_src2_is_reg),
+        .instr0_lrs2                   (from_dec_instr0_lrs2),
+        .instr0_need_to_wb             (from_dec_instr0_need_to_wb),
+        .instr0_lrd                    (from_dec_instr0_lrd),
+        .instr1_src1_is_reg            (),
+        .instr1_lrs1                   (),
+        .instr1_src2_is_reg            (),
+        .instr1_lrs2                   (),
+        .instr1_need_to_wb             (),
+        .instr1_lrd                    (),
+        .rat2rename_instr0_prs1        (rat2rename_instr0_prs1),
+        .rat2rename_instr0_prs2        (rat2rename_instr0_prs2),
+        .rat2rename_instr0_prd         (rat2rename_instr0_prd),
+        .rat2rename_instr1_prs1        (),
+        .rat2rename_instr1_prs2        (),
+        .rat2rename_instr1_prd         (),
+        .rename2rat_instr0_rename_valid(rename2rat_instr0_rename_valid),
+        .rename2rat_instr0_rename_addr (rename2rat_instr0_rename_addr),
+        .rename2rat_instr0_rename_data (rename2rat_instr0_rename_data),
+        .rename2rat_instr1_rename_valid(),
+        .rename2rat_instr1_rename_addr (),
+        .rename2rat_instr1_rename_data (),
         //arch rat write 
-        .commits0_valid         (commits0_valid),
-        .commits0_need_to_wb    (commits0_need_to_wb),
-        .commits0_lrd           (commits0_lrd),
-        .commits0_prd           (commits0_prd),
-        .commits1_valid         (commits1_valid),
-        .commits1_need_to_wb    (commits1_need_to_wb),
-        .commits1_lrd           (commits1_lrd),
-        .commits1_prd           (commits1_prd),
+        .commits0_valid                (commits0_valid),
+        .commits0_need_to_wb           (commits0_need_to_wb),
+        .commits0_lrd                  (commits0_lrd),
+        .commits0_prd                  (commits0_prd),
+        .commits1_valid                (commits1_valid),
+        .commits1_need_to_wb           (commits1_need_to_wb),
+        .commits1_lrd                  (commits1_lrd),
+        .commits1_prd                  (commits1_prd),
         //debug
-        .debug_preg0            (debug_preg0),
-        .debug_preg1            (debug_preg1),
-        .debug_preg2            (debug_preg2),
-        .debug_preg3            (debug_preg3),
-        .debug_preg4            (debug_preg4),
-        .debug_preg5            (debug_preg5),
-        .debug_preg6            (debug_preg6),
-        .debug_preg7            (debug_preg7),
-        .debug_preg8            (debug_preg8),
-        .debug_preg9            (debug_preg9),
-        .debug_preg10           (debug_preg10),
-        .debug_preg11           (debug_preg11),
-        .debug_preg12           (debug_preg12),
-        .debug_preg13           (debug_preg13),
-        .debug_preg14           (debug_preg14),
-        .debug_preg15           (debug_preg15),
-        .debug_preg16           (debug_preg16),
-        .debug_preg17           (debug_preg17),
-        .debug_preg18           (debug_preg18),
-        .debug_preg19           (debug_preg19),
-        .debug_preg20           (debug_preg20),
-        .debug_preg21           (debug_preg21),
-        .debug_preg22           (debug_preg22),
-        .debug_preg23           (debug_preg23),
-        .debug_preg24           (debug_preg24),
-        .debug_preg25           (debug_preg25),
-        .debug_preg26           (debug_preg26),
-        .debug_preg27           (debug_preg27),
-        .debug_preg28           (debug_preg28),
-        .debug_preg29           (debug_preg29),
-        .debug_preg30           (debug_preg30),
-        .debug_preg31           (debug_preg31)
+        .debug_preg0                   (debug_preg0),
+        .debug_preg1                   (debug_preg1),
+        .debug_preg2                   (debug_preg2),
+        .debug_preg3                   (debug_preg3),
+        .debug_preg4                   (debug_preg4),
+        .debug_preg5                   (debug_preg5),
+        .debug_preg6                   (debug_preg6),
+        .debug_preg7                   (debug_preg7),
+        .debug_preg8                   (debug_preg8),
+        .debug_preg9                   (debug_preg9),
+        .debug_preg10                  (debug_preg10),
+        .debug_preg11                  (debug_preg11),
+        .debug_preg12                  (debug_preg12),
+        .debug_preg13                  (debug_preg13),
+        .debug_preg14                  (debug_preg14),
+        .debug_preg15                  (debug_preg15),
+        .debug_preg16                  (debug_preg16),
+        .debug_preg17                  (debug_preg17),
+        .debug_preg18                  (debug_preg18),
+        .debug_preg19                  (debug_preg19),
+        .debug_preg20                  (debug_preg20),
+        .debug_preg21                  (debug_preg21),
+        .debug_preg22                  (debug_preg22),
+        .debug_preg23                  (debug_preg23),
+        .debug_preg24                  (debug_preg24),
+        .debug_preg25                  (debug_preg25),
+        .debug_preg26                  (debug_preg26),
+        .debug_preg27                  (debug_preg27),
+        .debug_preg28                  (debug_preg28),
+        .debug_preg29                  (debug_preg29),
+        .debug_preg30                  (debug_preg30),
+        .debug_preg31                  (debug_preg31)
     );
 
     /* -------------------------------------------------------------------------- */
@@ -379,18 +379,18 @@ module ctrlblock (
         .instr1_is_load                (),
         .instr1_is_store               (),
         .instr1_ls_size                (),
-        .instr0_rat_prs1               (instr0_rat_prs1),
-        .instr0_rat_prs2               (instr0_rat_prs2),
-        .instr0_rat_prd                (instr0_rat_prd),
-        .instr1_rat_prs1               (),
-        .instr1_rat_prs2               (),
-        .instr1_rat_prd                (),
-        .instr0_rat_rename_valid       (instr0_rat_rename_valid),
-        .instr0_rat_rename_addr        (instr0_rat_rename_addr),
-        .instr0_rat_rename_data        (instr0_rat_rename_data),
-        .instr1_rat_rename_valid       (),
-        .instr1_rat_rename_addr        (),
-        .instr1_rat_rename_data        (),
+        .rat2rename_instr0_prs1        (rat2rename_instr0_prs1),
+        .rat2rename_instr0_prs2        (rat2rename_instr0_prs2),
+        .rat2rename_instr0_prd         (rat2rename_instr0_prd),
+        .rat2rename_instr1_prs1        (),
+        .rat2rename_instr1_prs2        (),
+        .rat2rename_instr1_prd         (),
+        .rename2rat_instr0_rename_valid(rename2rat_instr0_rename_valid),
+        .rename2rat_instr0_rename_addr (rename2rat_instr0_rename_addr),
+        .rename2rat_instr0_rename_data (rename2rat_instr0_rename_data),
+        .rename2rat_instr1_rename_valid(),
+        .rename2rat_instr1_rename_addr (),
+        .rename2rat_instr1_rename_data (),
         .instr0_freelist_req           (instr0_freelist_req),
         .instr0_freelist_resp          (instr0_freelist_resp),
         .instr1_freelist_req           (),
@@ -477,7 +477,7 @@ module ctrlblock (
 
 
 
-    `PIPE_BEFORE_WB(to_dispatch_instr0, from_rename_instr0, 1'b0)
+    `PIPE_BEFORE_WB(to_dispatch_instr0, from_rename_instr0, writeback0_redirect_valid)
 
 
     /* -------------------------------------------------------------------------- */
@@ -591,7 +591,11 @@ module ctrlblock (
         .to_issue_instr1_prd        (),
         .to_issue_instr1_old_prd    (),
         .to_issue_instr1_robidx_flag(),
-        .to_issue_instr1_robidx     ()
+        .to_issue_instr1_robidx     (),
+        /* -------------------------- redirect flush logic -------------------------- */
+        .flush_valid                (writeback0_redirect_valid),
+        .flush_robidx_flag          (writeback0_robidx_flag),
+        .flush_robidx               (writeback0_robidx)
     );
 
 
@@ -680,10 +684,10 @@ module ctrlblock (
         .commits1_robidx       (commits1_robidx),
         .commits1_need_to_wb   (commits1_need_to_wb),
         .commits1_skip         (commits1_skip),
-        .redirect_valid        (redirect_valid),
-        .redirect_target       (redirect_target),
-        .redirect_robidx_flag  (redirect_robidx_flag),
-        .redirect_robidx       (redirect_robidx)
+        .flush_valid           (flush_valid),
+        .flush_target          (flush_target),
+        .flush_robidx_flag     (flush_robidx_flag),
+        .flush_robidx          (flush_robidx)
     );
 
     /* -------------------------------------------------------------------------- */

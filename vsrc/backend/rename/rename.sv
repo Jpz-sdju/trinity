@@ -51,22 +51,22 @@ module rename (
 
 
     //read data from rat
-    input wire [`PREG_RANGE] instr0_rat_prs1,
-    input wire [`PREG_RANGE] instr0_rat_prs2,
-    input wire [`PREG_RANGE] instr0_rat_prd,
+    input wire [`PREG_RANGE] rat2rename_instr0_prs1,
+    input wire [`PREG_RANGE] rat2rename_instr0_prs2,
+    input wire [`PREG_RANGE] rat2rename_instr0_prd,
 
-    input wire [`PREG_RANGE] instr1_rat_prs1,
-    input wire [`PREG_RANGE] instr1_rat_prs2,
-    input wire [`PREG_RANGE] instr1_rat_prd,
+    input wire [`PREG_RANGE] rat2rename_instr1_prs1,
+    input wire [`PREG_RANGE] rat2rename_instr1_prs2,
+    input wire [`PREG_RANGE] rat2rename_instr1_prd,
 
     //write request to rat
-    output wire               instr0_rat_rename_valid,
-    output wire [`LREG_RANGE] instr0_rat_rename_addr,
-    output wire [`PREG_RANGE] instr0_rat_rename_data,
+    output wire               rename2rat_instr0_rename_valid,
+    output wire [`LREG_RANGE] rename2rat_instr0_rename_addr,
+    output wire [`PREG_RANGE] rename2rat_instr0_rename_data,
 
-    output wire               instr1_rat_rename_valid,
-    output wire [`LREG_RANGE] instr1_rat_rename_addr,
-    output wire [`PREG_RANGE] instr1_rat_rename_data,
+    output wire               rename2rat_instr1_rename_valid,
+    output wire [`LREG_RANGE] rename2rat_instr1_rename_addr,
+    output wire [`PREG_RANGE] rename2rat_instr1_rename_data,
 
 
     //alloc reqeust to freelist
@@ -145,7 +145,7 @@ module rename (
     assign to_dispatch_instr0_lrd         = instr0_lrd;
     assign to_dispatch_instr0_pc          = instr0_pc;
     assign to_dispatch_instr0             = instr0;
-    assign to_dispatch_instr0_old_prd     = instr0_rat_prd;
+    assign to_dispatch_instr0_old_prd     = rat2rename_instr0_prd;
 
 
     assign to_dispatch_instr0_imm         = instr0_imm;
@@ -171,7 +171,7 @@ module rename (
     assign to_dispatch_instr1_pc          = instr1_pc;
     assign to_dispatch_instr1             = instr1;
 
-    assign to_dispatch_instr1_old_prd     = instr1_rat_prd;
+    assign to_dispatch_instr1_old_prd     = rat2rename_instr1_prd;
 
 
     assign to_dispatch_instr1_imm         = instr1_imm;
@@ -215,24 +215,24 @@ module rename (
 
 
     //rename register
-    assign to_dispatch_instr0_prs1 = instr0_rat_prs1;
-    assign to_dispatch_instr0_prs2 = instr0_rat_prs2;
+    assign to_dispatch_instr0_prs1 = rat2rename_instr0_prs1;
+    assign to_dispatch_instr0_prs2 = rat2rename_instr0_prs2;
     assign to_dispatch_instr0_prd  = instr0_freelist_resp;
 
-    assign to_dispatch_instr1_prs1 = raw_detect_rs1 ? instr1_freelist_resp : instr1_rat_prs1;
-    assign to_dispatch_instr1_prs2 = raw_detect_rs2 ? instr1_freelist_resp : instr1_rat_prs2;
+    assign to_dispatch_instr1_prs1 = raw_detect_rs1 ? instr1_freelist_resp : rat2rename_instr1_prs1;
+    assign to_dispatch_instr1_prs2 = raw_detect_rs2 ? instr1_freelist_resp : rat2rename_instr1_prs2;
     assign to_dispatch_instr1_prd  = instr1_freelist_resp;
 
 
 
     //modify rat
-    assign instr0_rat_rename_valid = instr0_lrd_valid;
-    assign instr0_rat_rename_addr  = instr0_lrd;
-    assign instr0_rat_rename_data  = instr0_freelist_resp;
+    assign rename2rat_instr0_rename_valid = instr0_lrd_valid;
+    assign rename2rat_instr0_rename_addr  = instr0_lrd;
+    assign rename2rat_instr0_rename_data  = instr0_freelist_resp;
 
-    assign instr1_rat_rename_valid = instr1_lrd_valid;
-    assign instr1_rat_rename_addr  = instr1_lrd;
-    assign instr1_rat_rename_data  = instr1_freelist_resp;
+    assign rename2rat_instr1_rename_valid = instr1_lrd_valid;
+    assign rename2rat_instr1_rename_addr  = instr1_lrd;
+    assign rename2rat_instr1_rename_data  = instr1_freelist_resp;
 
 
     //assign ready

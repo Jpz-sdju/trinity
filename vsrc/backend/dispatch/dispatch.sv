@@ -126,11 +126,17 @@ module dispatch (
     output wire [`PREG_RANGE] to_issue_instr1_old_prd,
 
     output wire                     to_issue_instr1_robidx_flag,
-    output wire [`ROB_SIZE_LOG-1:0] to_issue_instr1_robidx
+    output wire [`ROB_SIZE_LOG-1:0] to_issue_instr1_robidx,
+
+    /* -------------------------- redirect flush logic -------------------------- */
+    input wire                     flush_valid,
+    input wire                     flush_robidx_flag,
+    input wire [`ROB_SIZE_LOG-1:0] flush_robidx
 
 
 );
-    assign to_issue_instr0_valid       = instr0_valid;
+    //redirect flush!
+    assign to_issue_instr0_valid       = instr0_valid & ~flush_valid;
     assign to_issue_instr0_lrs1        = instr0_lrs1;
     assign to_issue_instr0_lrs2        = instr0_lrs2;
     assign to_issue_instr0_lrd         = instr0_lrd;

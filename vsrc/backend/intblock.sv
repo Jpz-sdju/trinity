@@ -29,12 +29,24 @@ module intblock (
     output wire [     `RESULT_RANGE] out_result,
     //redirect
     output wire                      redirect_valid,
-    output wire [         `PC_RANGE] redirect_target
+    output wire [         `PC_RANGE] redirect_target,
+
+    //redirect flush logic
+    /* -------------------------- redirect flush logic -------------------------- */
+    input wire                     flush_valid,
+    input wire                     flush_robidx_flag,
+    input wire [`ROB_SIZE_LOG-1:0] flush_robidx
 
 );
 
-
-    assign out_instr_valid = instr_valid;
+    //redirect valid befor inspect
+    wire redirect_valid_raw;
+    //redirect flush logic 
+    wire need_flush;
+    assign need_flush      = flush_valid & ((flush_robidx_flag ^ out_robidx_flag) ^ (flush_robidx < out_robidx));
+    //when flush instr older than you,could not high out valid!
+    assign out_instr_valid = instr_valid & ~need_flush;
+    assign redirect_valid = redirect_valid_raw & ~need_flush;
 
 
 
@@ -70,7 +82,7 @@ module intblock (
         .valid          (bju_valid),
         .is_unsigned    (is_unsigned),
         .dest           (bju_result),
-        .redirect_valid (redirect_valid),
+        .redirect_valid (redirect_valid_raw),
         .redirect_target(redirect_target)
     );
 
@@ -90,4 +102,5 @@ module intblock (
     assign out_robidx_flag = robidx_flag;
     assign out_robidx      = robidx;
     assign instr_ready     = 1'b1;
+
 endmodule

@@ -26,7 +26,7 @@ module memblock (
     input  wire                      tbus_operation_done,
     output wire [`TBUS_OPTYPE_RANGE] tbus_operation_type,
 
-    // output valid
+    /* --------------------------- output to writeback -------------------------- */
     output wire               out_instr_valid,
     output wire               out_need_to_wb,
     output wire [`PREG_RANGE] out_prd,
@@ -48,9 +48,7 @@ module memblock (
 
     //redirect flush logic 
     wire need_flush;
-    assign need_flush      = flush_valid & ((flush_robidx_flag ^ out_robidx_flag) ^ (flush_robidx < out_robidx));
-    //when flush instr older than you,could not high out valid!
-    assign out_instr_valid = instr_valid & ~need_flush;
+    assign need_flush = flush_valid & ((flush_robidx_flag ^ out_robidx_flag) ^ (flush_robidx < out_robidx));
 
 
     wire [`RESULT_RANGE] ls_address;
@@ -60,18 +58,15 @@ module memblock (
         .ls_address(ls_address)
     );
 
-    assign out_need_to_wb = is_load;
-
-
     localparam IDLE = 2'b00;
     localparam PENDING = 2'b01;
     localparam OUTSTANDING = 2'b10;
     localparam TEMP = 2'b11;
     reg  [1:0] ls_state;
-    wire       ls_idle = ls_state == IDLE;
-    wire       ls_pending = ls_state == PENDING;
-    wire       ls_outstanding = ls_state == OUTSTANDING;
-    wire       ls_temp = ls_state == TEMP;
+    wire       is_idle = ls_state == IDLE;
+    wire       is_pending = ls_state == PENDING;
+    wire       is_outstanding = ls_state == OUTSTANDING;
+    wire       is_temp = ls_state == TEMP;
     /*
     0 = B
     1 = HALF WORD
@@ -83,46 +78,18 @@ module memblock (
     wire       size_1w = ls_size[2];
     wire       size_2w = ls_size[3];
 
-    wire       ls_valid = is_load | is_store;
+
+    wire       req_fire;
+    wire       req_pending;
 
 
-    wire       read_fire = tbus_index_valid & tbus_index_ready & (tbus_operation_type == `TBUS_READ);
-    wire       read_pending = tbus_index_valid & ~tbus_index_ready & (tbus_operation_type == `TBUS_READ);
+    assign req_fire    = tbus_index_valid & tbus_index_ready;
+    assign req_pending = tbus_index_valid & ~tbus_index_ready;
 
 
-    wire       write_fire = tbus_index_valid & tbus_index_ready & (tbus_operation_type == `TBUS_WRITE);
-    wire       write_pending = tbus_index_valid & ~tbus_index_ready & (tbus_operation_type == `TBUS_WRITE);
-
-    reg        outstanding_load_q;
-    reg        outstanding_store_q;
-
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            outstanding_load_q <= 'b0;
-        end else if (read_fire & ~tbus_operation_done) begin
-            outstanding_load_q <= 'b1;
-        end else if (tbus_operation_done) begin
-            outstanding_load_q <= 'b0;
-        end
-    end
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            outstanding_store_q <= 'b0;
-        end else if (write_fire & ~tbus_operation_done) begin
-            outstanding_store_q <= 'b1;
-        end else if (tbus_operation_done) begin
-            outstanding_store_q <= 'b0;
-        end
-    end
-
-    wire opload_operation_done;
-    wire opstore_operation_done;
-
-    assign opload_operation_done  = outstanding_load_q & tbus_operation_done;
-    assign opstore_operation_done = outstanding_store_q & tbus_operation_done;
-
-    wire                 mmio_valid = (is_load | is_store) & ('h30000000 <= ls_address) & (ls_address <= 'h40700000);
-
+    /* -------------------------------------------------------------------------- */
+    /*                            tbus signal generate                            */
+    /* -------------------------------------------------------------------------- */
 
     wire [         63:0] write_1b_mask = {56'b0, {8{1'b1}}};
     wire [         63:0] write_1h_mask = {48'b0, {16{1'b1}}};
@@ -137,7 +104,7 @@ module memblock (
     reg  [`RESULT_RANGE] opload_read_data_wb_raw;
 
     always @(*) begin
-        if (opload_operation_done) begin
+        if (tbus_operation_done) begin
             case ({
                 size_1b, size_1h, size_1w, size_2w, is_unsigned
             })
@@ -173,21 +140,26 @@ module memblock (
     end
 
 
+    /* -------------------------------------------------------------------------- */
+    /*                             bus request region                             */
+    /* -------------------------------------------------------------------------- */
+    wire mmio_valid;
+    assign mmio_valid = (is_load | is_store) & instr_valid & ('h30000000 <= ls_address) & (ls_address <= 'h40700000);
+
     always @(*) begin
         tbus_index_valid    = 'b0;
         tbus_index          = 'b0;
         tbus_write_data     = 'b0;
         tbus_write_mask     = 'b0;
         tbus_operation_type = 'b0;
-
         if (is_load & instr_valid) begin
-            if ((~ls_outstanding) & ~mmio_valid) begin
+            if ((~is_outstanding) & ~mmio_valid) begin
                 tbus_index_valid    = 1'b1;
                 tbus_index          = ls_address[`RESULT_WIDTH-1:0];
                 tbus_operation_type = `TBUS_READ;
             end
         end else if (is_store & instr_valid) begin
-            if (~ls_outstanding & ~mmio_valid) begin
+            if (~is_outstanding & ~mmio_valid) begin
                 tbus_index_valid    = 1'b1;
                 tbus_index          = ls_address[`RESULT_WIDTH-1:0];
                 tbus_write_mask     = opstore_write_mask_qual;
@@ -197,51 +169,99 @@ module memblock (
         end else begin
 
         end
-
     end
 
-
-
+    /* -------------------------------------------------------------------------- */
+    /*                                     FSM                                    */
+    /* -------------------------------------------------------------------------- */
     always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
+        if (~reset_n | need_flush) begin
             ls_state <= IDLE;
         end else begin
             case (ls_state)
                 IDLE: begin
-                    if (read_pending | write_pending) begin
+                    if (req_pending) begin
                         ls_state <= PENDING;
-                    end else if (read_fire | write_fire) begin
+                    end else if (req_fire) begin
                         ls_state <= OUTSTANDING;
                     end
                 end
-
                 PENDING: begin
-                    if (read_fire | write_fire) begin
+                    if (req_fire) begin
                         ls_state <= OUTSTANDING;
                     end
                 end
-
                 OUTSTANDING: begin
-                    if (opload_operation_done | opstore_operation_done) begin
+                    if (tbus_operation_done) begin
                         ls_state <= IDLE;
                     end
                 end
 
                 default: ;
             endcase
-
         end
-
     end
 
-    assign mem_stall       = (~ls_idle | tbus_index_valid) &  //when tbus_index_valid = 1, means lsu have an req due to send, stall immediately
- ~((ls_outstanding) & (opload_operation_done | opstore_operation_done));  //when operation done, no need to stall anymore
+    assign mem_stall = req_fire | ~is_idle;
+    /* -------------------------------------------------------------------------- */
+    /*                                 output logic                               */
+    /* -------------------------------------------------------------------------- */
 
-    assign out_prd         = prd;
-    assign out_mmio        = (is_load | is_store) & instr_valid & ('h30000000 <= ls_address) & (ls_address <= 'h40700000);
+    reg                     outstanding_need_to_wb;
+    reg [      `PREG_RANGE] outstanding_prd;
+    reg                     outstanding_robidx_flag;
+    reg [`ROB_SIZE_LOG-1:0] outstanding_robidx;
 
-    assign out_robidx_flag = robidx_flag;
-    assign out_robidx      = robidx;
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            outstanding_need_to_wb <= 'b0;
+        end else if (req_fire | mmio_valid) begin
+            outstanding_need_to_wb <= instr_valid & is_load;
+        end else if (tbus_operation_done | is_idle) begin
+            outstanding_need_to_wb <= 'b0;
+        end
+    end
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            outstanding_prd <= 'b0;
+        end else if (req_fire | mmio_valid) begin
+            outstanding_prd <= prd;
+        end else if (tbus_operation_done | is_idle) begin
+            outstanding_prd <= 'b0;
+        end
+    end
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            outstanding_robidx_flag <= 'b0;
+        end else if (req_fire | mmio_valid) begin
+            outstanding_robidx_flag <= robidx_flag;
+        end else if (tbus_operation_done | is_idle) begin
+            outstanding_robidx_flag <= 'b0;
+        end
+    end
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            outstanding_robidx <= 'b0;
+        end else if (req_fire | mmio_valid) begin
+            outstanding_robidx <= robidx;
+        end else if (tbus_operation_done | is_idle) begin
+            outstanding_robidx <= 'b0;
+        end
+    end
+
+    reg out_mmio_valid;
+
+    `MACRO_DFF_NONEN(out_mmio_valid, mmio_valid,1)
+
+    //when flush instr older than you,could not high out valid!
+    assign out_instr_valid = is_outstanding & (tbus_operation_done) & ~need_flush | out_mmio_valid;
+    assign out_need_to_wb  = outstanding_need_to_wb;
+
+    assign out_prd         = outstanding_prd;
+    assign out_mmio        = out_mmio_valid;
+
+    assign out_robidx_flag = outstanding_robidx_flag;
+    assign out_robidx      = outstanding_robidx;
 
     assign instr_ready     = ~mem_stall;
 endmodule

@@ -639,7 +639,7 @@ module ctrlblock (
         .busy_out1      (to_issue_instr0_src2_state),
         .busy_out2      (),
         .busy_out3      (),
-        .alloc_en0      (to_issue_instr0_need_to_wb),
+        .alloc_en0      (to_issue_instr0_need_to_wb & to_issue_instr0_valid),
         .alloc_addr0    (to_issue_instr0_prd),
         .alloc_en1      (),
         .alloc_addr1    (),

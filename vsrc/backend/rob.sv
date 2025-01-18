@@ -129,6 +129,10 @@ module rob (
     assign is_idle    = (rob_state == `ROB_STATE_IDLE);
     assign is_ovwr    = (rob_state == `ROB_STATE_OVERWRITE_RAT);
     assign is_walking = (rob_state == `ROB_STATE_WALKING);
+    //used to latch flush robidx and robidx flag to walk and flush
+    reg                     flush_start_robidx_flag;
+    reg [`ROB_SIZE_LOG-1:0] flush_start_robidx;
+
     /* -------------------------------------------------------------------------- */
     /*                        enq information to dec format                       */
     /* -------------------------------------------------------------------------- */
@@ -231,6 +235,7 @@ module rob (
         end
     end
 
+    //when flush happen,enq ptr should point to next entry of FLUSH ROBIDX 
     always @(*) begin
         if (is_ovwr) begin
             {enq_flag_next, enq_idx_next} = {flush_start_robidx_flag, flush_start_robidx} + 'b1;
@@ -411,8 +416,6 @@ module rob (
             endcase
         end
     end
-    reg                     flush_start_robidx_flag;
-    reg [`ROB_SIZE_LOG-1:0] flush_start_robidx;
 
     /* --------------------------- latch flush robidx --------------------------- */
     always @(posedge clock or negedge reset_n) begin
@@ -440,10 +443,10 @@ module rob (
         flush_dec = 'b0;
         for (i = 0; i < `ROB_SIZE; i = i + 1) begin
             if (is_ovwr) begin
-                if (enq_idx > flush_robidx) begin
-                    flush_dec[i] = (i[`ROB_SIZE_LOG-1:0] > flush_robidx) & (i[`ROB_SIZE_LOG-1:0] < enq_idx);
+                if (enq_idx > flush_start_robidx) begin
+                    flush_dec[i] = (i[`ROB_SIZE_LOG-1:0] > flush_start_robidx) & (i[`ROB_SIZE_LOG-1:0] < enq_idx);
                 end else begin
-                    flush_dec[i] = (i[`ROB_SIZE_LOG-1:0] > flush_robidx) | (i[`ROB_SIZE_LOG-1:0] < enq_idx);
+                    flush_dec[i] = (i[`ROB_SIZE_LOG-1:0] > flush_start_robidx) | (i[`ROB_SIZE_LOG-1:0] < enq_idx);
                 end
             end
         end

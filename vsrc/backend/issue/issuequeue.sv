@@ -118,8 +118,8 @@ module issuequeue (
     // Enqueue logic
     assign enq_instr0_ready = (queue_valid[enq_idx] == 0);
 
-    //when deq_idx is ready,go issue
-    wire deq_is_ready = queue_valid[deq_idx] & (~queue_src1_state[deq_idx]) & (~queue_src2_state[deq_idx]) & deq_instr0_ready;
+    //when deq_idx is ready,go issue.Except at mean time should flush this entry.
+    wire deq_is_ready = (queue_valid[deq_idx] & ~flush_dec[deq_idx]) & (~queue_src1_state[deq_idx]) & (~queue_src2_state[deq_idx]) & deq_instr0_ready;
     always @(posedge clock or negedge reset_n) begin
         if (!reset_n) begin
 

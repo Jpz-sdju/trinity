@@ -57,7 +57,7 @@ module ibuffer (
         .full         (fifo_full),
         .count        (fifo_count),
         .data_valid   (ibuffer_instr_valid),
-        .stall    (mem_stall)
+        .stall    ()
     );
 
     // Control logic for writing instructions to FIFO

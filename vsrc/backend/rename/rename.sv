@@ -213,8 +213,9 @@ module rename (
 
 
     //req to freelist ,can alloc when flush!
-    assign instr0_freelist_req     = instr0_lrd_valid & ~flush_valid;
-    assign instr1_freelist_req     = instr1_lrd_valid & ~flush_valid;
+    //when stall , cannot alloc new preg!
+    assign instr0_freelist_req     = instr0_lrd_valid & ~flush_valid & to_dispatch_instr0_ready;
+    assign instr1_freelist_req     = instr1_lrd_valid & ~flush_valid /**& to_dispatch_instr1_ready**/;
 
 
     //rename register

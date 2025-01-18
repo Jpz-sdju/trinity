@@ -124,18 +124,17 @@ module freelist #(
         end
     end
 
-
     // Request port logic
     always @(*) begin
-        req0_data = {PREG_IDX_WIDTH{1'bx}};  // Default to invalid value
-        req1_data = {PREG_IDX_WIDTH{1'bx}};  // Default to invalid value
+        req0_data = {PREG_IDX_WIDTH{1'b0}};  // Default to invalid value
+        req1_data = {PREG_IDX_WIDTH{1'b0}};  // Default to invalid value
 
-        if (req0_valid && available_count > 0) begin
+        if (req0_valid ) begin
             // Allocate a register for req0 from the deq of the queue
             req0_data = freelist_queue[deq_idx[LOG_NUM_REGS-1 : 0]];
         end
 
-        if (req1_valid && available_count > 1) begin
+        if (req1_valid ) begin
             // Allocate a register for req1 from the deq of the queue
             req1_data = freelist_queue[deq_idx[LOG_NUM_REGS-1 : 0]+1];
         end

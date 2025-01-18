@@ -55,10 +55,12 @@ module robentry (
         end
     end
     always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            rob_entries_complete <= 'b0;
+        if (~reset_n | flush) begin
+            rob_entries_complete <= 1'b0;
         end else if (~rob_entries_complete & writeback) begin
             rob_entries_complete <= 1'b1;
+        end else if (commit)begin
+            rob_entries_complete <= 1'b0;
         end
     end
 

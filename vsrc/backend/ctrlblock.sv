@@ -347,7 +347,7 @@ module ctrlblock (
         .req1_valid     (),
         .req1_data      (),
         .write0_valid   (commits0_valid & commits0_need_to_wb),
-        .write0_data    (commits0_prd),
+        .write0_data    (commits0_old_prd),
         .write1_valid   (),
         .write1_data    (),
         /* ------------------------------- walk logic ------------------------------- */
@@ -624,10 +624,11 @@ module ctrlblock (
     /* -------------------------------------------------------------------------- */
     /*                                 busy table                                 */
     /* -------------------------------------------------------------------------- */
-    wire commits0_free;
-    wire commits1_free;
-    assign commits0_free = commits0_valid & commits0_need_to_wb;
-    assign commits1_free = commits1_valid & commits1_need_to_wb;
+    wire writeback0_free;
+    wire writeback1_free;
+    assign writeback0_free = writeback0_valid & writeback0_need_to_wb;
+    assign writeback1_free = writeback1_valid & writeback1_need_to_wb;
+
     busytable u_busytable (
         .clock          (clock),
         .reset_n        (reset_n),
@@ -643,10 +644,10 @@ module ctrlblock (
         .alloc_addr0    (to_issue_instr0_prd),
         .alloc_en1      (),
         .alloc_addr1    (),
-        .free_en0       (commits0_free),
-        .free_addr0     (commits0_prd),
-        .free_en1       (commits1_free),
-        .free_addr1     (commits1_prd),
+        .free_en0       (writeback0_free),
+        .free_addr0     (writeback0_prd),
+        .free_en1       (writeback1_free),
+        .free_addr1     (writeback1_prd),
         /* ------------------------------- walk logic ------------------------------- */
         .rob_state      (rob_state),
         .rob_walk0_valid(rob_walk0_valid),

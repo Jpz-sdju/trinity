@@ -130,6 +130,9 @@ module ctrlblock (
     wire [               3:0] from_dec_instr0_ls_size;
     wire [              31:0] from_dec_instr0;
     wire [         `PC_RANGE] from_dec_instr0_pc;
+    wire [       `PREG_RANGE] from_dec_instr0_prs1;
+    wire [       `PREG_RANGE] from_dec_instr0_prs2;
+    wire [       `PREG_RANGE] from_dec_instr0_prd;
 
     assign ibuffer_ready = from_dec_instr0_ready;
     decode u_decoder (
@@ -178,13 +181,22 @@ module ctrlblock (
     wire [`MULDIV_TYPE_RANGE] to_rename_instr0_muldiv_type;
     wire [              31:0] to_rename_instr0;
     wire [         `PC_RANGE] to_rename_instr0_pc;
+    wire [       `PREG_RANGE] to_rename_instr0_prs1;
+    wire [       `PREG_RANGE] to_rename_instr0_prs2;
+    wire [       `PREG_RANGE] to_rename_instr0_prd;
+
+
+    /* --------------------------- rat read data to rename -------------------------- */
+    wire [       `PREG_RANGE] rat2rename_instr0_prs1;
+    wire [       `PREG_RANGE] rat2rename_instr0_prs2;
+    wire [       `PREG_RANGE] rat2rename_instr0_prd;
+
+    assign from_dec_instr0_prs1 = rat2rename_instr0_prs1;
+    assign from_dec_instr0_prs2 = rat2rename_instr0_prs2;
+    assign from_dec_instr0_prd = rat2rename_instr0_prd;
 
 
     `PIPE_BEFORE_RENAME(to_rename_instr0, from_dec_instr0, writeback0_redirect_valid)
-    /* --------------------------- rat read data to rename -------------------------- */
-    wire [      `PREG_RANGE] rat2rename_instr0_prs1;
-    wire [      `PREG_RANGE] rat2rename_instr0_prs2;
-    wire [      `PREG_RANGE] rat2rename_instr0_prd;
     /* ------------------------ write request from rename ----------------------- */
     wire                     rename2rat_instr0_rename_valid;
     wire [              4:0] rename2rat_instr0_rename_addr;
@@ -398,9 +410,9 @@ module ctrlblock (
         .instr1_is_load                (),
         .instr1_is_store               (),
         .instr1_ls_size                (),
-        .rat2rename_instr0_prs1        (rat2rename_instr0_prs1),
-        .rat2rename_instr0_prs2        (rat2rename_instr0_prs2),
-        .rat2rename_instr0_prd         (rat2rename_instr0_prd),
+        .rat2rename_instr0_prs1        (to_rename_instr0_prs1),
+        .rat2rename_instr0_prs2        (to_rename_instr0_prs2),
+        .rat2rename_instr0_prd         (to_rename_instr0_prd),
         .rat2rename_instr1_prs1        (),
         .rat2rename_instr1_prs2        (),
         .rat2rename_instr1_prd         (),

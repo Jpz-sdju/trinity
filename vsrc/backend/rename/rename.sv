@@ -214,18 +214,18 @@ module rename (
 
     //req to freelist ,can alloc when flush!
     //when stall , cannot alloc new preg!
-    assign instr0_freelist_req     = instr0_lrd_valid & ~flush_valid & to_dispatch_instr0_ready;
-    assign instr1_freelist_req     = instr1_lrd_valid & ~flush_valid /**& to_dispatch_instr1_ready**/;
+    assign instr0_freelist_req            = instr0_lrd_valid & ~flush_valid & to_dispatch_instr0_ready;
+    assign instr1_freelist_req            = instr1_lrd_valid & ~flush_valid  /**& to_dispatch_instr1_ready**/;
 
 
     //rename register
-    assign to_dispatch_instr0_prs1 = rat2rename_instr0_prs1;
-    assign to_dispatch_instr0_prs2 = rat2rename_instr0_prs2;
-    assign to_dispatch_instr0_prd  = instr0_freelist_resp;
+    assign to_dispatch_instr0_prs1        = rat2rename_instr0_prs1;
+    assign to_dispatch_instr0_prs2        = rat2rename_instr0_prs2;
+    assign to_dispatch_instr0_prd         = instr0_freelist_resp;
 
-    assign to_dispatch_instr1_prs1 = raw_detect_rs1 ? instr1_freelist_resp : rat2rename_instr1_prs1;
-    assign to_dispatch_instr1_prs2 = raw_detect_rs2 ? instr1_freelist_resp : rat2rename_instr1_prs2;
-    assign to_dispatch_instr1_prd  = instr1_freelist_resp;
+    assign to_dispatch_instr1_prs1        = raw_detect_rs1 ? instr1_freelist_resp : rat2rename_instr1_prs1;
+    assign to_dispatch_instr1_prs2        = raw_detect_rs2 ? instr1_freelist_resp : rat2rename_instr1_prs2;
+    assign to_dispatch_instr1_prd         = instr1_freelist_resp;
 
 
 
@@ -240,7 +240,7 @@ module rename (
 
 
     //assign ready
-    assign instr0_ready            = to_dispatch_instr0_ready;
+    assign instr0_ready                   = to_dispatch_instr0_ready;
 endmodule
 
 /* verilator lint_off UNUSEDSIGNAL */

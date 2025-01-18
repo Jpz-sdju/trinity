@@ -23,9 +23,9 @@ pipereg_2 u_pipereg_1(\
     .instr_valid             (in``_valid             ),\
     .pc                      (in``_pc                      ),\
     .instr                   (in                   ),\
-    .prs1                    ('b0),\
-    .prs2                    ('b0),\
-    .prd                     ('b0),\
+    .prs1                    (in``_prs1),\
+    .prs2                    (in``_prs2),\
+    .prd                     (in``_prd),\
     .old_prd                 ('b0),\
     .ls_address              ('b0),\
     .alu_result              ('b0),\
@@ -52,9 +52,9 @@ pipereg_2 u_pipereg_1(\
     .out_instr_valid         (out``_valid         ),\
     .out_pc                  (out``_pc                  ),\
     .out_instr               (out               ),\
-    .out_prs1                (),\
-    .out_prs2                (),\
-    .out_prd                 (),\
+    .out_prs1                (out``_prs1),\
+    .out_prs2                (out``_prs2),\
+    .out_prd                 (out``_prd),\
     .out_old_prd             (),\
     .out_ls_address          (),\
     .out_alu_result          (),\

@@ -20,13 +20,13 @@ module renametable (
     input wire [4:0] instr1_lrd,
 
     //read data to rename
-    output reg [`PREG_RANGE] rat2rename_instr0_prs1,
-    output reg [`PREG_RANGE] rat2rename_instr0_prs2,
-    output reg [`PREG_RANGE] rat2rename_instr0_prd,
+    output wire [`PREG_RANGE] rat2rename_instr0_prs1,
+    output wire [`PREG_RANGE] rat2rename_instr0_prs2,
+    output wire [`PREG_RANGE] rat2rename_instr0_prd,
 
-    output reg [`PREG_RANGE] rat2rename_instr1_prs1,
-    output reg [`PREG_RANGE] rat2rename_instr1_prs2,
-    output reg [`PREG_RANGE] rat2rename_instr1_prd,
+    output wire [`PREG_RANGE] rat2rename_instr1_prs1,
+    output wire [`PREG_RANGE] rat2rename_instr1_prs2,
+    output wire [`PREG_RANGE] rat2rename_instr1_prd,
 
     //write request from rename
     input wire               rename2rat_instr0_rename_valid,
@@ -182,23 +182,31 @@ module renametable (
     wire [`PREG_RANGE] instr1_rat_prs2_raw;
     wire [`PREG_RANGE] instr1_rat_prd_raw;
     /* -------------------------------------------------------------------------- */
-    /*                                 flop logic                                 */
+    /*                                 bypass logic                                 */
     /* -------------------------------------------------------------------------- */
-    assign instr0_rat_prs1_raw = instr0_src1_is_reg ? instr0_prs1_byp ? instr0_prs1_byp_res : renametables[instr0_lrs1] : 'b0;  //could gate?
-    assign instr0_rat_prs2_raw = instr0_src2_is_reg ? instr0_prs2_byp ? instr0_prs2_byp_res : renametables[instr0_lrs2] : 'b0;
-    assign instr0_rat_prd_raw  = instr0_need_to_wb ? instr0_prd_byp ? instr0_prd_byp_res : renametables[instr0_lrd] : 'b0;
+    assign instr0_rat_prs1_raw    = instr0_src1_is_reg ? instr0_prs1_byp ? instr0_prs1_byp_res : renametables[instr0_lrs1] : 'b0;  //could gate?
+    assign instr0_rat_prs2_raw    = instr0_src2_is_reg ? instr0_prs2_byp ? instr0_prs2_byp_res : renametables[instr0_lrs2] : 'b0;
+    assign instr0_rat_prd_raw     = instr0_need_to_wb ? instr0_prd_byp ? instr0_prd_byp_res : renametables[instr0_lrd] : 'b0;
 
-    assign instr1_rat_prs1_raw = instr1_src1_is_reg ? instr1_prs1_byp ? instr1_prs1_byp_res : renametables[instr1_lrs1] : 'b0;  //could gate?
-    assign instr1_rat_prs2_raw = instr1_src2_is_reg ? instr1_prs2_byp ? instr1_prs2_byp_res : renametables[instr1_lrs2] : 'b0;
-    assign instr1_rat_prd_raw  = instr1_need_to_wb ? instr1_prd_byp ? instr1_prd_byp_res : renametables[instr1_lrd] : 'b0;
+    assign instr1_rat_prs1_raw    = instr1_src1_is_reg ? instr1_prs1_byp ? instr1_prs1_byp_res : renametables[instr1_lrs1] : 'b0;  //could gate?
+    assign instr1_rat_prs2_raw    = instr1_src2_is_reg ? instr1_prs2_byp ? instr1_prs2_byp_res : renametables[instr1_lrs2] : 'b0;
+    assign instr1_rat_prd_raw     = instr1_need_to_wb ? instr1_prd_byp ? instr1_prd_byp_res : renametables[instr1_lrd] : 'b0;
 
-    `MACRO_DFF_NONEN(rat2rename_instr0_prs1, instr0_rat_prs1_raw, `PREG_LENGTH)
-    `MACRO_DFF_NONEN(rat2rename_instr0_prs2, instr0_rat_prs2_raw, `PREG_LENGTH)
-    `MACRO_DFF_NONEN(rat2rename_instr0_prd, instr0_rat_prd_raw, `PREG_LENGTH)
+    assign rat2rename_instr0_prs1 = instr0_rat_prs1_raw;
+    assign rat2rename_instr0_prs2 = instr0_rat_prs2_raw;
+    assign rat2rename_instr0_prd  = instr0_rat_prd_raw;
 
-    `MACRO_DFF_NONEN(rat2rename_instr1_prs1, instr1_rat_prs1_raw, `PREG_LENGTH)
-    `MACRO_DFF_NONEN(rat2rename_instr1_prs2, instr1_rat_prs2_raw, `PREG_LENGTH)
-    `MACRO_DFF_NONEN(rat2rename_instr1_prd, instr1_rat_prd_raw, `PREG_LENGTH)
+    assign rat2rename_instr1_prs1 = instr1_rat_prs1_raw;
+    assign rat2rename_instr1_prs2 = instr1_rat_prs2_raw;
+    assign rat2rename_instr1_prd  = instr1_rat_prd_raw;
+
+    // `MACRO_DFF_NONEN(rat2rename_instr0_prs1, instr0_rat_prs1_raw, `PREG_LENGTH)
+    // `MACRO_DFF_NONEN(rat2rename_instr0_prs2, instr0_rat_prs2_raw, `PREG_LENGTH)
+    // `MACRO_DFF_NONEN(rat2rename_instr0_prd, instr0_rat_prd_raw, `PREG_LENGTH)
+
+    // `MACRO_DFF_NONEN(rat2rename_instr1_prs1, instr1_rat_prs1_raw, `PREG_LENGTH)
+    // `MACRO_DFF_NONEN(rat2rename_instr1_prs2, instr1_rat_prs2_raw, `PREG_LENGTH)
+    // `MACRO_DFF_NONEN(rat2rename_instr1_prd, instr1_rat_prd_raw, `PREG_LENGTH)
 
     //conflict logic
     wire rename_lrd_hit;

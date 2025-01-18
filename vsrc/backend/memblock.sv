@@ -52,7 +52,7 @@ module memblock (
 
     //redirect flush logic 
     wire need_flush;
-    assign need_flush            = flush_valid & ((flush_robidx_flag ^ out_robidx_flag) ^ (flush_robidx < out_robidx));
+    assign need_flush            = flush_valid & (((flush_robidx_flag ^ out_robidx_flag) ^ (flush_robidx < out_robidx)) | ((flush_robidx_flag ^ robidx_flag) ^ (flush_robidx < robidx)));
     assign memblock2dcache_flush = need_flush;
 
     wire [`RESULT_RANGE] ls_address;
@@ -95,14 +95,15 @@ module memblock (
     /*                            tbus signal generate                            */
     /* -------------------------------------------------------------------------- */
 
-    wire [         63:0] write_1b_mask = {56'b0, {8{1'b1}}};
-    wire [         63:0] write_1h_mask = {48'b0, {16{1'b1}}};
-    wire [         63:0] write_1w_mask = {32'b0, {32{1'b1}}};
-    wire [         63:0] write_2w_mask = {64{1'b1}};
+    wire [63:0] write_1b_mask = {56'b0, {8{1'b1}}};
+    wire [63:0] write_1h_mask = {48'b0, {16{1'b1}}};
+    wire [63:0] write_1w_mask = {32'b0, {32{1'b1}}};
+    wire [63:0] write_2w_mask = {64{1'b1}};
 
-    wire [          2:0] shift_size = ls_address[2:0];
+    wire [ 2:0] shift_size = ls_address[2:0];
 
-    wire [         63:0] opstore_write_mask_qual = size_1b ? write_1b_mask << (shift_size * 8) : size_1h ? write_1h_mask << (shift_size * 8) : size_1w ? write_1w_mask << (shift_size * 8) : write_2w_mask;
+    wire [63:0] opstore_write_mask_qual;
+    assign opstore_write_mask_qual = size_1b ? write_1b_mask << (shift_size * 8) : size_1h ? write_1h_mask << (shift_size * 8) : size_1w ? write_1w_mask << (shift_size * 8) : write_2w_mask;
 
     wire [`RESULT_RANGE] opstore_write_data_qual = src2 << (shift_size * 8);
     reg  [`RESULT_RANGE] opload_read_data_wb_raw;

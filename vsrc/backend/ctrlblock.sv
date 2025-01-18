@@ -760,11 +760,11 @@ module ctrlblock (
         .io_fpwen  (1'b0),
         .io_vecwen (1'b0),
         .io_wpdest (),
-        .io_wdest  (flop_commits0_prd),
+        .io_wdest  (flop_commits0_lrd),
         .io_pc     (flop_commits0_pc),
         .io_instr  (flop_commits0_instr),
         .io_robIdx (flop_commits0_robidx),
-        .io_lqIdx  (flop_commits0_lrd),
+        .io_lqIdx  (flop_commits0_prd),
         .io_sqIdx  ('b0),
         .io_isLoad (1'b1),                      //load queue idx
         .io_isStore('b0),                       //store queue idx
@@ -810,7 +810,7 @@ module ctrlblock (
         .io_instrCnt(commit_cnt),
         .io_hasWFI  ('b0),
         .io_code    ('b0),
-        .io_pc      ('b0),
+        .io_pc      (flop_commits0_pc),
         .io_coreid  ('b0)
     );
 

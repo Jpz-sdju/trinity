@@ -219,10 +219,10 @@ module issuequeue (
                 queue_src1_state[enq_idx] <= enq_instr0_src1_state & enq_instr0_src1_is_reg;
             end
             for (i = 0; i < `ISSUE_QUEUE_LOG; i = i + 1) begin
-                if (writeback0_to_wakeup & (queue_prs1[i] == writeback0_prd) & queue_src1_is_reg) begin
+                if (writeback0_to_wakeup & (queue_prs1[i] == writeback0_prd) & queue_src1_is_reg[i]) begin
                     queue_src1_state[i] <= 'b0;
                 end
-                if (writeback1_to_wakeup & (queue_prs1[i] == writeback1_prd) & queue_src1_is_reg) begin
+                if (writeback1_to_wakeup & (queue_prs1[i] == writeback1_prd) & queue_src1_is_reg[i]) begin
                     queue_src1_state[i] <= 'b0;
                 end
             end
@@ -238,10 +238,10 @@ module issuequeue (
                 queue_src2_state[enq_idx] <= enq_instr0_src2_state & enq_instr0_src2_is_reg;
             end
             for (i = 0; i < `ISSUE_QUEUE_LOG; i = i + 1) begin
-                if (writeback0_to_wakeup & (queue_prs2[i] == writeback0_prd) & queue_src2_is_reg) begin
+                if (writeback0_to_wakeup & (queue_prs2[i] == writeback0_prd) & queue_src2_is_reg[i]) begin
                     queue_src2_state[i] <= 'b0;
                 end
-                if (writeback1_to_wakeup & (queue_prs2[i] == writeback1_prd) & queue_src2_is_reg) begin
+                if (writeback1_to_wakeup & (queue_prs2[i] == writeback1_prd) & queue_src2_is_reg[i]) begin
                     queue_src2_state[i] <= 'b0;
                 end
             end

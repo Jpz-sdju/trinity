@@ -63,6 +63,8 @@ module decoder (
     reg [63:0] imm_utype_64;
     reg [63:0] imm_jtype_64;
 
+    //when write back to r0,then do not need to writeback,then do not to alloc a new preg.
+    reg        lrd_is_not_zero;
     always @(*) begin
         if (ibuffer_instr_valid) begin
             imm              = 'b0;
@@ -113,26 +115,28 @@ module decoder (
             opcode           = ibuffer_inst_out[6:0];
             funct3           = ibuffer_inst_out[14:12];
             funct7           = ibuffer_inst_out[31:25];
+
+            lrd_is_not_zero  = |lrd;
             case (opcode)
                 OPCODE_LUI: begin
                     imm               = imm_utype_64;
                     alu_type[`IS_LUI] = 1'b1;
-                    need_to_wb        = 1'b1;
+                    need_to_wb        = lrd_is_not_zero;
                 end
                 OPCODE_AUIPC: begin
                     imm                 = imm_utype_64;
                     alu_type[`IS_AUIPC] = 1'b1;
-                    need_to_wb          = 1'b1;
+                    need_to_wb          = lrd_is_not_zero;
                 end
                 OPCODE_JAL: begin
                     imm              = imm_jtype_64;
                     cx_type[`IS_JAL] = 1'b1;
-                    need_to_wb       = 1'b1;
+                    need_to_wb       = lrd_is_not_zero;
                 end
                 OPCODE_JALR: begin
                     imm               = imm_itype_64_s;
                     cx_type[`IS_JALR] = 1'b1;
-                    need_to_wb        = 1'b1;
+                    need_to_wb        = lrd_is_not_zero;
                     src1_is_reg       = 1'b1;
                 end
                 OPCODE_BRANCH: begin
@@ -170,7 +174,7 @@ module decoder (
                 end
                 OPCODE_LOAD: begin
                     is_load     = 1'b1;
-                    need_to_wb  = 1'b1;
+                    need_to_wb  = lrd_is_not_zero;
                     src1_is_reg = 1'b1;
                     case (funct3)
                         3'b000: begin
@@ -208,8 +212,8 @@ module decoder (
                     endcase
                 end
                 OPCODE_STORE: begin
-                    is_store = 1'b1;
-                    imm      = imm_stype_64;
+                    is_store    = 1'b1;
+                    imm         = imm_stype_64;
                     src1_is_reg = 1'b1;
                     src2_is_reg = 1'b1;
                     case (funct3)
@@ -229,8 +233,8 @@ module decoder (
                     endcase
                 end
                 OPCODE_ALU_ITYPE: begin
-                    imm        = imm_itype_64_s;
-                    need_to_wb = 1'b1;
+                    imm         = imm_itype_64_s;
+                    need_to_wb  = lrd_is_not_zero;
                     src1_is_reg = 1'b1;
                     casez ({
                         funct7, funct3
@@ -276,7 +280,7 @@ module decoder (
                     endcase
                 end
                 OPCODE_ALU_RTYPE: begin
-                    need_to_wb = 1'b1;
+                    need_to_wb  = lrd_is_not_zero;
                     src1_is_reg = 1'b1;
                     src2_is_reg = 1'b1;
                     case ({
@@ -347,9 +351,9 @@ module decoder (
                     // Add your implementation here
                 end
                 OPCODE_ALU_ITYPE_WORD: begin
-                    imm        = imm_itype_64_s;
-                    is_word    = 1'b1;
-                    need_to_wb = 1'b1;
+                    imm         = imm_itype_64_s;
+                    is_word     = 1'b1;
+                    need_to_wb  = lrd_is_not_zero;
                     src1_is_reg = 1'b1;
                     casez ({
                         funct7, funct3
@@ -374,8 +378,8 @@ module decoder (
                     endcase
                 end
                 OPCODE_ALU_RTYPE_WORD: begin
-                    is_word    = 1'b1;
-                    need_to_wb = 1'b1;
+                    is_word     = 1'b1;
+                    need_to_wb  = lrd_is_not_zero;
                     src1_is_reg = 1'b1;
                     src2_is_reg = 1'b1;
                     case ({

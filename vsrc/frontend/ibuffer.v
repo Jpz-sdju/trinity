@@ -1,21 +1,21 @@
 module ibuffer (
-    input wire        clock,
-    input wire        reset_n,
-    input wire        pc_index_ready,       // Signal indicating readiness from `pc_index`
-    input wire        pc_operation_done,
+    input wire                               clock,
+    input wire                               reset_n,
+    input wire                               pc_index_ready,       // Signal indicating readiness from `pc_index`
+    input wire                               pc_operation_done,
     input wire [`ICACHE_FETCHWIDTH128_RANGE] aligned_instr,        // 64-bit input data from arbiter (two instructions, 32 bits each)
-    input wire [ 3:0] aligned_instr_valid,  // 2-bit validity indicator (11 or 01)
-    input wire        fifo_read_en,         // External read enable signal for FIFO
-    input wire        redirect_valid,        // Clear signal for ibuffer
-    input wire [63:0] pc,
+    input wire [                        3:0] aligned_instr_valid,  // 2-bit validity indicator (11 or 01)
+    input wire                               fifo_read_en,         // External read enable signal for FIFO
+    input wire                               redirect_valid,       // Clear signal for ibuffer
+    input wire [                       63:0] pc,
 
-    output wire        ibuffer_instr_valid,
-    output wire [31:0] ibuffer_inst_out,
+    output wire             ibuffer_instr_valid,
+    output wire [     31:0] ibuffer_inst_out,
     output wire [`PC_RANGE] ibuffer_pc_out,
-    output reg         fetch_inst,           // Output pulse when FIFO count decreases from 4 to 3
-    output wire        fifo_empty,           // Signal indicating if the FIFO is empty
+    output reg              fetch_inst,           // Output pulse when FIFO count decreases from 4 to 3
+    output wire             fifo_empty,           // Signal indicating if the FIFO is empty
 
-    input wire mem_stall
+    input wire backend_stall
 );
     wire [(32+64-1):0] fifo_inst_addr_out;  // Output data from the FIFO
     assign ibuffer_inst_out = fifo_inst_addr_out[(32+64-1):64];
@@ -38,7 +38,7 @@ module ibuffer (
     end
 
     // FIFO signals
-    reg  [(32+64-1):0] inst_buffer   [0:3];  // Buffer for up to 4 instructions, 32bit instr+64bit addr
+    reg  [(32+64-1):0] inst_buffer                                                                         [0:3];  // Buffer for up to 4 instructions, 32bit instr+64bit addr
     wire               fifo_full;  // Full signal from FIFO
     wire [        5:0] fifo_count;  // Count of entries in the FIFO
     reg  [        5:0] fifo_count_prev;  // Previous FIFO count to detect transition from 4 to 3
@@ -46,18 +46,18 @@ module ibuffer (
     reg  [        2:0] write_index;  // Index for writing to FIFO
     // Instantiate the FIFO
     fifo_ibuffer fifo_inst (
-        .clock        (clock),
-        .reset_n      (reset_n),
-        .data_in      (inst_buffer[write_index]),  // Input to FIFO
-        .write_en     (valid_counter > 0),         // Write enable based on counter
-        .read_en      (fifo_read_en),
-        .redirect_valid (redirect_valid),             // Pass clear signal to FIFO
-        .data_out     (fifo_inst_addr_out),
-        .empty        (fifo_empty),
-        .full         (fifo_full),
-        .count        (fifo_count),
-        .data_valid   (ibuffer_instr_valid),
-        .stall    ()
+        .clock         (clock),
+        .reset_n       (reset_n),
+        .data_in       (inst_buffer[write_index]),  // Input to FIFO
+        .write_en      (valid_counter > 0),         // Write enable based on counter
+        .read_en       (fifo_read_en),
+        .redirect_valid(redirect_valid),            // Pass clear signal to FIFO
+        .data_out      (fifo_inst_addr_out),
+        .empty         (fifo_empty),
+        .full          (fifo_full),
+        .count         (fifo_count),
+        .data_valid    (ibuffer_instr_valid),
+        .stall         (backend_stall)
     );
 
     // Control logic for writing instructions to FIFO
@@ -97,7 +97,7 @@ module ibuffer (
         end else begin
             // Initialize valid_counter based on aligned_instr_valid
             if (aligned_instr_valid != 4'b0000) begin
-                valid_counter <= aligned_instr_valid[0] + aligned_instr_valid[1] +aligned_instr_valid[2] +aligned_instr_valid[3];
+                valid_counter <= aligned_instr_valid[0] + aligned_instr_valid[1] + aligned_instr_valid[2] + aligned_instr_valid[3];
             end  // Write instructions to FIFO and decrement counter
             else if (valid_counter > 0 && !fifo_full) begin
                 valid_counter <= valid_counter - 1;
@@ -108,9 +108,9 @@ module ibuffer (
         if (!reset_n || redirect_valid) begin
             write_index <= 'b0;
         end else begin
-            if(valid_counter >0 & ~fifo_full) begin
+            if (valid_counter > 0 & ~fifo_full) begin
                 write_index <= write_index + 3'h1;
-            end else if(valid_counter == 0) begin
+            end else if (valid_counter == 0) begin
                 write_index <= 'b0;
             end
         end

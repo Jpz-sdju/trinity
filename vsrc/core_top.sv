@@ -139,32 +139,32 @@ module core_top #(
         .ibuffer_instr_valid(ibuffer_instr_valid),
         .ibuffer_inst_out   (ibuffer_inst_out),
         .ibuffer_pc_out     (ibuffer_pc_out),
-        .mem_stall          (mem_stall)
+        .backend_stall      (~ibuffer_ready)
 
     );
 
 
 
     backend u_backend (
-        .clock               (clock),
-        .reset_n             (reset_n),
-        .ibuffer_instr_valid (ibuffer_instr_valid),
-        .ibuffer_ready       (ibuffer_ready),
-        .ibuffer_inst_out    (ibuffer_inst_out),
-        .ibuffer_pc_out      (ibuffer_pc_out),
-        .redirect_valid      (redirect_valid),
-        .redirect_target     (redirect_target),
-        .redirect_robidx_flag(redirect_robidx_flag),
-        .redirect_robidx     (redirect_robidx),
-        .mem_stall           (mem_stall),
-        .tbus_index_valid    (tbus_index_valid),
-        .tbus_index_ready    (tbus_index_ready),
-        .tbus_index          (tbus_index),
-        .tbus_write_data     (tbus_write_data),
-        .tbus_write_mask     (tbus_write_mask),
-        .tbus_read_data      (tbus_read_data),
-        .tbus_operation_done (tbus_operation_done),
-        .tbus_operation_type (tbus_operation_type),
+        .clock                (clock),
+        .reset_n              (reset_n),
+        .ibuffer_instr_valid  (ibuffer_instr_valid),
+        .ibuffer_ready        (ibuffer_ready),
+        .ibuffer_inst_out     (ibuffer_inst_out),
+        .ibuffer_pc_out       (ibuffer_pc_out),
+        .redirect_valid       (redirect_valid),
+        .redirect_target      (redirect_target),
+        .redirect_robidx_flag (redirect_robidx_flag),
+        .redirect_robidx      (redirect_robidx),
+        .mem_stall            (mem_stall),
+        .tbus_index_valid     (tbus_index_valid),
+        .tbus_index_ready     (tbus_index_ready),
+        .tbus_index           (tbus_index),
+        .tbus_write_data      (tbus_write_data),
+        .tbus_write_mask      (tbus_write_mask),
+        .tbus_read_data       (tbus_read_data),
+        .tbus_operation_done  (tbus_operation_done),
+        .tbus_operation_type  (tbus_operation_type),
         /* --------------------------- memblock to dcache --------------------------- */
         .memblock2dcache_flush(memblock2dcache_flush)
     );

@@ -18,13 +18,13 @@ module frontend (
     input wire fifo_read_en,  // External read enable signal for FIFO
 
     //to backend
-    output wire        ibuffer_instr_valid,
-    output wire [31:0] ibuffer_inst_out,
+    output wire             ibuffer_instr_valid,
+    output wire [     31:0] ibuffer_inst_out,
     output wire [`PC_RANGE] ibuffer_pc_out,
 
 
-    //mem stall: to stop all op in frontend
-    input wire mem_stall
+    //mem stall: to put instr to backend
+    input wire backend_stall
 
 );
 
@@ -56,7 +56,7 @@ module frontend (
         .ibuffer_pc_out     (ibuffer_pc_out),
         .fifo_empty         (fifo_empty),
         .pc_index           (pc_index),
-        .mem_stall          (mem_stall)
+        .backend_stall      (backend_stall)
     );
 
 

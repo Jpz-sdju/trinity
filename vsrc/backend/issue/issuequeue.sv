@@ -210,6 +210,28 @@ module issuequeue (
     wire writeback1_to_wakeup;
     assign writeback0_to_wakeup = writeback0_valid & writeback0_need_to_wb;
     assign writeback1_to_wakeup = writeback1_valid & writeback1_need_to_wb;
+
+    /* ---------------------------------- debug --------------------------------- */
+    wire debug_src1_is_reg_0 = queue_src1_is_reg[0];
+    wire debug_src1_is_reg_1 = queue_src1_is_reg[1];
+    wire debug_src1_is_reg_2 = queue_src1_is_reg[2];
+    wire debug_src1_is_reg_3 = queue_src1_is_reg[3];
+    wire debug_src1_is_reg_4 = queue_src1_is_reg[4];
+    wire debug_src1_is_reg_5 = queue_src1_is_reg[5];
+    wire debug_src1_is_reg_6 = queue_src1_is_reg[6];
+    wire debug_src1_is_reg_7 = queue_src1_is_reg[7];
+
+    wire [`PREG_RANGE] debug_prs1_0 = queue_prs1[0];
+    wire [`PREG_RANGE] debug_prs1_1 = queue_prs1[1];
+    wire [`PREG_RANGE] debug_prs1_2 = queue_prs1[2];
+    wire [`PREG_RANGE] debug_prs1_3 = queue_prs1[3];
+    wire [`PREG_RANGE] debug_prs1_4 = queue_prs1[4];
+    wire [`PREG_RANGE] debug_prs1_5 = queue_prs1[5];
+    wire [`PREG_RANGE] debug_prs1_6 = queue_prs1[6];
+    wire [`PREG_RANGE] debug_prs1_7 = queue_prs1[7];
+    /* ---------------------------------- debug --------------------------------- */
+
+
     always @(posedge clock or negedge reset_n) begin
         integer i;
         if (~reset_n) begin
@@ -218,7 +240,7 @@ module issuequeue (
             if (enq_instr0_valid & enq_instr0_ready) begin
                 queue_src1_state[enq_idx] <= enq_instr0_src1_state & enq_instr0_src1_is_reg;
             end
-            for (i = 0; i < `ISSUE_QUEUE_LOG; i = i + 1) begin
+            for (i = 0; i < `ISSUE_QUEUE_DEPTH; i = i + 1) begin
                 if (writeback0_to_wakeup & (queue_prs1[i] == writeback0_prd) & queue_src1_is_reg[i]) begin
                     queue_src1_state[i] <= 'b0;
                 end
@@ -237,7 +259,7 @@ module issuequeue (
             if (enq_instr0_valid & enq_instr0_ready) begin
                 queue_src2_state[enq_idx] <= enq_instr0_src2_state & enq_instr0_src2_is_reg;
             end
-            for (i = 0; i < `ISSUE_QUEUE_LOG; i = i + 1) begin
+            for (i = 0; i < `ISSUE_QUEUE_DEPTH; i = i + 1) begin
                 if (writeback0_to_wakeup & (queue_prs2[i] == writeback0_prd) & queue_src2_is_reg[i]) begin
                     queue_src2_state[i] <= 'b0;
                 end

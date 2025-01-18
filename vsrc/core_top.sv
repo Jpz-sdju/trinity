@@ -132,7 +132,7 @@ module core_top #(
         .pc_operation_done  (pc_operation_done),
         .pc_read_inst       (pc_read_inst),
         .pc_index           (pc_index),
-        .fifo_read_en       (~mem_stall),           //when mem stall,ibuf can not to read instr anymore!
+        .fifo_read_en       (ibuffer_ready),           //when mem stall,ibuf can not to read instr anymore!
         //to backend
         .ibuffer_instr_valid(ibuffer_instr_valid),
         .ibuffer_inst_out   (ibuffer_inst_out),

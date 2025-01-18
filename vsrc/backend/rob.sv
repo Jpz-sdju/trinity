@@ -6,6 +6,7 @@ module rob (
     input wire               reset_n,
     //rob enq logic
     input wire               instr0_enq_valid,
+    input wire               issuequeue2rob_instr0_can_accept,
     input wire [  `PC_RANGE] instr0_pc,
     input wire [       31:0] instr0,
     input wire [`LREG_RANGE] instr0_lrs1,
@@ -16,6 +17,7 @@ module rob (
     input wire               instr0_need_to_wb,
 
     input wire               instr1_enq_valid,
+    input wire               issuequeue2rob_instr1_can_accept,
     input wire [  `PC_RANGE] instr1_pc,
     input wire [       31:0] instr1,
     input wire [`LREG_RANGE] instr1_lrs1,
@@ -133,6 +135,13 @@ module rob (
     reg                     flush_start_robidx_flag;
     reg [`ROB_SIZE_LOG-1:0] flush_start_robidx;
 
+    //IQ take this instr,we can let instr actually in
+    wire instr0_actually_enq;
+    wire instr1_actually_enq;
+
+    assign instr0_actually_enq = instr0_enq_valid & issuequeue2rob_instr0_can_accept;
+    assign instr1_actually_enq = instr1_enq_valid & issuequeue2rob_instr1_can_accept;
+
     /* -------------------------------------------------------------------------- */
     /*                        enq information to dec format                       */
     /* -------------------------------------------------------------------------- */
@@ -140,10 +149,10 @@ module rob (
         integer i;
         for (i = 0; i < `ROB_SIZE; i = i + 1) begin
             rob_entries_enq_dec[i] = 'b0;
-            if (instr0_enq_valid & (enq_idx == i[`ROB_SIZE_LOG-1:0])) begin
+            if (instr0_actually_enq & (enq_idx == i[`ROB_SIZE_LOG-1:0])) begin
                 rob_entries_enq_dec[i] = 1'b1;
             end
-            if (instr1_enq_valid & ((enq_idx + 1) == i[`ROB_SIZE_LOG-1:0])) begin
+            if (instr1_actually_enq & ((enq_idx + 1) == i[`ROB_SIZE_LOG-1:0])) begin
                 rob_entries_enq_dec[i] = 1'b1;
             end
         end

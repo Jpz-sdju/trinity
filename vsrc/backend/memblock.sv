@@ -41,15 +41,19 @@ module memblock (
     /* -------------------------- redirect flush logic -------------------------- */
     input  wire                     flush_valid,
     input  wire                     flush_robidx_flag,
-    input  wire [`ROB_SIZE_LOG-1:0] flush_robidx
+    input  wire [`ROB_SIZE_LOG-1:0] flush_robidx,
+
+    /* --------------------------- memblock to dcache --------------------------- */
+    output wire memblock2dcache_flush
+
 
 );
 
 
     //redirect flush logic 
     wire need_flush;
-    assign need_flush = flush_valid & ((flush_robidx_flag ^ out_robidx_flag) ^ (flush_robidx < out_robidx));
-
+    assign need_flush            = flush_valid & ((flush_robidx_flag ^ out_robidx_flag) ^ (flush_robidx < out_robidx));
+    assign memblock2dcache_flush = need_flush;
 
     wire [`RESULT_RANGE] ls_address;
     agu u_agu (
@@ -251,7 +255,7 @@ module memblock (
 
     reg out_mmio_valid;
 
-    `MACRO_DFF_NONEN(out_mmio_valid, mmio_valid,1)
+    `MACRO_DFF_NONEN(out_mmio_valid, mmio_valid, 1)
 
     //when flush instr older than you,could not high out valid!
     assign out_instr_valid = is_outstanding & (tbus_operation_done) & ~need_flush | out_mmio_valid;

@@ -31,7 +31,10 @@ module backend (
 
     input  wire [     `RESULT_RANGE] tbus_read_data,
     input  wire                      tbus_operation_done,
-    output wire [`TBUS_OPTYPE_RANGE] tbus_operation_type
+    output wire [`TBUS_OPTYPE_RANGE] tbus_operation_type,
+
+    /* --------------------------- memblock to dcache --------------------------- */
+    output wire memblock2dcache_flush
 );
 
     /* ---------------------------- issue information --------------------------- */
@@ -328,8 +331,8 @@ module backend (
         .write0_en   (writeback0_instr_valid & writeback0_need_to_wb),
         .write0_idx  (writeback0_prd),
         .write0_data (writeback0_result),
-        //if mmio l/s,dont not to modify regfile to pass difftest
-        .write1_en   (writeback1_instr_valid & writeback1_need_to_wb & ~writeback1_mmio),
+        // .write1_en   (writeback1_instr_valid & writeback1_need_to_wb & ~writeback1_mmio),
+        .write1_en   (writeback1_instr_valid & writeback1_need_to_wb),
         .write1_idx  (writeback1_prd),
         .write1_data (writeback1_result),
         //debug
@@ -470,7 +473,9 @@ module backend (
         /* -------------------------- redirect flush logic -------------------------- */
         .flush_valid        (redirect_valid),
         .flush_robidx_flag  (redirect_robidx_flag),
-        .flush_robidx       (redirect_robidx)
+        .flush_robidx       (redirect_robidx),
+        /* --------------------------- memblock to dcache --------------------------- */
+        .memblock2dcache_flush(memblock2dcache_flush)
     );
     assign mem_stall = memblock_out_stall;
 

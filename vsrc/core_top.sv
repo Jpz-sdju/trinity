@@ -13,12 +13,14 @@ module core_top #(
     output wire [511:0] ddr_write_data,      // Output write data for opstore channel
     input  wire [511:0] ddr_read_data,       // 64-bit data output for lw channel read
     input  wire         ddr_operation_done,
-    input  wire         ddr_ready           // Indicates if DDR is ready for new operation
+    input  wire         ddr_ready            // Indicates if DDR is ready for new operation
 );
 
 
     wire                               chip_enable = 1'b1;
 
+    //memblock to dcache
+    wire                               memblock2dcache_flush;
     //redirect
     wire                               redirect_valid;
     wire [                  `PC_RANGE] redirect_target;
@@ -70,7 +72,7 @@ module core_top #(
     dcache u_dcache (
         .clock                         (clock),
         .reset_n                       (reset_n),
-        .flush                         (redirect_valid),
+        .flush                         (memblock2dcache_flush),
         //tbus channel from backend lsu (mem.v)
         .tbus_index_valid              (tbus_index_valid),
         .tbus_index_ready              (tbus_index_ready),
@@ -132,7 +134,7 @@ module core_top #(
         .pc_operation_done  (pc_operation_done),
         .pc_read_inst       (pc_read_inst),
         .pc_index           (pc_index),
-        .fifo_read_en       (ibuffer_ready),           //when mem stall,ibuf can not to read instr anymore!
+        .fifo_read_en       (ibuffer_ready),        //when mem stall,ibuf can not to read instr anymore!
         //to backend
         .ibuffer_instr_valid(ibuffer_instr_valid),
         .ibuffer_inst_out   (ibuffer_inst_out),
@@ -162,7 +164,9 @@ module core_top #(
         .tbus_write_mask     (tbus_write_mask),
         .tbus_read_data      (tbus_read_data),
         .tbus_operation_done (tbus_operation_done),
-        .tbus_operation_type (tbus_operation_type)
+        .tbus_operation_type (tbus_operation_type),
+        /* --------------------------- memblock to dcache --------------------------- */
+        .memblock2dcache_flush(memblock2dcache_flush)
     );
 
 

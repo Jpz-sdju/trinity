@@ -16,11 +16,23 @@ module freelist #(
     output reg  [PREG_IDX_WIDTH-1:0] req1_data,   // Register address returned to request 1
 
     // commit free ports
-    input wire                      write0_valid,  // Is write port 0 valid?
-    input wire [PREG_IDX_WIDTH-1:0] write0_data,   // Register address written by write port 0
-    input wire                      write1_valid,  // Is write port 1 valid?
-    input wire [PREG_IDX_WIDTH-1:0] write1_data    // Register address written by write port 1
+    input wire                      write0_valid,     // Is write port 0 valid?
+    input wire [PREG_IDX_WIDTH-1:0] write0_data,      // Register address written by write port 0
+    input wire                      write1_valid,     // Is write port 1 valid?
+    input wire [PREG_IDX_WIDTH-1:0] write1_data,      // Register address written by write port 1
+    /* ------------------------------- walk logic ------------------------------- */
+    input wire [               1:0] rob_state,
+    input wire                      rob_walk0_valid,
+    input wire                      rob_walk1_valid
 );
+
+    wire is_idle;
+    wire is_ovwr;
+    wire is_walking;
+    assign is_idle    = (rob_state == `ROB_STATE_IDLE);
+    assign is_ovwr    = (rob_state == `ROB_STATE_OVERWRITE_RAT);
+    assign is_walking = (rob_state == `ROB_STATE_WALKING);
+
     integer                      i;
 
     // Queue implementation: Use FIFO (queue deq stores free register addresses)
@@ -33,12 +45,15 @@ module freelist #(
 
     reg  [LOG_NUM_REGS-1:0] enq_count;  // Number of available registers (range from 0 to NUM_REGS)
     reg  [LOG_NUM_REGS-1:0] deq_count;  // Number of available registers (range from 0 to NUM_REGS)
+    reg  [LOG_NUM_REGS-1:0] walk_count;  // Number of walk 
 
     wire [     ENQ_NUM-1:0] enq_vec;
     wire [     DEQ_NUM-1:0] deq_vec;
+    wire [  `WALK_SIZE-1:0] walk_vec;
 
-    assign enq_vec = {write1_valid, write0_valid};
-    assign deq_vec = {req1_valid, req0_valid};
+    assign enq_vec  = {write1_valid, write0_valid};
+    assign deq_vec  = {req1_valid, req0_valid};
+    assign walk_vec = {rob_walk1_valid, rob_walk0_valid};
 
     always @(*) begin
         enq_count = 'b0;
@@ -54,6 +69,15 @@ module freelist #(
         for (i = 0; i < ENQ_NUM; i = i + 1) begin
             if (deq_vec[i]) begin
                 deq_count = deq_count + 1'b1;
+            end
+        end
+    end
+
+    always @(*) begin
+        walk_count = 'b0;
+        for (i = 0; i < ENQ_NUM; i = i + 1) begin
+            if (walk_vec[i]) begin
+                walk_count = walk_count + 1'b1;
             end
         end
     end
@@ -77,6 +101,11 @@ module freelist #(
     always @(posedge clock or negedge reset_n) begin
         if (!reset_n) begin
             deq_idx <= 'h0;  // Reset deq on reset
+            //when ovwr,taken deq_idx = enq_idx,then increase
+        end else if (is_ovwr) begin
+            deq_idx <= enq_idx;
+        end else if (is_walking) begin
+            deq_idx <= deq_idx + walk_count;
         end else begin
             deq_idx <= deq_idx_next;
         end

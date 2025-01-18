@@ -22,15 +22,31 @@ module busytable (
     input               free_en0,
     input [`PREG_RANGE] free_addr0,
     input               free_en1,
-    input [`PREG_RANGE] free_addr1
+    input [`PREG_RANGE] free_addr1,
+
+    /* ------------------------------- walk logic ------------------------------- */
+    input wire [        1:0] rob_state,
+    input wire               rob_walk0_valid,
+    input wire [`LREG_RANGE] rob_walk0_lrd,
+    input wire [`PREG_RANGE] rob_walk0_prd,
+    input wire               rob_walk1_valid,
+    input wire [`LREG_RANGE] rob_walk1_lrd,
+    input wire [`PREG_RANGE] rob_walk1_prd
 );
 
+    wire is_idle;
+    wire is_ovwr;
+    wire is_walking;
+    assign is_idle    = (rob_state == `ROB_STATE_IDLE);
+    assign is_ovwr    = (rob_state == `ROB_STATE_OVERWRITE_RAT);
+    assign is_walking = (rob_state == `ROB_STATE_WALKING);
 
     reg [`PREG_SIZE-1:0] busy_table;
 
+    //when overwrite ,clear all the busy
     always @(negedge reset_n or posedge clock) begin
         integer i;
-        if (!reset_n) begin
+        if (!reset_n | is_ovwr) begin
             for (i = 0; i < `PREG_SIZE; i = i + 1) begin
                 busy_table[i] <= 1'b0;  //means all ready
             end
@@ -48,6 +64,14 @@ module busytable (
             end
             if (free_en1) begin
                 busy_table[free_addr1] <= 1'b0;
+            end
+
+            if(rob_walk0_valid) begin
+                busy_table[rob_walk0_prd] <= 1'b0;
+            end
+
+            if(rob_walk1_valid) begin
+                busy_table[rob_walk1_prd] <= 1'b0;
             end
         end
     end

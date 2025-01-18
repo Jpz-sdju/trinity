@@ -137,6 +137,14 @@
 
 `define ISSUE_QUEUE_DEPTH 8
 `define ISSUE_QUEUE_LOG 3
+
+`define ROB_STATE_IDLE 2'b00
+`define ROB_STATE_OVERWRITE_RAT 2'b01
+`define ROB_STATE_WALKING 2'b10
+
+`define WALK_SIZE 2
+`define COMMIT_SIZE 2
+
 `define MACRO_DFF_NONEN(dff_data_q, dff_data_in, dff_data_width) \
 always @(posedge clock or negedge reset_n) begin \
     if(reset_n == 1'b0) \

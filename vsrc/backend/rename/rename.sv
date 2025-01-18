@@ -134,7 +134,10 @@ module rename (
     output wire [`PREG_RANGE] to_dispatch_instr1_prs1,
     output wire [`PREG_RANGE] to_dispatch_instr1_prs2,
     output wire [`PREG_RANGE] to_dispatch_instr1_prd,
-    output wire [`PREG_RANGE] to_dispatch_instr1_old_prd
+    output wire [`PREG_RANGE] to_dispatch_instr1_old_prd,
+
+    /* ------------------------------- flush logic ------------------------------ */
+    input wire flush_valid
 
 );
 
@@ -209,9 +212,9 @@ module rename (
     wire raw_detect_rs2 = instr0_lrd_valid & instr1_lrs2_valid & ((instr0_lrd == instr1_lrs2));
 
 
-    //req to freelist 
-    assign instr0_freelist_req     = instr0_lrd_valid;
-    assign instr1_freelist_req     = instr1_lrd_valid;
+    //req to freelist ,can alloc when flush!
+    assign instr0_freelist_req     = instr0_lrd_valid & ~flush_valid;
+    assign instr1_freelist_req     = instr1_lrd_valid & ~flush_valid;
 
 
     //rename register

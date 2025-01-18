@@ -131,7 +131,9 @@ module dispatch (
     /* -------------------------- redirect flush logic -------------------------- */
     input wire                     flush_valid,
     input wire                     flush_robidx_flag,
-    input wire [`ROB_SIZE_LOG-1:0] flush_robidx
+    input wire [`ROB_SIZE_LOG-1:0] flush_robidx,
+
+    input wire [1:0] rob_state
 
 
 );
@@ -167,7 +169,7 @@ module dispatch (
 
 
 
-    assign instr0_ready                = (counter < `ROB_SIZE) & to_issue_instr0_ready;
+    assign instr0_ready                = (counter < `ROB_SIZE) & to_issue_instr0_ready & ~flush_valid & (rob_state == `ROB_STATE_IDLE);
     assign instr1_ready                = 'b0;
 endmodule
 /* verilator lint_off UNUSEDSIGNAL */

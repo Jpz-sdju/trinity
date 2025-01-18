@@ -106,6 +106,7 @@ module ctrlblock (
     output wire [`PREG_RANGE] debug_preg31
 );
 
+    wire [               1:0] rob_state;
     /* -------------------------------------------------------------------------- */
     /*                          stage 0: decode to rename ,read rat               */
     /* -------------------------------------------------------------------------- */
@@ -215,6 +216,12 @@ module ctrlblock (
     wire                     commits1_skip;
 
 
+    wire                     rob_walk0_valid;
+    wire [      `LREG_RANGE] rob_walk0_lrd;
+    wire [      `PREG_RANGE] rob_walk0_prd;
+    wire                     rob_walk1_valid;
+    wire [      `LREG_RANGE] rob_walk1_lrd;
+    wire [      `PREG_RANGE] rob_walk1_prd;
     renametable u_renametable (
         .clock                         (clock),
         .reset_n                       (reset_n),
@@ -283,7 +290,15 @@ module ctrlblock (
         .debug_preg28                  (debug_preg28),
         .debug_preg29                  (debug_preg29),
         .debug_preg30                  (debug_preg30),
-        .debug_preg31                  (debug_preg31)
+        .debug_preg31                  (debug_preg31),
+        /* ------------------------------- walk logic ------------------------------- */
+        .rob_state                     (rob_state),
+        .rob_walk0_valid               (rob_walk0_valid),
+        .rob_walk0_lrd                 (rob_walk0_lrd),
+        .rob_walk0_prd                 (rob_walk0_prd),
+        .rob_walk1_valid               (rob_walk1_valid),
+        .rob_walk1_lrd                 (rob_walk1_lrd),
+        .rob_walk1_prd                 (rob_walk1_prd)
     );
 
     /* -------------------------------------------------------------------------- */
@@ -325,16 +340,20 @@ module ctrlblock (
     wire [       `PREG_RANGE] instr0_freelist_resp;
 
     freelist u_freelist (
-        .clock       (clock),
-        .reset_n     (reset_n),
-        .req0_valid  (instr0_freelist_req),
-        .req0_data   (instr0_freelist_resp),
-        .req1_valid  (),
-        .req1_data   (),
-        .write0_valid(),
-        .write0_data (),
-        .write1_valid(),
-        .write1_data ()
+        .clock          (clock),
+        .reset_n        (reset_n),
+        .req0_valid     (instr0_freelist_req),
+        .req0_data      (instr0_freelist_resp),
+        .req1_valid     (),
+        .req1_data      (),
+        .write0_valid   (commits0_valid & commits0_need_to_wb),
+        .write0_data    (commits0_prd),
+        .write1_valid   (),
+        .write1_data    (),
+        /* ------------------------------- walk logic ------------------------------- */
+        .rob_state      (rob_state),
+        .rob_walk0_valid(rob_walk0_valid),
+        .rob_walk1_valid(rob_walk1_valid)
     );
 
 
@@ -441,7 +460,9 @@ module ctrlblock (
         .to_dispatch_instr1_prs1       (),
         .to_dispatch_instr1_prs2       (),
         .to_dispatch_instr1_prd        (),
-        .to_dispatch_instr1_old_prd    ()
+        .to_dispatch_instr1_old_prd    (),
+        /* ------------------------------- flush logic ------------------------------ */
+        .flush_valid                   (flush_valid)
     );
 
 
@@ -595,7 +616,8 @@ module ctrlblock (
         /* -------------------------- redirect flush logic -------------------------- */
         .flush_valid                (writeback0_redirect_valid),
         .flush_robidx_flag          (writeback0_robidx_flag),
-        .flush_robidx               (writeback0_robidx)
+        .flush_robidx               (writeback0_robidx),
+        .rob_state                  (rob_state)
     );
 
 
@@ -607,24 +629,32 @@ module ctrlblock (
     assign commits0_free = commits0_valid & commits0_need_to_wb;
     assign commits1_free = commits1_valid & commits1_need_to_wb;
     busytable u_busytable (
-        .clock      (clock),
-        .reset_n    (reset_n),
-        .read_addr0 (to_issue_instr0_prs1),
-        .read_addr1 (to_issue_instr0_prs2),
-        .read_addr2 (),
-        .read_addr3 (),
-        .busy_out0  (to_issue_instr0_src1_state),
-        .busy_out1  (to_issue_instr0_src2_state),
-        .busy_out2  (),
-        .busy_out3  (),
-        .alloc_en0  (to_issue_instr0_need_to_wb),
-        .alloc_addr0(to_issue_instr0_prd),
-        .alloc_en1  (),
-        .alloc_addr1(),
-        .free_en0   (commits0_free),
-        .free_addr0 (commits0_prd),
-        .free_en1   (commits1_free),
-        .free_addr1 (commits1_prd)
+        .clock          (clock),
+        .reset_n        (reset_n),
+        .read_addr0     (to_issue_instr0_prs1),
+        .read_addr1     (to_issue_instr0_prs2),
+        .read_addr2     (),
+        .read_addr3     (),
+        .busy_out0      (to_issue_instr0_src1_state),
+        .busy_out1      (to_issue_instr0_src2_state),
+        .busy_out2      (),
+        .busy_out3      (),
+        .alloc_en0      (to_issue_instr0_need_to_wb),
+        .alloc_addr0    (to_issue_instr0_prd),
+        .alloc_en1      (),
+        .alloc_addr1    (),
+        .free_en0       (commits0_free),
+        .free_addr0     (commits0_prd),
+        .free_en1       (commits1_free),
+        .free_addr1     (commits1_prd),
+        /* ------------------------------- walk logic ------------------------------- */
+        .rob_state      (rob_state),
+        .rob_walk0_valid(rob_walk0_valid),
+        .rob_walk0_lrd  (rob_walk0_lrd),
+        .rob_walk0_prd  (rob_walk0_prd),
+        .rob_walk1_valid(rob_walk1_valid),
+        .rob_walk1_lrd  (rob_walk1_lrd),
+        .rob_walk1_prd  (rob_walk1_prd)
     );
     /* -------------------------------------------------------------------------- */
     /*                                     rob                                    */
@@ -687,7 +717,15 @@ module ctrlblock (
         .flush_valid           (flush_valid),
         .flush_target          (flush_target),
         .flush_robidx_flag     (flush_robidx_flag),
-        .flush_robidx          (flush_robidx)
+        .flush_robidx          (flush_robidx),
+        /* ------------------------------- walk logic ------------------------------- */
+        .rob_state             (rob_state),
+        .rob_walk0_valid       (rob_walk0_valid),
+        .rob_walk0_lrd         (rob_walk0_lrd),
+        .rob_walk0_prd         (rob_walk0_prd),
+        .rob_walk1_valid       (rob_walk1_valid),
+        .rob_walk1_lrd         (rob_walk1_lrd),
+        .rob_walk1_prd         (rob_walk1_prd)
     );
 
     /* -------------------------------------------------------------------------- */

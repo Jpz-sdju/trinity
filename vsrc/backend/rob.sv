@@ -77,7 +77,16 @@ module rob (
     input wire                     flush_valid,
     input wire [             63:0] flush_target,
     input wire                     flush_robidx_flag,
-    input wire [`ROB_SIZE_LOG-1:0] flush_robidx
+    input wire [`ROB_SIZE_LOG-1:0] flush_robidx,
+
+    /* ------------------------------- walk logic ------------------------------- */
+    output reg  [        1:0] rob_state,
+    output wire               rob_walk0_valid,
+    output wire [`LREG_RANGE] rob_walk0_lrd,
+    output wire [`PREG_RANGE] rob_walk0_prd,
+    output wire               rob_walk1_valid,
+    output wire [`LREG_RANGE] rob_walk1_lrd,
+    output wire [`PREG_RANGE] rob_walk1_prd
 
 );
 
@@ -102,7 +111,7 @@ module rob (
     reg  [      `PREG_RANGE] rob_entries_enq_old_prd_dec              [0:`ROB_SIZE-1];
     reg  [    `ROB_SIZE-1:0] rob_entries_enq_need_to_wb_dec;
 
-
+    wire [    `ROB_SIZE-1:0] rob_entries_valid_dec;
     wire [    `ROB_SIZE-1:0] rob_entries_deq_dec;
     wire [        `PC_RANGE] rob_entries_deq_pc_dec                   [0:`ROB_SIZE-1];
     wire [             31:0] rob_entries_deq_instr_dec                [0:`ROB_SIZE-1];
@@ -112,6 +121,14 @@ module rob (
     wire [    `ROB_SIZE-1:0] rob_entries_deq_need_to_wb_dec;
     wire [    `ROB_SIZE-1:0] rob_entries_deq_skip_dec;
 
+    reg  [    `ROB_SIZE-1:0] flush_dec;
+    reg  [    `ROB_SIZE-1:0] need_walk_dec;
+    wire                     is_idle;
+    wire                     is_ovwr;
+    wire                     is_walking;
+    assign is_idle    = (rob_state == `ROB_STATE_IDLE);
+    assign is_ovwr    = (rob_state == `ROB_STATE_OVERWRITE_RAT);
+    assign is_walking = (rob_state == `ROB_STATE_WALKING);
     /* -------------------------------------------------------------------------- */
     /*                        enq information to dec format                       */
     /* -------------------------------------------------------------------------- */
@@ -215,7 +232,11 @@ module rob (
     end
 
     always @(*) begin
-        {enq_flag_next, enq_idx_next} = {enq_flag, enq_idx} + enq_num;
+        if (is_ovwr) begin
+            {enq_flag_next, enq_idx_next} = {flush_start_robidx_flag, flush_start_robidx} + 'b1;
+        end else begin
+            {enq_flag_next, enq_idx_next} = {enq_flag, enq_idx} + enq_num;
+        end
     end
 
 
@@ -267,8 +288,12 @@ module rob (
     //jpz note:below is a very ugly logic!!
     always @(*) begin
         go_commit[`ROB_SIZE-1:0] = 'b0;
-        go_commit[deq_idx]       = rob_entries_deq_dec[deq_idx];
-        // go_commit[deq_idx+1]     = rob_entries_deq_dec[deq_idx+1] & go_commit[deq_idx];
+        if (~is_idle | flush_valid) begin
+            go_commit[`ROB_SIZE-1:0] = 'b0;
+        end else begin
+            go_commit[deq_idx] = rob_entries_deq_dec[deq_idx];
+            // go_commit[deq_idx+1]     = rob_entries_deq_dec[deq_idx+1] & go_commit[deq_idx];
+        end
     end
 
 
@@ -290,7 +315,8 @@ module rob (
     `MACRO_DFF_NONEN(deq_flag, deq_flag_next, 1)
     `MACRO_DFF_NONEN(deq_idx, deq_idx_next, `ROB_SIZE_LOG)
 
-    assign commits0_valid      = rob_entries_deq_dec[deq_idx];
+    // assign commits0_valid      = rob_entries_deq_dec[deq_idx] ;
+    assign commits0_valid      = go_commit[deq_idx];
     assign commits0_pc         = rob_entries_deq_pc_dec[deq_idx];
     assign commits0_instr      = rob_entries_deq_instr_dec[deq_idx];
     assign commits0_lrd        = rob_entries_deq_lrd_dec[deq_idx];
@@ -317,6 +343,7 @@ module rob (
                 .enq_skip      ('b0),
                 .writeback     (rob_entries_writeback_dec[i]),
                 .writeback_skip(rob_entries_writeback_skip_dec[i]),
+                .valid         (rob_entries_valid_dec[i]),
                 .deq           (rob_entries_deq_dec[i]),
                 .deq_pc        (rob_entries_deq_pc_dec[i]),
                 .deq_instr     (rob_entries_deq_instr_dec[i]),
@@ -326,7 +353,9 @@ module rob (
                 .deq_need_to_wb(rob_entries_deq_need_to_wb_dec[i]),
                 .deq_skip      (rob_entries_deq_skip_dec[i]),
                 //commit,clear valid
-                .commit        (go_commit[i])
+                .commit        (go_commit[i]),
+                //flush entry
+                .flush         (flush_dec[i])
             );
         end
     endgenerate
@@ -343,6 +372,133 @@ module rob (
     always @(*) begin
         counter_next = counter + enq_num[`ROB_SIZE_LOG-1:0] - deq_num[`ROB_SIZE_LOG-1:0];
     end
+
+
+    /* -------------------------------------------------------------------------- */
+    /*                                 walk logic                                 */
+    /* -------------------------------------------------------------------------- */
+
+    //only two hot at most for now
+    reg [    `ROB_SIZE-1:0] walking_dec;
+    //why not use walking_flag?cause unuse
+    reg [`ROB_SIZE_LOG-1:0] walking_idx;
+
+    /*At overwrite state,ARCH RAT should copy to SPEC RAT;
+    and flushed entries in rob should be clear ;
+    at same time ,calculate all need_walk_dec  */
+
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            rob_state <= 2'b0;
+        end else begin
+            case (rob_state)
+                `ROB_STATE_IDLE: begin
+                    if (flush_valid) begin
+                        rob_state <= `ROB_STATE_OVERWRITE_RAT;
+                    end
+                end
+
+                `ROB_STATE_OVERWRITE_RAT: begin
+                    rob_state <= `ROB_STATE_WALKING;
+                end
+                `ROB_STATE_WALKING: begin
+                    //means walk could finish
+                    if (rob_entries_valid_dec[walking_idx+1] == 'b0) begin
+                        rob_state <= `ROB_STATE_IDLE;
+                    end
+                end
+                default: ;
+            endcase
+        end
+    end
+    reg                     flush_start_robidx_flag;
+    reg [`ROB_SIZE_LOG-1:0] flush_start_robidx;
+
+    /* --------------------------- latch flush robidx --------------------------- */
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            flush_start_robidx_flag <= 'b0;
+        end else if (flush_valid) begin
+            flush_start_robidx_flag <= flush_robidx_flag;
+        end
+    end
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            flush_start_robidx <= 'b0;
+        end else if (flush_valid) begin
+            flush_start_robidx <= flush_robidx;
+        end
+    end
+
+
+    //这里时序如果改成在flush的当拍形成flush_dec，第二拍直接刷会不会好一点？
+    //It is imposible when redirect hit rob enq,casue dispatch can cover this!
+    //When enq_idx > flushrobidx, enq_flag == flush_rob_flag, so use & to cover all entry need flush
+    //On the contrary, enq_flag =/= flush_rob_flag; so use | to cover all entry need flush
+    always @(*) begin
+        integer i;
+        flush_dec = 'b0;
+        for (i = 0; i < `ROB_SIZE; i = i + 1) begin
+            if (is_ovwr) begin
+                if (enq_idx > flush_robidx) begin
+                    flush_dec[i] = (i[`ROB_SIZE_LOG-1:0] > flush_robidx) & (i[`ROB_SIZE_LOG-1:0] < enq_idx);
+                end else begin
+                    flush_dec[i] = (i[`ROB_SIZE_LOG-1:0] > flush_robidx) | (i[`ROB_SIZE_LOG-1:0] < enq_idx);
+                end
+            end
+        end
+    end
+
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            walking_idx <= 'b0;
+        end else if (is_ovwr) begin
+            walking_idx <= deq_idx;
+        end else if (is_walking) begin
+            walking_idx <= walking_idx + 'd2;
+        end
+    end
+
+
+    assign rob_walk0_valid = rob_entries_valid_dec[walking_idx] & rob_entries_deq_need_to_wb_dec[walking_idx] & is_walking;
+    assign rob_walk0_lrd   = rob_entries_deq_lrd_dec[walking_idx];
+    assign rob_walk0_prd   = rob_entries_deq_prd_dec[walking_idx];
+
+
+    assign rob_walk1_valid = rob_entries_valid_dec[walking_idx+'b1] & rob_entries_deq_need_to_wb_dec[walking_idx+'b1] & is_walking;
+    assign rob_walk1_lrd   = rob_entries_deq_lrd_dec[walking_idx+'b1];
+    assign rob_walk1_prd   = rob_entries_deq_prd_dec[walking_idx+'b1];
+
+
+    // always @(posedge clock or negedge reset_n) begin
+    //     integer i;
+    //     for (i = 0; i < `ROB_SIZE; i = i + 1) begin
+    //         if (~reset_n) begin
+    //             need_walk_dec[i] <= 'b0;
+    //             //when flush_robidx > deq_idx,set all entry from DEQ_IDX to FLUSH_ROBIDX bit to 1,including themselves
+    //         end else if (is_ovwr) begin
+    //             if (flush_robidx > deq_idx) begin
+    //                 need_walk_dec[i] <= (i[`ROB_SIZE_LOG-1:0] <= flush_robidx) & (i[`ROB_SIZE_LOG-1:0] >= deq_idx);
+    //             end else begin
+    //                 need_walk_dec[i] <= (i[`ROB_SIZE_LOG-1:0] <= flush_robidx) | (i[`ROB_SIZE_LOG-1:0] >= deq_idx);
+    //             end
+    //         end
+    //     end
+    // end
+    // always @(*) begin
+    //     integer i;
+    //     for (i = 0; i < `ROB_SIZE; i = i + 1) begin
+    //         walking_dec[i] = 'b0;
+    //         if (is_walking) begin
+    //             walking_dec[walking_idx]   = need_walk_dec[walking_idx];
+    //             walking_dec[walking_idx+1] = need_walk_dec[walking_idx+1];
+    //         end
+    //     end
+    // end
+
+
+
+
 endmodule
 /* verilator lint_off UNDRIVEN */
 /* verilator lint_off UNUSEDSIGNAL */

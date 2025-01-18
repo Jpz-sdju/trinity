@@ -81,9 +81,23 @@ module renametable (
     output wire [`PREG_RANGE] debug_preg28,
     output wire [`PREG_RANGE] debug_preg29,
     output wire [`PREG_RANGE] debug_preg30,
-    output wire [`PREG_RANGE] debug_preg31
+    output wire [`PREG_RANGE] debug_preg31,
+    /* ------------------------------- walk logic ------------------------------- */
+    input  wire [        1:0] rob_state,
+    input  wire               rob_walk0_valid,
+    input  wire [`LREG_RANGE] rob_walk0_lrd,
+    input  wire [`PREG_RANGE] rob_walk0_prd,
+    input  wire               rob_walk1_valid,
+    input  wire [`LREG_RANGE] rob_walk1_lrd,
+    input  wire [`PREG_RANGE] rob_walk1_prd
 
 );
+    wire is_idle;
+    wire is_ovwr;
+    wire is_walking;
+    assign is_idle    = (rob_state == `ROB_STATE_IDLE);
+    assign is_ovwr    = (rob_state == `ROB_STATE_OVERWRITE_RAT);
+    assign is_walking = (rob_state == `ROB_STATE_WALKING);
 
     reg  [`PREG_RANGE] renametables               [0:31];
     reg  [       31:0] renametables_wren_dec;
@@ -186,12 +200,22 @@ module renametable (
     `MACRO_DFF_NONEN(rat2rename_instr1_prs2, instr1_rat_prs2_raw, `PREG_LENGTH)
     `MACRO_DFF_NONEN(rat2rename_instr1_prd, instr1_rat_prd_raw, `PREG_LENGTH)
 
+    //conflict logic
+    wire rename_lrd_hit;
+    wire walk_lrd_hit;
+    assign rename_lrd_hit = rename2rat_instr0_rename_valid & rename2rat_instr1_rename_valid & (rename2rat_instr0_rename_addr == rename2rat_instr1_rename_addr);
+    assign walk_lrd_hit   = rob_walk0_valid & rob_walk1_valid & (rob_walk0_lrd == rob_walk1_lrd);
 
+    //条件太长太难看，但是是for循环，怎么办？
     always @(*) begin
         integer i;
         for (i = 0; i < 32; i = i + 1) begin
             renametables_wren_dec[i] = 'b0;
-            if (rename2rat_instr0_rename_valid & (rename2rat_instr0_rename_addr == i[4:0]) | rename2rat_instr1_rename_valid & (rename2rat_instr1_rename_addr == i[4:0])) begin
+            if (is_walking) begin
+                if (rob_walk0_valid & (rob_walk0_lrd == i[`LREG_RANGE]) | rob_walk1_valid & (rob_walk1_lrd == i[`LREG_RANGE])) begin
+                    renametables_wren_dec[i] = 1'b1;
+                end
+            end else if (rename2rat_instr0_rename_valid & (rename2rat_instr0_rename_addr == i[4:0]) | rename2rat_instr1_rename_valid & (rename2rat_instr1_rename_addr == i[4:0])) begin
                 renametables_wren_dec[i] = 1'b1;
             end
         end
@@ -201,7 +225,13 @@ module renametable (
         integer i;
         for (i = 0; i < 32; i = i + 1) begin
             renametables_wdata_dec[i] = 'b0;
-            if (rename2rat_instr0_rename_valid & (rename2rat_instr0_rename_addr == i[4:0])) begin
+            if (is_walking) begin
+                if (rob_walk0_valid & rob_walk0_valid & (rob_walk0_lrd == i[`LREG_RANGE]) & ~walk_lrd_hit) begin
+                    renametables_wdata_dec[i] = rob_walk0_prd;
+                end else if (rob_walk1_valid & rob_walk1_valid & (rob_walk1_lrd == i[`LREG_RANGE])) begin
+                    renametables_wdata_dec[i] = rob_walk1_prd;
+                end
+            end else if (rename2rat_instr0_rename_valid & (rename2rat_instr0_rename_addr == i[4:0]) & ~rename_lrd_hit) begin
                 renametables_wdata_dec[i] = rename2rat_instr0_rename_data;
             end else if (rename2rat_instr1_rename_valid & (rename2rat_instr1_rename_addr == i[4:0])) begin
                 renametables_wdata_dec[i] = rename2rat_instr1_rename_data;
@@ -209,13 +239,49 @@ module renametable (
         end
     end
 
-
-
+    //ugly sig
+    wire [`PREG_RANGE] temp_sig[0:31];
+    assign temp_sig = {
+        debug_preg31,
+        debug_preg30,
+        debug_preg29,
+        debug_preg28,
+        debug_preg27,
+        debug_preg26,
+        debug_preg25,
+        debug_preg24,
+        debug_preg23,
+        debug_preg22,
+        debug_preg21,
+        debug_preg20,
+        debug_preg19,
+        debug_preg18,
+        debug_preg17,
+        debug_preg16,
+        debug_preg15,
+        debug_preg14,
+        debug_preg13,
+        debug_preg12,
+        debug_preg11,
+        debug_preg10,
+        debug_preg9,
+        debug_preg8,
+        debug_preg7,
+        debug_preg6,
+        debug_preg5,
+        debug_preg4,
+        debug_preg3,
+        debug_preg2,
+        debug_preg1,
+        debug_preg0
+    };
     always @(posedge clock or negedge reset_n) begin
         integer i;
         for (i = 0; i < 32; i = i + 1) begin
             if (~reset_n) begin
                 renametables[i] <= i[5:0];
+            end else if (is_ovwr) begin
+                renametables[i] <= temp_sig[i];
             end else if (renametables_wren_dec[i]) begin
                 renametables[i] <= renametables_wdata_dec[i];
             end

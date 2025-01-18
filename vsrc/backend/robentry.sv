@@ -16,6 +16,8 @@ module robentry (
     /* -------------------------------- wireback -------------------------------- */
     input  wire               writeback,
     input  wire               writeback_skip,
+    /* ------------------------------- entry valid ------------------------------ */
+    output wire               valid,
     /* ------------------------------------ deq port ----------------------------------- */
     output wire               deq,
     output wire [  `PC_RANGE] deq_pc,
@@ -27,7 +29,9 @@ module robentry (
     output wire               deq_need_to_wb,
     output wire               deq_skip,
     /* ------------------------------- commit port ------------------------------ */
-    input  wire               commit
+    input  wire               commit,
+    /* ------------------------------- flush logic ------------------------------ */
+    input  wire               flush
 );
 
     reg               rob_entries_valid;
@@ -42,7 +46,7 @@ module robentry (
     reg               rob_entries_skip;
 
     always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
+        if (~reset_n | flush) begin
             rob_entries_valid <= 'b0;
         end else if (~rob_entries_valid & enq) begin
             rob_entries_valid <= 1'b1;
@@ -118,7 +122,7 @@ module robentry (
     end
 
 
-
+    assign valid          = rob_entries_valid;
 
     assign deq            = rob_entries_valid & rob_entries_complete;
     assign deq_pc         = rob_entries_pc;

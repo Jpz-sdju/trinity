@@ -128,8 +128,6 @@ module issuequeue (
             queue_prs2[enq_idx]        <= enq_instr0_prs2;
             queue_src1_is_reg[enq_idx] <= enq_instr0_src1_is_reg;
             queue_src2_is_reg[enq_idx] <= enq_instr0_src2_is_reg;
-            queue_src1_state[enq_idx]  <= enq_instr0_src1_state;
-            queue_src2_state[enq_idx]  <= enq_instr0_src2_state;
             queue_prd[enq_idx]         <= enq_instr0_prd;
             queue_old_prd[enq_idx]     <= enq_instr0_old_prd;
             queue_pc[enq_idx]          <= enq_instr0_pc;
@@ -218,7 +216,7 @@ module issuequeue (
             queue_src1_state <= 'b0;
         end else begin
             if (enq_instr0_valid & enq_instr0_ready) begin
-                queue_src1_state[enq_idx] <= enq_instr0_src1_state;
+                queue_src1_state[enq_idx] <= enq_instr0_src1_state & enq_instr0_src1_is_reg;
             end
             for (i = 0; i < `ISSUE_QUEUE_LOG; i = i + 1) begin
                 if (writeback0_to_wakeup & (queue_prs1[i] == writeback0_prd) & queue_src1_is_reg) begin
@@ -237,7 +235,7 @@ module issuequeue (
             queue_src2_state <= 'b0;
         end else begin
             if (enq_instr0_valid & enq_instr0_ready) begin
-                queue_src2_state[enq_idx] <= enq_instr0_src2_state;
+                queue_src2_state[enq_idx] <= enq_instr0_src2_state & enq_instr0_src2_is_reg;
             end
             for (i = 0; i < `ISSUE_QUEUE_LOG; i = i + 1) begin
                 if (writeback0_to_wakeup & (queue_prs2[i] == writeback0_prd) & queue_src2_is_reg) begin
@@ -283,9 +281,11 @@ module issuequeue (
         end
     end
 
-
+    //for now,cause in-order issue,flush could clear deq_idx and enq_idx
     always @(*) begin
-        if (deq_is_ready) begin
+        if (flush_valid) begin
+            {deq_idx_flag_next, deq_idx_next} = 'b0;
+        end else if (deq_is_ready) begin
             {deq_idx_flag_next, deq_idx_next} = {deq_idx_flag, deq_idx} + 'b1;
         end else begin
             {deq_idx_flag_next, deq_idx_next} = {deq_idx_flag, deq_idx};
@@ -295,8 +295,11 @@ module issuequeue (
     `MACRO_DFF_NONEN(deq_idx_flag, deq_idx_flag_next, 1)
     `MACRO_DFF_NONEN(deq_idx, deq_idx_next, `ISSUE_QUEUE_LOG)
 
+    //for now,cause in-order issue,flush could clear deq_idx and enq_idx
     always @(*) begin
-        if ((enq_instr0_valid & enq_instr0_ready)) begin
+        if (flush_valid) begin
+            {enq_idx_flag_next, enq_idx_next} = 'b0;
+        end else if ((enq_instr0_valid & enq_instr0_ready)) begin
             {enq_idx_flag_next, enq_idx_next} = {enq_idx_flag, enq_idx} + 'b1;
         end else begin
             {enq_idx_flag_next, enq_idx_next} = {enq_idx_flag, enq_idx};

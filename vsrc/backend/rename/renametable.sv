@@ -240,7 +240,7 @@ module renametable (
     end
 
     //ugly sig
-    wire [`PREG_RANGE] temp_sig[0:31];
+    wire [`PREG_RANGE] temp_sig[31:0];
     assign temp_sig = {
         debug_preg31,
         debug_preg30,

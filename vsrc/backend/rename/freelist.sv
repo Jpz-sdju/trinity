@@ -41,10 +41,10 @@ module freelist #(
     reg [LOG_NUM_REGS-1:0] deq_idx_next, enq_idx_next;  // LOG_NUM_REGS bit value
 
     // Counter for available registers
-    reg  [LOG_NUM_REGS-1:0] available_count;  // Number of available registers (range from 0 to NUM_REGS)
+    reg  [  LOG_NUM_REGS:0] available_count;  // Number of available registers (range from 0 to NUM_REGS)
 
-    reg  [LOG_NUM_REGS-1:0] enq_count;  // Number of available registers (range from 0 to NUM_REGS)
-    reg  [LOG_NUM_REGS-1:0] deq_count;  // Number of available registers (range from 0 to NUM_REGS)
+    reg  [  LOG_NUM_REGS:0] enq_count;  // Number of available registers (range from 0 to NUM_REGS)
+    reg  [  LOG_NUM_REGS:0] deq_count;  // Number of available registers (range from 0 to NUM_REGS)
     reg  [LOG_NUM_REGS-1:0] walk_count;  // Number of walk 
 
     wire [     ENQ_NUM-1:0] enq_vec;

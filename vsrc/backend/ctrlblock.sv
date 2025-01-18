@@ -735,6 +735,7 @@ module ctrlblock (
     reg                     flop_commits0_skip;
     reg                     flop_commits0_need_to_wb;
     reg [      `LREG_RANGE] flop_commits0_lrd;
+    reg [      `PREG_RANGE] flop_commits0_prd;
     reg [        `PC_RANGE] flop_commits0_pc;
     reg [     `INSTR_RANGE] flop_commits0_instr;
     reg [`ROB_SIZE_LOG-1:0] flop_commits0_robidx;
@@ -743,6 +744,7 @@ module ctrlblock (
     `MACRO_DFF_NONEN(flop_commits0_skip, commits0_skip, 1)
     `MACRO_DFF_NONEN(flop_commits0_need_to_wb, commits0_need_to_wb, 1)
     `MACRO_DFF_NONEN(flop_commits0_lrd, commits0_lrd, 5)
+    `MACRO_DFF_NONEN(flop_commits0_prd, commits0_prd, `PREG_LENGTH)
     `MACRO_DFF_NONEN(flop_commits0_pc, commits0_pc, `PC_WIDTH)
     `MACRO_DFF_NONEN(flop_commits0_instr, commits0_instr, 32)
     `MACRO_DFF_NONEN(flop_commits0_robidx, commits0_robidx, `ROB_SIZE_LOG)
@@ -757,20 +759,30 @@ module ctrlblock (
         .io_rfwen  (flop_commits0_need_to_wb),
         .io_fpwen  (1'b0),
         .io_vecwen (1'b0),
-        .io_wpdest ('b0),
-        .io_wdest  (flop_commits0_lrd),
+        .io_wpdest (),
+        .io_wdest  (flop_commits0_prd),
         .io_pc     (flop_commits0_pc),
         .io_instr  (flop_commits0_instr),
         .io_robIdx (flop_commits0_robidx),
-        .io_lqIdx  ('b0),
+        .io_lqIdx  (flop_commits0_lrd),
         .io_sqIdx  ('b0),
-        .io_isLoad ('b0),                       //load queue idx
+        .io_isLoad (1'b1),                      //load queue idx
         .io_isStore('b0),                       //store queue idx
         .io_nFused ('b0),
         .io_special('b0),
         .io_coreid ('b0),
         .io_index  ('b0)
     );
+
+
+    // DifftestIntWriteback u_DifftestIntWriteback(
+    //     .clock      (clock      ),
+    //     .enable     (flop_commits0_valid     ),
+    //     .io_valid   (   ), //usese!
+    //     .io_address (io_address ),
+    //     .io_data    (io_data    ),
+    //     .io_coreid  (io_coreid  )
+    // );
 
 
     reg [63:0] commit_cnt;

@@ -27,9 +27,11 @@ module busytable (
     /* ------------------------------- walk logic ------------------------------- */
     input wire [        1:0] rob_state,
     input wire               rob_walk0_valid,
+    input wire               rob_walk0_complete,
     input wire [`LREG_RANGE] rob_walk0_lrd,
     input wire [`PREG_RANGE] rob_walk0_prd,
     input wire               rob_walk1_valid,
+    input wire               rob_walk1_complete,
     input wire [`LREG_RANGE] rob_walk1_lrd,
     input wire [`PREG_RANGE] rob_walk1_prd
 );
@@ -132,12 +134,12 @@ module busytable (
                 busy_table[free_addr1] <= 1'b0;
             end
 
-            if (rob_walk0_valid) begin
-                busy_table[rob_walk0_prd] <= 1'b0;
+            if (rob_walk0_valid & ~rob_walk0_complete) begin
+                busy_table[rob_walk0_prd] <= 1'b1;
             end
 
-            if (rob_walk1_valid) begin
-                busy_table[rob_walk1_prd] <= 1'b0;
+            if (rob_walk1_valid & ~rob_walk1_complete) begin
+                busy_table[rob_walk1_prd] <= 1'b1;
             end
         end
     end

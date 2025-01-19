@@ -84,11 +84,13 @@ module rob (
     /* ------------------------------- walk logic ------------------------------- */
     output reg  [        1:0] rob_state,
     output wire               rob_walk0_valid,
+    output wire               rob_walk0_complete,
     output wire [`LREG_RANGE] rob_walk0_lrd,
     output wire [`PREG_RANGE] rob_walk0_prd,
     output wire               rob_walk1_valid,
     output wire [`LREG_RANGE] rob_walk1_lrd,
-    output wire [`PREG_RANGE] rob_walk1_prd
+    output wire [`PREG_RANGE] rob_walk1_prd,
+    output wire               rob_walk1_complete
 
 );
 
@@ -122,6 +124,7 @@ module rob (
     wire [      `PREG_RANGE] rob_entries_deq_old_prd_dec              [0:`ROB_SIZE-1];
     wire [    `ROB_SIZE-1:0] rob_entries_deq_need_to_wb_dec;
     wire [    `ROB_SIZE-1:0] rob_entries_deq_skip_dec;
+    wire [    `ROB_SIZE-1:0] rob_entries_deq_complete_dec;
 
     reg  [    `ROB_SIZE-1:0] flush_dec;
     reg  [    `ROB_SIZE-1:0] need_walk_dec;
@@ -132,12 +135,12 @@ module rob (
     assign is_ovwr    = (rob_state == `ROB_STATE_OVERWRITE_RAT);
     assign is_walking = (rob_state == `ROB_STATE_WALKING);
     //used to latch flush robidx and robidx flag to walk and flush
-    reg                     flush_start_robidx_flag;
-    reg [`ROB_SIZE_LOG-1:0] flush_start_robidx;
+    reg                      flush_start_robidx_flag;
+    reg  [`ROB_SIZE_LOG-1:0] flush_start_robidx;
 
     //IQ take this instr,we can let instr actually in
-    wire instr0_actually_enq;
-    wire instr1_actually_enq;
+    wire                     instr0_actually_enq;
+    wire                     instr1_actually_enq;
 
     assign instr0_actually_enq = instr0_enq_valid & issuequeue2rob_instr0_can_accept;
     assign instr1_actually_enq = instr1_enq_valid & issuequeue2rob_instr1_can_accept;
@@ -359,6 +362,7 @@ module rob (
                 .writeback_skip(rob_entries_writeback_skip_dec[i]),
                 .valid         (rob_entries_valid_dec[i]),
                 .deq           (rob_entries_deq_dec[i]),
+                .deq_complete  (rob_entries_deq_complete_dec[i]),
                 .deq_pc        (rob_entries_deq_pc_dec[i]),
                 .deq_instr     (rob_entries_deq_instr_dec[i]),
                 .deq_lrd       (rob_entries_deq_lrd_dec[i]),
@@ -472,14 +476,15 @@ module rob (
     end
 
 
-    assign rob_walk0_valid = rob_entries_valid_dec[walking_idx] & rob_entries_deq_need_to_wb_dec[walking_idx] & is_walking;
-    assign rob_walk0_lrd   = rob_entries_deq_lrd_dec[walking_idx];
-    assign rob_walk0_prd   = rob_entries_deq_prd_dec[walking_idx];
+    assign rob_walk0_valid    = rob_entries_valid_dec[walking_idx] & rob_entries_deq_need_to_wb_dec[walking_idx] & is_walking;
+    assign rob_walk0_lrd      = rob_entries_deq_lrd_dec[walking_idx];
+    assign rob_walk0_prd      = rob_entries_deq_prd_dec[walking_idx];
+    assign rob_walk0_complete = rob_entries_deq_complete_dec[walking_idx];
 
-
-    assign rob_walk1_valid = rob_entries_valid_dec[walking_idx+'b1] & rob_entries_deq_need_to_wb_dec[walking_idx+'b1] & is_walking;
-    assign rob_walk1_lrd   = rob_entries_deq_lrd_dec[walking_idx+'b1];
-    assign rob_walk1_prd   = rob_entries_deq_prd_dec[walking_idx+'b1];
+    assign rob_walk1_valid    = rob_entries_valid_dec[walking_idx+'b1] & rob_entries_deq_need_to_wb_dec[walking_idx+'b1] & is_walking;
+    assign rob_walk1_lrd      = rob_entries_deq_lrd_dec[walking_idx+'b1];
+    assign rob_walk1_prd      = rob_entries_deq_prd_dec[walking_idx+'b1];
+    assign rob_walk1_complete = rob_entries_deq_complete_dec[walking_idx+'b1];
 
 
     // always @(posedge clock or negedge reset_n) begin

@@ -193,7 +193,7 @@ module ctrlblock (
 
     assign from_dec_instr0_prs1 = rat2rename_instr0_prs1;
     assign from_dec_instr0_prs2 = rat2rename_instr0_prs2;
-    assign from_dec_instr0_prd = rat2rename_instr0_prd;
+    assign from_dec_instr0_prd  = rat2rename_instr0_prd;
 
 
     `PIPE_BEFORE_RENAME(to_rename_instr0, from_dec_instr0, writeback0_redirect_valid)
@@ -229,9 +229,11 @@ module ctrlblock (
 
 
     wire                     rob_walk0_valid;
+    wire                     rob_walk0_complete;
     wire [      `LREG_RANGE] rob_walk0_lrd;
     wire [      `PREG_RANGE] rob_walk0_prd;
     wire                     rob_walk1_valid;
+    wire                     rob_walk1_complete;
     wire [      `LREG_RANGE] rob_walk1_lrd;
     wire [      `PREG_RANGE] rob_walk1_prd;
     renametable u_renametable (
@@ -642,32 +644,34 @@ module ctrlblock (
     assign writeback1_free = writeback1_valid & writeback1_need_to_wb;
 
     busytable u_busytable (
-        .clock          (clock),
-        .reset_n        (reset_n),
-        .read_addr0     (to_issue_instr0_prs1),
-        .read_addr1     (to_issue_instr0_prs2),
-        .read_addr2     (),
-        .read_addr3     (),
-        .busy_out0      (to_issue_instr0_src1_state),
-        .busy_out1      (to_issue_instr0_src2_state),
-        .busy_out2      (),
-        .busy_out3      (),
-        .alloc_en0      (to_issue_instr0_need_to_wb & to_issue_instr0_valid),
-        .alloc_addr0    (to_issue_instr0_prd),
-        .alloc_en1      (),
-        .alloc_addr1    (),
-        .free_en0       (writeback0_free),
-        .free_addr0     (writeback0_prd),
-        .free_en1       (writeback1_free),
-        .free_addr1     (writeback1_prd),
+        .clock             (clock),
+        .reset_n           (reset_n),
+        .read_addr0        (to_issue_instr0_prs1),
+        .read_addr1        (to_issue_instr0_prs2),
+        .read_addr2        (),
+        .read_addr3        (),
+        .busy_out0         (to_issue_instr0_src1_state),
+        .busy_out1         (to_issue_instr0_src2_state),
+        .busy_out2         (),
+        .busy_out3         (),
+        .alloc_en0         (to_issue_instr0_need_to_wb & to_issue_instr0_valid),
+        .alloc_addr0       (to_issue_instr0_prd),
+        .alloc_en1         (),
+        .alloc_addr1       (),
+        .free_en0          (writeback0_free),
+        .free_addr0        (writeback0_prd),
+        .free_en1          (writeback1_free),
+        .free_addr1        (writeback1_prd),
         /* ------------------------------- walk logic ------------------------------- */
-        .rob_state      (rob_state),
-        .rob_walk0_valid(rob_walk0_valid),
-        .rob_walk0_lrd  (rob_walk0_lrd),
-        .rob_walk0_prd  (rob_walk0_prd),
-        .rob_walk1_valid(rob_walk1_valid),
-        .rob_walk1_lrd  (rob_walk1_lrd),
-        .rob_walk1_prd  (rob_walk1_prd)
+        .rob_state         (rob_state),
+        .rob_walk0_valid   (rob_walk0_valid),
+        .rob_walk0_complete(rob_walk0_complete),
+        .rob_walk0_lrd     (rob_walk0_lrd),
+        .rob_walk0_prd     (rob_walk0_prd),
+        .rob_walk1_valid   (rob_walk1_valid),
+        .rob_walk1_complete(rob_walk1_complete),
+        .rob_walk1_lrd     (rob_walk1_lrd),
+        .rob_walk1_prd     (rob_walk1_prd)
     );
     /* -------------------------------------------------------------------------- */
     /*                                     rob                                    */
@@ -736,9 +740,11 @@ module ctrlblock (
         /* ------------------------------- walk logic ------------------------------- */
         .rob_state                       (rob_state),
         .rob_walk0_valid                 (rob_walk0_valid),
+        .rob_walk0_complete              (rob_walk0_complete),
         .rob_walk0_lrd                   (rob_walk0_lrd),
         .rob_walk0_prd                   (rob_walk0_prd),
         .rob_walk1_valid                 (rob_walk1_valid),
+        .rob_walk1_complete              (rob_walk1_complete),
         .rob_walk1_lrd                   (rob_walk1_lrd),
         .rob_walk1_prd                   (rob_walk1_prd)
     );

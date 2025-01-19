@@ -20,6 +20,7 @@ module robentry (
     output wire               valid,
     /* ------------------------------------ deq port ----------------------------------- */
     output wire               deq,
+    output wire               deq_complete,
     output wire [  `PC_RANGE] deq_pc,
     output wire [       31:0] deq_instr,
     output wire [`LREG_RANGE] deq_lrd,
@@ -59,7 +60,7 @@ module robentry (
             rob_entries_complete <= 1'b0;
         end else if (~rob_entries_complete & writeback) begin
             rob_entries_complete <= 1'b1;
-        end else if (commit)begin
+        end else if (commit) begin
             rob_entries_complete <= 1'b0;
         end
     end
@@ -127,6 +128,7 @@ module robentry (
     assign valid          = rob_entries_valid;
 
     assign deq            = rob_entries_valid & rob_entries_complete;
+    assign deq_complete   = rob_entries_complete;
     assign deq_pc         = rob_entries_pc;
     assign deq_instr      = rob_entries_instr;
     assign deq_lrd        = rob_entries_lrd;

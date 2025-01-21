@@ -8,8 +8,16 @@ module regfile64 (
     input wire [`PREG_RANGE] read0_idx,  // Read register 1 address
     input wire [`PREG_RANGE] read1_idx,  // Read register 2 address
 
+    input wire               read2_en,
+    input wire               read3_en,
+    input wire [`PREG_RANGE] read2_idx,  // Read register 1 address
+    input wire [`PREG_RANGE] read3_idx,  // Read register 2 address
+
     output reg [63:0] read0_data,  // Data from read0_idx register
     output reg [63:0] read1_data,  // Data from read1_idx register
+
+    output reg [63:0] read2_data,  // Data from read0_idx register
+    output reg [63:0] read3_data,  // Data from read1_idx register
 
     input wire               write0_en,   // Write enable signal for write0_idx
     input wire [`PREG_RANGE] write0_idx,  // Write register address
@@ -98,6 +106,31 @@ module regfile64 (
                 read1_data = write1_data;
             end else begin
                 read1_data = registers[read1_idx];
+            end
+        end
+    end
+    always @(*) begin
+        if (read2_en) begin
+            // Forward write0_data if write0_en is active and addresses match
+            if (write0_en && (write0_idx == read2_idx) && (write0_idx != `PREG_LENGTH'b0)) begin
+                read2_data = write0_data;
+            end else if (write1_en && write1_idx == read2_idx && write1_idx != `PREG_LENGTH'b0) begin
+                read2_data = write1_data;
+            end else begin
+                read2_data = registers[read2_idx];
+            end
+        end
+    end
+    // Combinational read logic with forwarding
+    always @(*) begin
+        if (read3_en) begin
+            // Forward write0_data if write0_en is active and addresses match
+            if (write0_en && (write0_idx == read3_idx) && (write0_idx != `PREG_LENGTH'b0)) begin
+                read3_data = write0_data;
+            end else if (write1_en && (write1_idx == read3_idx) && (write1_idx != `PREG_LENGTH'b0)) begin
+                read3_data = write1_data;
+            end else begin
+                read3_data = registers[read3_idx];
             end
         end
     end

@@ -127,12 +127,6 @@ module busytable (
                 busy_table[alloc_addr1] <= 1'b1;
             end
 
-            if (free_en0) begin
-                busy_table[free_addr0] <= 1'b0;
-            end
-            if (free_en1) begin
-                busy_table[free_addr1] <= 1'b0;
-            end
 
             if (rob_walk0_valid & ~rob_walk0_complete) begin
                 busy_table[rob_walk0_prd] <= 1'b1;
@@ -140,6 +134,13 @@ module busytable (
 
             if (rob_walk1_valid & ~rob_walk1_complete) begin
                 busy_table[rob_walk1_prd] <= 1'b1;
+            end
+            //TODO:could free at walk state,if free addr hit walk addr,how could this can taken??
+            if (free_en0) begin
+                busy_table[free_addr0] <= 1'b0;
+            end
+            if (free_en1) begin
+                busy_table[free_addr1] <= 1'b0;
             end
         end
     end

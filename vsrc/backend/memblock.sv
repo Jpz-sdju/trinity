@@ -52,7 +52,12 @@ module memblock (
 
     //redirect flush logic 
     wire need_flush;
-    assign need_flush            = flush_valid & (((flush_robidx_flag ^ out_robidx_flag) ^ (flush_robidx < out_robidx)) | ((flush_robidx_flag ^ robidx_flag) ^ (flush_robidx < robidx)));
+    wire flush_this_beat;
+    wire flush_outstanding;
+    assign flush_this_beat       = instr_valid & flush_valid & ((flush_robidx_flag ^ robidx_flag) ^ (flush_robidx < robidx));
+    assign flush_outstanding     = (~is_idle) & flush_valid & ((flush_robidx_flag ^ out_robidx_flag) ^ (flush_robidx < out_robidx));
+    assign need_flush            = flush_this_beat | flush_outstanding;
+
     assign memblock2dcache_flush = need_flush;
 
     wire [`RESULT_RANGE] ls_address;

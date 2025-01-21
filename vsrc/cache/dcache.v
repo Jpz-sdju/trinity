@@ -15,7 +15,7 @@ module dcache #(
     input  reg  [`TBUS_DATA_RANGE ]  tbus_write_data,
     input  reg  [`TBUS_DATA_RANGE ]  tbus_write_mask, 
     output wire [`TBUS_DATA_RANGE ]  tbus_read_data,
-    output wire                      tbus_operation_done,
+    output reg                      tbus_operation_done,
     input  wire [`TBUS_OPTYPE_RANGE] tbus_operation_type,
 
 

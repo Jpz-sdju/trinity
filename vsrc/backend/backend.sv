@@ -38,38 +38,40 @@ module backend (
 );
 
     /* ---------------------------- issue information --------------------------- */
-    wire                      to_issue_instr0_ready;
-    wire                      to_issue_instr0_valid;
-    wire [       `LREG_RANGE] to_issue_instr0_lrs1;
-    wire [       `LREG_RANGE] to_issue_instr0_lrs2;
-    wire [       `LREG_RANGE] to_issue_instr0_lrd;
-    wire [         `PC_RANGE] to_issue_instr0_pc;
-    wire [              31:0] to_issue_instr0;
+    wire                      to_iq_instr0_ready;
+    wire                      to_iq_instr0_valid;
+    //used to memIQ
+    wire                      to_iq_instr1_valid;
+    wire [       `LREG_RANGE] to_iq_instr0_lrs1;
+    wire [       `LREG_RANGE] to_iq_instr0_lrs2;
+    wire [       `LREG_RANGE] to_iq_instr0_lrd;
+    wire [         `PC_RANGE] to_iq_instr0_pc;
+    wire [              31:0] to_iq_instr0;
 
-    wire [              63:0] to_issue_instr0_imm;
-    wire                      to_issue_instr0_src1_is_reg;
-    wire                      to_issue_instr0_src2_is_reg;
-    wire                      to_issue_instr0_need_to_wb;
-    wire [    `CX_TYPE_RANGE] to_issue_instr0_cx_type;
-    wire                      to_issue_instr0_is_unsigned;
-    wire [   `ALU_TYPE_RANGE] to_issue_instr0_alu_type;
-    wire [`MULDIV_TYPE_RANGE] to_issue_instr0_muldiv_type;
-    wire                      to_issue_instr0_is_word;
-    wire                      to_issue_instr0_is_imm;
-    wire                      to_issue_instr0_is_load;
-    wire                      to_issue_instr0_is_store;
-    wire [               3:0] to_issue_instr0_ls_size;
+    wire [              63:0] to_iq_instr0_imm;
+    wire                      to_iq_instr0_src1_is_reg;
+    wire                      to_iq_instr0_src2_is_reg;
+    wire                      to_iq_instr0_need_to_wb;
+    wire [    `CX_TYPE_RANGE] to_iq_instr0_cx_type;
+    wire                      to_iq_instr0_is_unsigned;
+    wire [   `ALU_TYPE_RANGE] to_iq_instr0_alu_type;
+    wire [`MULDIV_TYPE_RANGE] to_iq_instr0_muldiv_type;
+    wire                      to_iq_instr0_is_word;
+    wire                      to_iq_instr0_is_imm;
+    wire                      to_iq_instr0_is_load;
+    wire                      to_iq_instr0_is_store;
+    wire [               3:0] to_iq_instr0_ls_size;
 
-    wire [       `PREG_RANGE] to_issue_instr0_prs1;
-    wire [       `PREG_RANGE] to_issue_instr0_prs2;
-    wire [       `PREG_RANGE] to_issue_instr0_prd;
-    wire [       `PREG_RANGE] to_issue_instr0_old_prd;
+    wire [       `PREG_RANGE] to_iq_instr0_prs1;
+    wire [       `PREG_RANGE] to_iq_instr0_prs2;
+    wire [       `PREG_RANGE] to_iq_instr0_prd;
+    wire [       `PREG_RANGE] to_iq_instr0_old_prd;
 
-    wire                      to_issue_instr0_robidx_flag;
-    wire [ `ROB_SIZE_LOG-1:0] to_issue_instr0_robidx;
+    wire                      to_iq_instr0_robidx_flag;
+    wire [ `ROB_SIZE_LOG-1:0] to_iq_instr0_robidx;
 
-    wire                      to_issue_instr0_src1_state;
-    wire                      to_issue_instr0_src2_state;
+    wire                      to_iq_instr0_src1_state;
+    wire                      to_iq_instr0_src2_state;
 
     /* ------------------- debug:to pregfile read for difftest ------------------ */
     wire [       `PREG_RANGE] debug_preg0;
@@ -110,53 +112,82 @@ module backend (
     /* -------------------------------------------------------------------------- */
 
     ctrlblock u_ctrlblock (
-        .clock                      (clock),
-        .reset_n                    (reset_n),
-        .ibuffer_instr_valid        (ibuffer_instr_valid),
-        .ibuffer_inst_out           (ibuffer_inst_out),
-        .ibuffer_pc_out             (ibuffer_pc_out),
-        .ibuffer_ready              (ibuffer_ready),
-        .to_issue_instr0_ready      (to_issue_instr0_ready),
-        .to_issue_instr0_valid      (to_issue_instr0_valid),
-        .to_issue_instr0_lrs1       (to_issue_instr0_lrs1),
-        .to_issue_instr0_lrs2       (to_issue_instr0_lrs2),
-        .to_issue_instr0_lrd        (to_issue_instr0_lrd),
-        .to_issue_instr0_pc         (to_issue_instr0_pc),
-        .to_issue_instr0            (to_issue_instr0),
-        .to_issue_instr0_imm        (to_issue_instr0_imm),
-        .to_issue_instr0_src1_is_reg(to_issue_instr0_src1_is_reg),
-        .to_issue_instr0_src2_is_reg(to_issue_instr0_src2_is_reg),
-        .to_issue_instr0_need_to_wb (to_issue_instr0_need_to_wb),
-        .to_issue_instr0_cx_type    (to_issue_instr0_cx_type),
-        .to_issue_instr0_is_unsigned(to_issue_instr0_is_unsigned),
-        .to_issue_instr0_alu_type   (to_issue_instr0_alu_type),
-        .to_issue_instr0_muldiv_type(to_issue_instr0_muldiv_type),
-        .to_issue_instr0_is_word    (to_issue_instr0_is_word),
-        .to_issue_instr0_is_imm     (to_issue_instr0_is_imm),
-        .to_issue_instr0_is_load    (to_issue_instr0_is_load),
-        .to_issue_instr0_is_store   (to_issue_instr0_is_store),
-        .to_issue_instr0_ls_size    (to_issue_instr0_ls_size),
-        .to_issue_instr0_prs1       (to_issue_instr0_prs1),
-        .to_issue_instr0_prs2       (to_issue_instr0_prs2),
-        .to_issue_instr0_prd        (to_issue_instr0_prd),
-        .to_issue_instr0_old_prd    (to_issue_instr0_old_prd),
-        .to_issue_instr0_robidx_flag(to_issue_instr0_robidx_flag),
-        .to_issue_instr0_robidx     (to_issue_instr0_robidx),
+        .clock                   (clock),
+        .reset_n                 (reset_n),
+        .ibuffer_instr_valid     (ibuffer_instr_valid),
+        .ibuffer_inst_out        (ibuffer_inst_out),
+        .ibuffer_pc_out          (ibuffer_pc_out),
+        .ibuffer_ready           (ibuffer_ready),
+        .to_iq_instr0_ready      (to_iq_instr0_ready),
+        .to_iq_instr0_valid      (to_iq_instr0_valid),
+        .to_iq_instr0_lrs1       (to_iq_instr0_lrs1),
+        .to_iq_instr0_lrs2       (to_iq_instr0_lrs2),
+        .to_iq_instr0_lrd        (to_iq_instr0_lrd),
+        .to_iq_instr0_pc         (to_iq_instr0_pc),
+        .to_iq_instr0            (to_iq_instr0),
+        .to_iq_instr0_imm        (to_iq_instr0_imm),
+        .to_iq_instr0_src1_is_reg(to_iq_instr0_src1_is_reg),
+        .to_iq_instr0_src2_is_reg(to_iq_instr0_src2_is_reg),
+        .to_iq_instr0_need_to_wb (to_iq_instr0_need_to_wb),
+        .to_iq_instr0_cx_type    (to_iq_instr0_cx_type),
+        .to_iq_instr0_is_unsigned(to_iq_instr0_is_unsigned),
+        .to_iq_instr0_alu_type   (to_iq_instr0_alu_type),
+        .to_iq_instr0_muldiv_type(to_iq_instr0_muldiv_type),
+        .to_iq_instr0_is_word    (to_iq_instr0_is_word),
+        .to_iq_instr0_is_imm     (to_iq_instr0_is_imm),
+        .to_iq_instr0_is_load    (to_iq_instr0_is_load),
+        .to_iq_instr0_is_store   (to_iq_instr0_is_store),
+        .to_iq_instr0_ls_size    (to_iq_instr0_ls_size),
+        .to_iq_instr0_prs1       (to_iq_instr0_prs1),
+        .to_iq_instr0_prs2       (to_iq_instr0_prs2),
+        .to_iq_instr0_prd        (to_iq_instr0_prd),
+        .to_iq_instr0_old_prd    (to_iq_instr0_old_prd),
+        .to_iq_instr0_robidx_flag(to_iq_instr0_robidx_flag),
+        .to_iq_instr0_robidx     (to_iq_instr0_robidx),
+        .to_iq_instr1_ready      (),
+        .to_iq_instr1_valid      (),
+        .to_iq_instr1_lrs1       (),
+        .to_iq_instr1_lrs2       (),
+        .to_iq_instr1_lrd        (),
+        .to_iq_instr1_pc         (),
+        .to_iq_instr1            (),
+        .to_iq_instr1_imm        (),
+        .to_iq_instr1_src1_is_reg(),
+        .to_iq_instr1_src2_is_reg(),
+        .to_iq_instr1_need_to_wb (),
+        .to_iq_instr1_cx_type    (),
+        .to_iq_instr1_is_unsigned(),
+        .to_iq_instr1_alu_type   (),
+        .to_iq_instr1_muldiv_type(),
+        .to_iq_instr1_is_word    (),
+        .to_iq_instr1_is_imm     (),
+        .to_iq_instr1_is_load    (),
+        .to_iq_instr1_is_store   (),
+        .to_iq_instr1_ls_size    (),
+        .to_iq_instr1_prs1       (),
+        .to_iq_instr1_prs2       (),
+        .to_iq_instr1_prd        (),
+        .to_iq_instr1_old_prd    (),
+        .to_iq_instr1_robidx_flag(),
+        .to_iq_instr1_robidx     (),
+
         //src state
-        .to_issue_instr0_src1_state (to_issue_instr0_src1_state),
-        .to_issue_instr0_src2_state (to_issue_instr0_src2_state),
-        .flush_valid                (redirect_valid),
-        .flush_target               (redirect_target),
-        .flush_robidx_flag          (redirect_robidx_flag),
-        .flush_robidx               (redirect_robidx),
+        .to_iq_instr0_src1_state   (to_iq_instr0_src1_state),
+        .to_iq_instr0_src2_state   (to_iq_instr0_src2_state),
+        .to_iq_instr1_src1_state   (),
+        .to_iq_instr1_src2_state   (),
+        .flush_valid               (redirect_valid),
+        .flush_target              (redirect_target),
+        .flush_robidx_flag         (redirect_robidx_flag),
+        .flush_robidx              (redirect_robidx),
         /* -------------------------------- writeback ------------------------------- */
-        .writeback0_valid           (writeback0_instr_valid),
-        .writeback0_need_to_wb      (writeback0_need_to_wb),
-        .writeback0_prd             (writeback0_prd),
-        .writeback0_redirect_valid  (writeback0_redirect_valid),
-        .writeback0_redirect_target (writeback0_redirect_target),
-        .writeback0_robidx_flag     (writeback0_robidx_flag),
-        .writeback0_robidx          (writeback0_robidx),
+        .writeback0_valid          (writeback0_instr_valid),
+        .writeback0_need_to_wb     (writeback0_need_to_wb),
+        .writeback0_prd            (writeback0_prd),
+        .writeback0_redirect_valid (writeback0_redirect_valid),
+        .writeback0_redirect_target(writeback0_redirect_target),
+        .writeback0_robidx_flag    (writeback0_robidx_flag),
+        .writeback0_robidx         (writeback0_robidx),
 
         .writeback1_valid      (writeback1_instr_valid),
         .writeback1_need_to_wb (writeback1_need_to_wb),
@@ -202,6 +233,8 @@ module backend (
     /* -------------------------------------------------------------------------- */
     /*                                 issue queue                                */
     /* -------------------------------------------------------------------------- */
+
+    /* ------------------------------- to intBlock ------------------------------ */
     wire                      deq_instr0_valid;
     wire                      deq_instr0_ready;
     wire [       `PREG_RANGE] deq_instr0_prs1;
@@ -229,43 +262,80 @@ module backend (
     wire                      deq_instr0_robidx_flag;
     wire [ `ROB_SIZE_LOG-1:0] deq_instr0_robidx;
 
+    /* ------------------------------- to memBlock ------------------------------ */
+    wire                      to_memblock_instr0_valid;
+    wire                      to_memblock_instr0_ready;
+    wire [       `PREG_RANGE] to_memblock_instr0_prs1;
+    wire [       `PREG_RANGE] to_memblock_instr0_prs2;
+    wire                      to_memblock_instr0_src1_is_reg;
+    wire                      to_memblock_instr0_src2_is_reg;
+
+    wire [       `PREG_RANGE] to_memblock_instr0_prd;
+    wire [       `PREG_RANGE] to_memblock_instr0_old_prd;
+
+    wire [        `SRC_RANGE] to_memblock_instr0_pc;
+    wire [        `SRC_RANGE] to_memblock_instr0_imm;
+
+    wire                      to_memblock_instr0_need_to_wb;
+    wire [    `CX_TYPE_RANGE] to_memblock_instr0_cx_type;
+    wire                      to_memblock_instr0_is_unsigned;
+    wire [   `ALU_TYPE_RANGE] to_memblock_instr0_alu_type;
+    wire [`MULDIV_TYPE_RANGE] to_memblock_instr0_muldiv_type;
+    wire                      to_memblock_instr0_is_word;
+    wire                      to_memblock_instr0_is_imm;
+    wire                      to_memblock_instr0_is_load;
+    wire                      to_memblock_instr0_is_store;
+    wire [               3:0] to_memblock_instr0_ls_size;
+
+    wire                      to_memblock_instr0_robidx_flag;
+    wire [ `ROB_SIZE_LOG-1:0] to_memblock_instr0_robidx;
+
+
     /* -------------------------------------------------------------------------- */
     /*                                 issue queue                                */
     /* -------------------------------------------------------------------------- */
-    issuequeue u_issuequeue (
+
+    wire                      is_lsu = to_iq_instr0_is_load | to_iq_instr0_is_store;
+    wire                      is_alu = ~is_lsu;
+    wire                      intiq_ready;
+    wire                      memiq_ready;
+
+    assign to_iq_instr0_ready = intiq_ready & memiq_ready;
+    ooo_issuequeue intIQ (
         .clock                 (clock),
         .reset_n               (reset_n),
-        .enq_instr0_valid      (to_issue_instr0_valid),
-        .enq_instr0_ready      (to_issue_instr0_ready),
-        .enq_instr0_lrs1       (to_issue_instr0_lrs1),
-        .enq_instr0_lrs2       (to_issue_instr0_lrs2),
-        .enq_instr0_lrd        (to_issue_instr0_lrd),
-        .enq_instr0_pc         (to_issue_instr0_pc),
-        .enq_instr0            (to_issue_instr0),
-        .enq_instr0_imm        (to_issue_instr0_imm),
-        .enq_instr0_src1_is_reg(to_issue_instr0_src1_is_reg),
-        .enq_instr0_src2_is_reg(to_issue_instr0_src2_is_reg),
-        .enq_instr0_need_to_wb (to_issue_instr0_need_to_wb),
-        .enq_instr0_cx_type    (to_issue_instr0_cx_type),
-        .enq_instr0_is_unsigned(to_issue_instr0_is_unsigned),
-        .enq_instr0_alu_type   (to_issue_instr0_alu_type),
-        .enq_instr0_muldiv_type(to_issue_instr0_muldiv_type),
-        .enq_instr0_is_word    (to_issue_instr0_is_word),
-        .enq_instr0_is_imm     (to_issue_instr0_is_imm),
-        .enq_instr0_is_load    (to_issue_instr0_is_load),
-        .enq_instr0_is_store   (to_issue_instr0_is_store),
-        .enq_instr0_ls_size    (to_issue_instr0_ls_size),
-        .enq_instr0_prs1       (to_issue_instr0_prs1),
-        .enq_instr0_prs2       (to_issue_instr0_prs2),
-        .enq_instr0_prd        (to_issue_instr0_prd),
-        .enq_instr0_old_prd    (to_issue_instr0_old_prd),
-        .enq_instr0_robidx_flag(to_issue_instr0_robidx_flag),
-        .enq_instr0_robidx     (to_issue_instr0_robidx),
-        .enq_instr0_src1_state (to_issue_instr0_src1_state),
-        .enq_instr0_src2_state (to_issue_instr0_src2_state),
+        .all_iq_ready          (intiq_ready & memiq_ready),
+        .enq_instr0_valid      (to_iq_instr0_valid & is_alu),
+        .enq_instr0_ready      (intiq_ready),
+        .enq_instr0_lrs1       (to_iq_instr0_lrs1),
+        .enq_instr0_lrs2       (to_iq_instr0_lrs2),
+        .enq_instr0_lrd        (to_iq_instr0_lrd),
+        .enq_instr0_pc         (to_iq_instr0_pc),
+        .enq_instr0            (to_iq_instr0),
+        .enq_instr0_imm        (to_iq_instr0_imm),
+        .enq_instr0_src1_is_reg(to_iq_instr0_src1_is_reg),
+        .enq_instr0_src2_is_reg(to_iq_instr0_src2_is_reg),
+        .enq_instr0_need_to_wb (to_iq_instr0_need_to_wb),
+        .enq_instr0_cx_type    (to_iq_instr0_cx_type),
+        .enq_instr0_is_unsigned(to_iq_instr0_is_unsigned),
+        .enq_instr0_alu_type   (to_iq_instr0_alu_type),
+        .enq_instr0_muldiv_type(to_iq_instr0_muldiv_type),
+        .enq_instr0_is_word    (to_iq_instr0_is_word),
+        .enq_instr0_is_imm     (to_iq_instr0_is_imm),
+        .enq_instr0_is_load    (to_iq_instr0_is_load),
+        .enq_instr0_is_store   (to_iq_instr0_is_store),
+        .enq_instr0_ls_size    (to_iq_instr0_ls_size),
+        .enq_instr0_prs1       (to_iq_instr0_prs1),
+        .enq_instr0_prs2       (to_iq_instr0_prs2),
+        .enq_instr0_prd        (to_iq_instr0_prd),
+        .enq_instr0_old_prd    (to_iq_instr0_old_prd),
+        .enq_instr0_robidx_flag(to_iq_instr0_robidx_flag),
+        .enq_instr0_robidx     (to_iq_instr0_robidx),
+        .enq_instr0_src1_state (to_iq_instr0_src1_state),
+        .enq_instr0_src2_state (to_iq_instr0_src2_state),
         /* --------------------------------- output --------------------------------- */
         .deq_instr0_valid      (deq_instr0_valid),
-        .deq_instr0_ready      (deq_instr0_ready),
+        .deq_instr0_ready      (intblock_instr_ready),
         .deq_instr0_prs1       (deq_instr0_prs1),
         .deq_instr0_prs2       (deq_instr0_prs2),
         .deq_instr0_src1_is_reg(deq_instr0_src1_is_reg),
@@ -298,9 +368,81 @@ module backend (
         .flush_robidx_flag     (redirect_robidx_flag),
         .flush_robidx          (redirect_robidx)
     );
+
+    io_issuequeue memIQ (
+        .clock                 (clock),
+        .reset_n               (reset_n),
+        .all_iq_ready          (intiq_ready & memiq_ready),
+        .enq_instr0_valid      (to_iq_instr0_valid & is_lsu),
+        .enq_instr0_ready      (memiq_ready),
+        .enq_instr0_lrs1       (to_iq_instr0_lrs1),
+        .enq_instr0_lrs2       (to_iq_instr0_lrs2),
+        .enq_instr0_lrd        (to_iq_instr0_lrd),
+        .enq_instr0_pc         (to_iq_instr0_pc),
+        .enq_instr0            (to_iq_instr0),
+        .enq_instr0_imm        (to_iq_instr0_imm),
+        .enq_instr0_src1_is_reg(to_iq_instr0_src1_is_reg),
+        .enq_instr0_src2_is_reg(to_iq_instr0_src2_is_reg),
+        .enq_instr0_need_to_wb (to_iq_instr0_need_to_wb),
+        .enq_instr0_cx_type    (to_iq_instr0_cx_type),
+        .enq_instr0_is_unsigned(to_iq_instr0_is_unsigned),
+        .enq_instr0_alu_type   (to_iq_instr0_alu_type),
+        .enq_instr0_muldiv_type(to_iq_instr0_muldiv_type),
+        .enq_instr0_is_word    (to_iq_instr0_is_word),
+        .enq_instr0_is_imm     (to_iq_instr0_is_imm),
+        .enq_instr0_is_load    (to_iq_instr0_is_load),
+        .enq_instr0_is_store   (to_iq_instr0_is_store),
+        .enq_instr0_ls_size    (to_iq_instr0_ls_size),
+        .enq_instr0_prs1       (to_iq_instr0_prs1),
+        .enq_instr0_prs2       (to_iq_instr0_prs2),
+        .enq_instr0_prd        (to_iq_instr0_prd),
+        .enq_instr0_old_prd    (to_iq_instr0_old_prd),
+        .enq_instr0_robidx_flag(to_iq_instr0_robidx_flag),
+        .enq_instr0_robidx     (to_iq_instr0_robidx),
+        .enq_instr0_src1_state (to_iq_instr0_src1_state),
+        .enq_instr0_src2_state (to_iq_instr0_src2_state),
+        /* --------------------------------- output --------------------------------- */
+        .deq_instr0_valid      (to_memblock_instr0_valid),
+        .deq_instr0_ready      (memblock_instr_ready),
+        .deq_instr0_prs1       (to_memblock_instr0_prs1),
+        .deq_instr0_prs2       (to_memblock_instr0_prs2),
+        .deq_instr0_src1_is_reg(to_memblock_instr0_src1_is_reg),
+        .deq_instr0_src2_is_reg(to_memblock_instr0_src2_is_reg),
+        .deq_instr0_prd        (to_memblock_instr0_prd),
+        .deq_instr0_old_prd    (  /*not used*/),
+        .deq_instr0_pc         (to_memblock_instr0_pc),
+        .deq_instr0_imm        (to_memblock_instr0_imm),
+        .deq_instr0_need_to_wb (to_memblock_instr0_need_to_wb),
+        .deq_instr0_cx_type    (to_memblock_instr0_cx_type),
+        .deq_instr0_is_unsigned(to_memblock_instr0_is_unsigned),
+        .deq_instr0_alu_type   (to_memblock_instr0_alu_type),
+        .deq_instr0_muldiv_type(to_memblock_instr0_muldiv_type),
+        .deq_instr0_is_word    (to_memblock_instr0_is_word),
+        .deq_instr0_is_imm     (to_memblock_instr0_is_imm),
+        .deq_instr0_is_load    (to_memblock_instr0_is_load),
+        .deq_instr0_is_store   (to_memblock_instr0_is_store),
+        .deq_instr0_ls_size    (to_memblock_instr0_ls_size),
+        .deq_instr0_robidx_flag(to_memblock_instr0_robidx_flag),
+        .deq_instr0_robidx     (to_memblock_instr0_robidx),
+        /* ------------------------- writeback wakeup logic ------------------------- */
+        .writeback0_valid      (writeback0_instr_valid),
+        .writeback0_need_to_wb (writeback0_need_to_wb),
+        .writeback0_prd        (writeback0_prd),
+        .writeback1_valid      (writeback1_instr_valid),
+        .writeback1_need_to_wb (writeback1_need_to_wb),
+        .writeback1_prd        (writeback1_prd),
+        /* -------------------------- redirect flush logic -------------------------- */
+        .flush_valid           (redirect_valid),
+        .flush_robidx_flag     (redirect_robidx_flag),
+        .flush_robidx          (redirect_robidx)
+    );
+
+
     //pregfile read data
     wire [             63:0] deq_instr0_src1;
     wire [             63:0] deq_instr0_src2;
+    wire [             63:0] to_memblock_instr0_src1;
+    wire [             63:0] to_memblock_instr0_src2;
 
 
     reg                      writeback0_instr_valid;
@@ -328,6 +470,13 @@ module backend (
         .read1_idx   (deq_instr0_prs2),
         .read0_data  (deq_instr0_src1),
         .read1_data  (deq_instr0_src2),
+        /* -------------------------------- port two -------------------------------- */
+        .read2_en    (to_memblock_instr0_src1_is_reg),
+        .read3_en    (to_memblock_instr0_src2_is_reg),
+        .read2_idx   (to_memblock_instr0_prs1),
+        .read3_idx   (to_memblock_instr0_prs2),
+        .read2_data  (to_memblock_instr0_src1),
+        .read3_data  (to_memblock_instr0_src2),
         .write0_en   (writeback0_instr_valid & writeback0_need_to_wb),
         .write0_idx  (writeback0_prd),
         .write0_data (writeback0_result),
@@ -371,9 +520,7 @@ module backend (
     );
 
     //assign intblock valid
-    wire                     intblock_instr_valid = deq_instr0_valid & ((|deq_instr0_cx_type) | (|deq_instr0_alu_type) | |(deq_instr0_muldiv_type));
     wire                     intblock_instr_ready;
-    wire                     memblock_instr_valid = deq_instr0_valid & (deq_instr0_is_load | deq_instr0_is_store);
     wire                     memblock_instr_ready;
     /* -------------------------------------------------------------------------- */
     /*                                execute stage                               */
@@ -388,13 +535,12 @@ module backend (
     wire [             63:0] intblock_out_redirect_target;
 
     //assign issue ready to all ready!
-    assign deq_instr0_ready = intblock_instr_ready & memblock_instr_ready;
 
     //can use instr_valid to control a clock gate here to save power
     intblock u_intblock (
         .clock      (clock),
         .reset_n    (reset_n),
-        .instr_valid(intblock_instr_valid),
+        .instr_valid(deq_instr0_valid),
         .instr_ready(intblock_instr_ready),
         .prd        (deq_instr0_prd),
         .src1       (deq_instr0_src1),
@@ -439,41 +585,41 @@ module backend (
     memblock u_memblock (
         .clock      (clock),
         .reset_n    (reset_n),
-        .instr_valid(memblock_instr_valid),
+        .instr_valid(to_memblock_instr0_valid),
         .instr_ready(memblock_instr_ready),
-        .prd        (deq_instr0_prd),
-        .is_load    (deq_instr0_is_load),
-        .is_store   (deq_instr0_is_store),
-        .is_unsigned(deq_instr0_is_unsigned),
-        .imm        (deq_instr0_imm),
-        .src1       (deq_instr0_src1),
-        .src2       (deq_instr0_src2),
-        .ls_size    (deq_instr0_ls_size),
-        .robidx_flag(deq_instr0_robidx_flag),
-        .robidx     (deq_instr0_robidx),
+        .prd        (to_memblock_instr0_prd),
+        .is_load    (to_memblock_instr0_is_load),
+        .is_store   (to_memblock_instr0_is_store),
+        .is_unsigned(to_memblock_instr0_is_unsigned),
+        .imm        (to_memblock_instr0_imm),
+        .src1       (to_memblock_instr0_src1),
+        .src2       (to_memblock_instr0_src2),
+        .ls_size    (to_memblock_instr0_ls_size),
+        .robidx_flag(to_memblock_instr0_robidx_flag),
+        .robidx     (to_memblock_instr0_robidx),
 
         //trinity bus channel
-        .tbus_index_valid   (tbus_index_valid),
-        .tbus_index_ready   (tbus_index_ready),
-        .tbus_index         (tbus_index),
-        .tbus_write_data    (tbus_write_data),
-        .tbus_write_mask    (tbus_write_mask),
-        .tbus_read_data     (tbus_read_data),
-        .tbus_operation_done(tbus_operation_done),
-        .tbus_operation_type(tbus_operation_type),
+        .tbus_index_valid     (tbus_index_valid),
+        .tbus_index_ready     (tbus_index_ready),
+        .tbus_index           (tbus_index),
+        .tbus_write_data      (tbus_write_data),
+        .tbus_write_mask      (tbus_write_mask),
+        .tbus_read_data       (tbus_read_data),
+        .tbus_operation_done  (tbus_operation_done),
+        .tbus_operation_type  (tbus_operation_type),
         //output 
-        .out_instr_valid    (memblock_out_instr_valid),
-        .out_need_to_wb     (memblock_out_need_to_wb),
-        .out_prd            (memblock_out_prd),
-        .opload_read_data_wb(memblock_out_opload_read_data_wb),
-        .out_mmio           (memblock_out_mmio),
-        .out_robidx_flag    (memblock_out_robidx_flag),
-        .out_robidx         (memblock_out_robidx),
-        .mem_stall          (memblock_out_stall),
+        .out_instr_valid      (memblock_out_instr_valid),
+        .out_need_to_wb       (memblock_out_need_to_wb),
+        .out_prd              (memblock_out_prd),
+        .opload_read_data_wb  (memblock_out_opload_read_data_wb),
+        .out_mmio             (memblock_out_mmio),
+        .out_robidx_flag      (memblock_out_robidx_flag),
+        .out_robidx           (memblock_out_robidx),
+        .mem_stall            (memblock_out_stall),
         /* -------------------------- redirect flush logic -------------------------- */
-        .flush_valid        (redirect_valid),
-        .flush_robidx_flag  (redirect_robidx_flag),
-        .flush_robidx       (redirect_robidx),
+        .flush_valid          (redirect_valid),
+        .flush_robidx_flag    (redirect_robidx_flag),
+        .flush_robidx         (redirect_robidx),
         /* --------------------------- memblock to dcache --------------------------- */
         .memblock2dcache_flush(memblock2dcache_flush)
     );

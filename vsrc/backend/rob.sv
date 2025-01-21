@@ -417,11 +417,20 @@ module rob (
                 end
 
                 `ROB_STATE_OVERWRITE_RAT: begin
-                    rob_state <= `ROB_STATE_WALKING;
+                    //means coming a older flush
+                    if (flush_valid) begin
+                        rob_state <= `ROB_STATE_OVERWRITE_RAT;
+                    end else begin
+                        rob_state <= `ROB_STATE_WALKING;
+
+                    end
                 end
                 `ROB_STATE_WALKING: begin
-                    //means walk could finish
-                    if (rob_entries_valid_dec[walking_idx+1] == 'b0) begin
+                    //means coming a older flush
+                    if (flush_valid) begin
+                        rob_state <= `ROB_STATE_OVERWRITE_RAT;
+                    end else if (rob_entries_valid_dec[walking_idx+1] == 'b0) begin
+                        //means walk could finish
                         rob_state <= `ROB_STATE_IDLE;
                     end
                 end

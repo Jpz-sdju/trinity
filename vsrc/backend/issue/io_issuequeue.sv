@@ -1,7 +1,8 @@
 `include "defines.sv"
-module issuequeue (
+module io_issuequeue (
     input  wire               clock,
     input  wire               reset_n,
+    input  wire               all_iq_ready,
     input  wire               enq_instr0_valid,
     output wire               enq_instr0_ready,
     input  wire [`LREG_RANGE] enq_instr0_lrs1,
@@ -212,14 +213,14 @@ module issuequeue (
     assign writeback1_to_wakeup = writeback1_valid & writeback1_need_to_wb;
 
     /* ---------------------------------- debug --------------------------------- */
-    wire debug_src1_is_reg_0 = queue_src1_is_reg[0];
-    wire debug_src1_is_reg_1 = queue_src1_is_reg[1];
-    wire debug_src1_is_reg_2 = queue_src1_is_reg[2];
-    wire debug_src1_is_reg_3 = queue_src1_is_reg[3];
-    wire debug_src1_is_reg_4 = queue_src1_is_reg[4];
-    wire debug_src1_is_reg_5 = queue_src1_is_reg[5];
-    wire debug_src1_is_reg_6 = queue_src1_is_reg[6];
-    wire debug_src1_is_reg_7 = queue_src1_is_reg[7];
+    wire               debug_src1_is_reg_0 = queue_src1_is_reg[0];
+    wire               debug_src1_is_reg_1 = queue_src1_is_reg[1];
+    wire               debug_src1_is_reg_2 = queue_src1_is_reg[2];
+    wire               debug_src1_is_reg_3 = queue_src1_is_reg[3];
+    wire               debug_src1_is_reg_4 = queue_src1_is_reg[4];
+    wire               debug_src1_is_reg_5 = queue_src1_is_reg[5];
+    wire               debug_src1_is_reg_6 = queue_src1_is_reg[6];
+    wire               debug_src1_is_reg_7 = queue_src1_is_reg[7];
 
     wire [`PREG_RANGE] debug_prs1_0 = queue_prs1[0];
     wire [`PREG_RANGE] debug_prs1_1 = queue_prs1[1];

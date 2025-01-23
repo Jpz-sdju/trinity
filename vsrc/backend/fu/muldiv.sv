@@ -38,11 +38,11 @@ module muldiv (
     wire [        127:0] product = src1 * src2;
     wire [`RESULT_RANGE] q = src1 / src2;
     wire [`RESULT_RANGE] remainder = src1 % src2;
-    wire                 sign = src1[`SRC_WIDTH-1] ^ src2[`SRC_WIDTH-1];
+    wire                 sign = src1[`SRC_LENGTH-1] ^ src2[`SRC_LENGTH-1];
 
     wire [`RESULT_RANGE] mul_result = {sign, product[62:0]};
     wire [`RESULT_RANGE] mulh_result = {sign, product[126:64]};
-    wire [`RESULT_RANGE] mulhsu_result = {src1[`SRC_WIDTH-1], product[126:64]};
+    wire [`RESULT_RANGE] mulhsu_result = {src1[`SRC_LENGTH-1], product[126:64]};
     wire [`RESULT_RANGE] mulhu_result = product[127:64];
 
     wire [`RESULT_RANGE] div_result = {sign, q[62:0]};

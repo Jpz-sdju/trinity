@@ -60,12 +60,22 @@ module memblock (
 
     assign memblock2dcache_flush = need_flush;
 
-    wire [`RESULT_RANGE] ls_address;
+    wire [`RESULT_RANGE] ls_address_in;
+    reg  [`RESULT_RANGE] ls_address;
     agu u_agu (
         .src1      (src1),
         .imm       (imm),
-        .ls_address(ls_address)
+        .ls_address(ls_address_in)
     );
+
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            ls_address <= 'b0;
+        end else if (instr_valid & instr_ready) begin
+            ls_address <= ls_address_in;
+        end
+    end
+
 
     localparam IDLE = 2'b00;
     localparam PENDING = 2'b01;
@@ -82,14 +92,47 @@ module memblock (
     2 = WORD
     3 = DOUBLE WORD
 */
-    wire       size_1b = ls_size[0];
-    wire       size_1h = ls_size[1];
-    wire       size_1w = ls_size[2];
-    wire       size_2w = ls_size[3];
 
+    /* ------------------------------ ls size latch ----------------------------- */
+    reg        size_1b;
+    reg        size_1h;
+    reg        size_1w;
+    reg        size_2w;
 
-    wire       req_fire;
-    wire       req_pending;
+    reg        is_unsigned_latch;
+
+    wire       size_1b_in;
+    wire       size_1h_in;
+    wire       size_1w_in;
+    wire       size_2w_in;
+
+    assign size_1b_in = ls_size[0];
+    assign size_1h_in = ls_size[1];
+    assign size_1w_in = ls_size[2];
+    assign size_2w_in = ls_size[3];
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            size_1b <= 'b0;
+            size_1h <= 'b0;
+            size_1w <= 'b0;
+            size_2w <= 'b0;
+        end else if (instr_valid & instr_ready) begin
+            size_1b <= ls_size[0];
+            size_1h <= ls_size[1];
+            size_1w <= ls_size[2];
+            size_2w <= ls_size[3];
+        end
+    end
+
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            is_unsigned_latch <= 'b0;
+        end else if (instr_valid & instr_ready) begin
+            is_unsigned_latch <= is_unsigned;
+        end
+    end
+    wire req_fire;
+    wire req_pending;
 
 
     assign req_fire    = tbus_index_valid & tbus_index_ready;
@@ -105,10 +148,10 @@ module memblock (
     wire [63:0] write_1w_mask = {32'b0, {32{1'b1}}};
     wire [63:0] write_2w_mask = {64{1'b1}};
 
-    wire [ 2:0] shift_size = ls_address[2:0];
+    wire [ 2:0] shift_size = ls_address_in[2:0];
 
     wire [63:0] opstore_write_mask_qual;
-    assign opstore_write_mask_qual = size_1b ? write_1b_mask << (shift_size * 8) : size_1h ? write_1h_mask << (shift_size * 8) : size_1w ? write_1w_mask << (shift_size * 8) : write_2w_mask;
+    assign opstore_write_mask_qual = size_1b_in ? write_1b_mask << (shift_size * 8) : size_1h_in ? write_1h_mask << (shift_size * 8) : size_1w_in ? write_1w_mask << (shift_size * 8) : write_2w_mask;
 
     wire [`RESULT_RANGE] opstore_write_data_qual = src2 << (shift_size * 8);
     reg  [`RESULT_RANGE] opload_read_data_wb_raw;
@@ -116,7 +159,7 @@ module memblock (
     always @(*) begin
         if (tbus_operation_done) begin
             case ({
-                size_1b, size_1h, size_1w, size_2w, is_unsigned
+                size_1b, size_1h, size_1w, size_2w, is_unsigned_latch
             })
 
                 5'b10001: begin
@@ -154,7 +197,7 @@ module memblock (
     /*                             bus request region                             */
     /* -------------------------------------------------------------------------- */
     wire mmio_valid;
-    assign mmio_valid = (is_load | is_store) & instr_valid & ('h30000000 <= ls_address) & (ls_address <= 'h40700000);
+    assign mmio_valid = (is_load | is_store) & instr_valid & ('h30000000 <= ls_address_in) & (ls_address_in <= 'h40700000);
 
     always @(*) begin
         tbus_index_valid    = 'b0;
@@ -165,13 +208,13 @@ module memblock (
         if (is_load & instr_valid) begin
             if ((~is_outstanding) & ~mmio_valid) begin
                 tbus_index_valid    = 1'b1;
-                tbus_index          = ls_address[`RESULT_WIDTH-1:0];
+                tbus_index          = ls_address_in[`RESULT_WIDTH-1:0];
                 tbus_operation_type = `TBUS_READ;
             end
         end else if (is_store & instr_valid) begin
             if (~is_outstanding & ~mmio_valid) begin
                 tbus_index_valid    = 1'b1;
-                tbus_index          = ls_address[`RESULT_WIDTH-1:0];
+                tbus_index          = ls_address_in[`RESULT_WIDTH-1:0];
                 tbus_write_mask     = opstore_write_mask_qual;
                 tbus_write_data     = opstore_write_data_qual;
                 tbus_operation_type = `TBUS_WRITE;
@@ -212,7 +255,8 @@ module memblock (
         end
     end
 
-    assign mem_stall = req_fire | ~is_idle;
+    // assign mem_stall = req_fire | ~is_idle;
+    assign mem_stall = ~is_idle;
     /* -------------------------------------------------------------------------- */
     /*                                 output logic                               */
     /* -------------------------------------------------------------------------- */

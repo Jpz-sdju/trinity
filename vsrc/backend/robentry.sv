@@ -19,7 +19,7 @@ module robentry (
     /* ------------------------------- entry valid ------------------------------ */
     output wire               valid,
     /* ------------------------------------ deq port ----------------------------------- */
-    output wire               deq,
+    output wire               can_deq,
     output wire               deq_complete,
     output wire [  `PC_RANGE] deq_pc,
     output wire [       31:0] deq_instr,
@@ -127,7 +127,7 @@ module robentry (
 
     assign valid          = rob_entries_valid;
 
-    assign deq            = rob_entries_valid & rob_entries_complete;
+    assign can_deq            = rob_entries_valid & rob_entries_complete;
     assign deq_complete   = rob_entries_complete;
     assign deq_pc         = rob_entries_pc;
     assign deq_instr      = rob_entries_instr;

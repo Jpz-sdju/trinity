@@ -4,7 +4,7 @@
 `define PREG_SIZE 64
 
 `define SRC_RANGE 63:0
-`define SRC_WIDTH 64
+`define SRC_LENGTH 64
 
 `define RESULT_RANGE 63:0
 `define RESULT_WIDTH 64
@@ -26,9 +26,9 @@
     9 = LUI
     10 = AUIPC
 */
-`define ALU_TYPE_WIDTH 11
+`define ALU_TYPE_LENGTH 11
 `define PC_RANGE 63:0
-`define PC_WIDTH 63
+`define PC_LENGTH 64
 `define INSTR_RANGE 31:0
 `define CX_TYPE_RANGE 5:0
 /*
@@ -153,3 +153,31 @@ always @(posedge clock or negedge reset_n) begin \
         dff_data_q <= dff_data_in; \
 end
 
+`define MACRO_LATCH_NONEN(dff_data_q, dff_data_in, dff_enable, dff_data_width) \
+always @(posedge clock or negedge reset_n) begin \
+    if(reset_n == 1'b0) \
+        dff_data_q <= {dff_data_width{1'b0}}; \
+    else if(dff_enable)\
+        dff_data_q <= dff_data_in; \
+end
+
+`define MACRO_ENQ_DEC(enq_ptr_oh, enq_dec_reg, enq_entity) \
+    always @(*) begin\
+        integer i;\
+        for (i = 0; i < `ISSUE_QUEUE_DEPTH; i = i + 1) begin\
+            enq_dec_reg[i] = 'b0;\
+            if (enq_ptr_oh[i]) begin\
+                enq_dec_reg[i] = enq_entity;\
+            end\
+        end\
+    end
+`define MACRO_DEQ_DEC(deq_ptr_oh, enq_entity,  deq_dec_reg) \
+    always @(*) begin\
+        integer i;\
+        enq_entity = 'b0;\
+        for (i = 0; i < `ISSUE_QUEUE_DEPTH; i = i + 1) begin\
+            if (deq_ptr_oh[i]) begin\
+                enq_entity = deq_dec_reg[i];\
+            end\
+        end\
+    end

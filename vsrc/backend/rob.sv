@@ -361,7 +361,7 @@ module rob (
                 .writeback     (rob_entries_writeback_dec[i]),
                 .writeback_skip(rob_entries_writeback_skip_dec[i]),
                 .valid         (rob_entries_valid_dec[i]),
-                .deq           (rob_entries_deq_dec[i]),
+                .can_deq       (rob_entries_deq_dec[i]),
                 .deq_complete  (rob_entries_deq_complete_dec[i]),
                 .deq_pc        (rob_entries_deq_pc_dec[i]),
                 .deq_instr     (rob_entries_deq_instr_dec[i]),

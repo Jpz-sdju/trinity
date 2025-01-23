@@ -37,12 +37,12 @@ module bju (
     wire greater_equal_u = ~equal & ~less_than_u | equal;
     always @(*) begin
         case ({
-            src1[`SRC_WIDTH-1], src2[`SRC_WIDTH-1]
+            src1[`SRC_LENGTH-1], src2[`SRC_LENGTH-1]
         })
-            2'b00: less_than = src1[`SRC_WIDTH-2:0] < src2[`SRC_WIDTH-2:0];
+            2'b00: less_than = src1[`SRC_LENGTH-2:0] < src2[`SRC_LENGTH-2:0];
             2'b01: less_than = 1'b0;
             2'b10: less_than = 1'b1;
-            2'b11: less_than = src1[`SRC_WIDTH-2:0] < src2[`SRC_WIDTH-2:0];
+            2'b11: less_than = src1[`SRC_LENGTH-2:0] < src2[`SRC_LENGTH-2:0];
         endcase
     end
 

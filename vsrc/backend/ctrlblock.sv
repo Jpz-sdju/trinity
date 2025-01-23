@@ -798,7 +798,7 @@ module ctrlblock (
     `MACRO_DFF_NONEN(flop_commits0_need_to_wb, commits0_need_to_wb, 1)
     `MACRO_DFF_NONEN(flop_commits0_lrd, commits0_lrd, 5)
     `MACRO_DFF_NONEN(flop_commits0_prd, commits0_prd, `PREG_LENGTH)
-    `MACRO_DFF_NONEN(flop_commits0_pc, commits0_pc, `PC_WIDTH)
+    `MACRO_DFF_NONEN(flop_commits0_pc, commits0_pc, `PC_LENGTH)
     `MACRO_DFF_NONEN(flop_commits0_instr, commits0_instr, 32)
     `MACRO_DFF_NONEN(flop_commits0_robidx, commits0_robidx, `ROB_SIZE_LOG)
 

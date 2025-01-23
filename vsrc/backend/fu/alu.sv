@@ -68,12 +68,12 @@ module alu (
 
     always @(*) begin
         case ({
-            src1[`SRC_WIDTH-1], src2_qual[`SRC_WIDTH-1]
+            src1[`SRC_LENGTH-1], src2_qual[`SRC_LENGTH-1]
         })
-            2'b00: is_less = src1[`SRC_WIDTH-2:0] < src2_qual[`SRC_WIDTH-2:0];
+            2'b00: is_less = src1[`SRC_LENGTH-2:0] < src2_qual[`SRC_LENGTH-2:0];
             2'b01: is_less = 1'b0;
             2'b10: is_less = 1'b1;
-            2'b11: is_less = src1[`SRC_WIDTH-2:0] < src2_qual[`SRC_WIDTH-2:0];
+            2'b11: is_less = src1[`SRC_LENGTH-2:0] < src2_qual[`SRC_LENGTH-2:0];
         endcase
     end
 

@@ -43,13 +43,13 @@ module ctrlblock (
     output wire [`ROB_SIZE_LOG-1:0] to_iq_instr0_robidx,
 
     /* --------------------------------- instr 1 -------------------------------- */
-    input  wire                to_iq_instr1_ready,
-    output wire                to_iq_instr1_valid,
-    output wire [ `LREG_RANGE] to_iq_instr1_lrs1,
-    output wire [ `LREG_RANGE] to_iq_instr1_lrs2,
-    output wire [ `LREG_RANGE] to_iq_instr1_lrd,
-    output wire [   `PC_RANGE] to_iq_instr1_pc,
-    output wire [        31:0] to_iq_instr1,
+    input  wire               to_iq_instr1_ready,
+    output wire               to_iq_instr1_valid,
+    output wire [`LREG_RANGE] to_iq_instr1_lrs1,
+    output wire [`LREG_RANGE] to_iq_instr1_lrs2,
+    output wire [`LREG_RANGE] to_iq_instr1_lrd,
+    output wire [  `PC_RANGE] to_iq_instr1_pc,
+    output wire [       31:0] to_iq_instr1,
 
     output wire [              63:0] to_iq_instr1_imm,
     output wire                      to_iq_instr1_src1_is_reg,
@@ -102,6 +102,25 @@ module ctrlblock (
     input wire                     writeback1_mmio,
     input wire                     writeback1_robidx_flag,
     input wire [`ROB_SIZE_LOG-1:0] writeback1_robidx,
+    input wire [       `SRC_RANGE] writeback1_store_addr,
+    input wire [       `SRC_RANGE] writeback1_store_data,
+    input wire [       `SRC_RANGE] writeback1_store_mask,
+    input wire [              3:0] writeback1_store_ls_size,
+
+
+
+    /* ------------------------- sq to dcache port ------------------------ */
+    output wire                 sq2arb_tbus_index_valid,
+    input  wire                 sq2arb_tbus_index_ready,
+    output wire [`RESULT_RANGE] sq2arb_tbus_index,
+    output wire [   `SRC_RANGE] sq2arb_tbus_write_data,
+    output wire [         63:0] sq2arb_tbus_write_mask,
+
+    input  wire [     `RESULT_RANGE] sq2arb_tbus_read_data,
+    output wire [`TBUS_OPTYPE_RANGE] sq2arb_tbus_operation_type,
+    input  wire                      sq2arb_tbus_operation_done,
+
+
 
     //debug
     output wire [`PREG_RANGE] debug_preg0,
@@ -243,7 +262,8 @@ module ctrlblock (
     wire [      `PREG_RANGE] commits0_prd;
     wire [             31:0] commits0_instr;
     wire [        `PC_RANGE] commits0_pc;
-    //debug
+
+    wire                     commits0_robidx_flag;
     wire [`ROB_SIZE_LOG-1:0] commits0_robidx;
     wire                     commits0_need_to_wb;
     wire                     commits0_skip;
@@ -254,7 +274,8 @@ module ctrlblock (
     wire [      `PREG_RANGE] commits1_prd;
     wire [             31:0] commits1_instr;
     wire [        `PC_RANGE] commits1_pc;
-    //debug
+
+    wire                     commits1_robidx_flag;
     wire [`ROB_SIZE_LOG-1:0] commits1_robidx;
     wire                     commits1_need_to_wb;
     wire                     commits1_skip;
@@ -711,7 +732,7 @@ module ctrlblock (
     rob u_rob (
         .clock                           (clock),
         .reset_n                         (reset_n),
-        .instr0_enq_valid                (to_iq_instr0_valid ),
+        .instr0_enq_valid                (to_iq_instr0_valid),
         .issuequeue2rob_instr0_can_accept(to_iq_instr0_ready),
         .instr0_pc                       (to_iq_instr0_pc),
         .instr0                          (to_iq_instr0),
@@ -753,6 +774,7 @@ module ctrlblock (
         .commits0_lrd                    (commits0_lrd),
         .commits0_prd                    (commits0_prd),
         .commits0_old_prd                (commits0_old_prd),
+        .commits0_robidx_flag            (commits0_robidx_flag),
         .commits0_robidx                 (commits0_robidx),
         .commits0_need_to_wb             (commits0_need_to_wb),
         .commits0_skip                   (commits0_skip),
@@ -762,6 +784,7 @@ module ctrlblock (
         .commits1_lrd                    (commits1_lrd),
         .commits1_prd                    (commits1_prd),
         .commits1_old_prd                (commits1_old_prd),
+        .commits1_robidx_flag            (commits1_robidx_flag),
         .commits1_robidx                 (commits1_robidx),
         .commits1_need_to_wb             (commits1_need_to_wb),
         .commits1_skip                   (commits1_skip),
@@ -780,6 +803,55 @@ module ctrlblock (
         .rob_walk1_lrd                   (rob_walk1_lrd),
         .rob_walk1_prd                   (rob_walk1_prd)
     );
+
+    /* -------------------------------------------------------------------------- */
+    /*                                 Store queue                                */
+    /* -------------------------------------------------------------------------- */
+    storequeue u_storequeue (
+        .clock                      (clock),
+        .reset_n                    (reset_n),
+        .dispatch2sq_enq_valid      (to_iq_instr0_valid & to_iq_instr0_is_store),
+        .dispatch2sq_enq_ready      (),
+        .dispatch2sq_enq_robidx_flag(to_iq_instr0_robidx_flag),
+        .dispatch2sq_enq_robidx     (to_iq_instr0_robidx),
+        .dispatch2sq_enq_pc         (to_iq_instr0_pc),
+        .writeback1_valid           (writeback1_valid),
+        .writeback1_mmio            (writeback1_mmio),
+        .writeback1_robidx_flag     (writeback1_robidx_flag),
+        .writeback1_robidx          (writeback1_robidx),
+        .writeback1_store_addr      (writeback1_store_addr),
+        .writeback1_store_data      (writeback1_store_data),
+        .writeback1_store_mask      (writeback1_store_mask),
+        .writeback1_store_ls_size   (writeback1_store_ls_size),
+        .commits0_valid             (commits0_valid),
+        .commits0_robidx_flag       (commits0_robidx_flag),
+        .commits0_robidx            (commits0_robidx),
+        .commits1_valid             (commits1_valid),
+        .commits1_robidx_flag       (commits1_robidx_flag),
+        .commits1_robidx            (commits1_robidx),
+        .flush_valid                (flush_valid),
+        .flush_robidx_flag          (flush_robidx_flag),
+        .flush_robidx               (flush_robidx),
+        .sq2arb_tbus_index_valid    (sq2arb_tbus_index_valid),
+        .sq2arb_tbus_index_ready    (sq2arb_tbus_index_ready),
+        .sq2arb_tbus_index          (sq2arb_tbus_index),
+        .sq2arb_tbus_write_data     (sq2arb_tbus_write_data),
+        .sq2arb_tbus_write_mask     (sq2arb_tbus_write_mask),
+        .sq2arb_tbus_read_data      (sq2arb_tbus_read_data),
+        .sq2arb_tbus_operation_type (sq2arb_tbus_operation_type),
+        .sq2arb_tbus_operation_done (sq2arb_tbus_operation_done)
+    );
+
+
+
+
+
+
+
+
+
+
+
 
     /* -------------------------------------------------------------------------- */
     /*                               difftest region                              */

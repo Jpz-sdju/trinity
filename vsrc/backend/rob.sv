@@ -58,9 +58,10 @@ module rob (
     output wire [      `LREG_RANGE] commits0_lrd,
     output wire [      `PREG_RANGE] commits0_prd,
     output wire [      `PREG_RANGE] commits0_old_prd,
+    output wire                     commits0_need_to_wb,   //used to write arch rat
+    output wire                     commits0_robidx_flag,  //used to wakeup storequeue
+    output wire [`ROB_SIZE_LOG-1:0] commits0_robidx,       //used to wakeup storequeue
     // debug
-    output wire [`ROB_SIZE_LOG-1:0] commits0_robidx,
-    output wire                     commits0_need_to_wb,
     output wire                     commits0_skip,
 
 
@@ -70,9 +71,10 @@ module rob (
     output wire [      `LREG_RANGE] commits1_lrd,
     output wire [      `PREG_RANGE] commits1_prd,
     output wire [      `PREG_RANGE] commits1_old_prd,
-    // debug
+    output wire                     commits1_robidx_flag,  //used to wakeup storequeue
     output wire [`ROB_SIZE_LOG-1:0] commits1_robidx,
     output wire                     commits1_need_to_wb,
+    // debug
     output wire                     commits1_skip,
 
     //flush
@@ -333,16 +335,17 @@ module rob (
     `MACRO_DFF_NONEN(deq_idx, deq_idx_next, `ROB_SIZE_LOG)
 
     // assign commits0_valid      = rob_entries_deq_dec[deq_idx] ;
-    assign commits0_valid      = go_commit[deq_idx];
-    assign commits0_pc         = rob_entries_deq_pc_dec[deq_idx];
-    assign commits0_instr      = rob_entries_deq_instr_dec[deq_idx];
-    assign commits0_lrd        = rob_entries_deq_lrd_dec[deq_idx];
-    assign commits0_prd        = rob_entries_deq_prd_dec[deq_idx];
-    assign commits0_old_prd    = rob_entries_deq_old_prd_dec[deq_idx];
+    assign commits0_valid       = go_commit[deq_idx];
+    assign commits0_pc          = rob_entries_deq_pc_dec[deq_idx];
+    assign commits0_instr       = rob_entries_deq_instr_dec[deq_idx];
+    assign commits0_lrd         = rob_entries_deq_lrd_dec[deq_idx];
+    assign commits0_prd         = rob_entries_deq_prd_dec[deq_idx];
+    assign commits0_old_prd     = rob_entries_deq_old_prd_dec[deq_idx];
+    assign commits0_robidx_flag = deq_flag;
+    assign commits0_robidx      = deq_idx;
+    assign commits0_need_to_wb  = rob_entries_deq_need_to_wb_dec[deq_idx];
     //debug
-    assign commits0_robidx     = deq_idx;
-    assign commits0_need_to_wb = rob_entries_deq_need_to_wb_dec[deq_idx];
-    assign commits0_skip       = rob_entries_deq_skip_dec[deq_idx];
+    assign commits0_skip        = rob_entries_deq_skip_dec[deq_idx];
 
     genvar i;
     generate

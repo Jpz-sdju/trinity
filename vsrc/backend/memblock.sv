@@ -16,15 +16,15 @@ module memblock (
     input  wire [`ROB_SIZE_LOG-1:0] robidx,
 
     //trinity bus channel
-    output reg                  tbus_index_valid,
-    input  wire                 tbus_index_ready,
-    output reg  [`RESULT_RANGE] tbus_index,
-    output reg  [   `SRC_RANGE] tbus_write_data,
-    output reg  [         63:0] tbus_write_mask,
+    output reg                  lsu2arb_tbus_index_valid,
+    input  wire                 lsu2arb_tbus_index_ready,
+    output reg  [`RESULT_RANGE] lsu2arb_tbus_index,
+    output reg  [   `SRC_RANGE] lsu2arb_tbus_write_data,
+    output reg  [         63:0] lsu2arb_tbus_write_mask,
 
-    input  wire [     `RESULT_RANGE] tbus_read_data,
-    input  wire                      tbus_operation_done,
-    output wire [`TBUS_OPTYPE_RANGE] tbus_operation_type,
+    input  wire [     `RESULT_RANGE] lsu2arb_tbus_read_data,
+    input  wire                      lsu2arb_tbus_operation_done,
+    output wire [`TBUS_OPTYPE_RANGE] lsu2arb_tbus_operation_type,
 
     /* --------------------------- output to writeback -------------------------- */
     output wire               out_instr_valid,
@@ -34,6 +34,13 @@ module memblock (
 
     output wire                     out_robidx_flag,
     output wire [`ROB_SIZE_LOG-1:0] out_robidx,
+
+    output wire [       `SRC_RANGE] out_store_addr,
+    output wire [       `SRC_RANGE] out_store_data,
+    output wire [       `SRC_RANGE] out_store_mask,
+    output wire [              3:0] out_store_ls_size,
+
+
     //read data to wb stage
     output wire [    `RESULT_RANGE] opload_read_data_wb,
     //mem stall
@@ -135,8 +142,8 @@ module memblock (
     wire req_pending;
 
 
-    assign req_fire    = tbus_index_valid & tbus_index_ready;
-    assign req_pending = tbus_index_valid & ~tbus_index_ready;
+    assign req_fire    = lsu2arb_tbus_index_valid & lsu2arb_tbus_index_ready;
+    assign req_pending = lsu2arb_tbus_index_valid & ~lsu2arb_tbus_index_ready;
 
 
     /* -------------------------------------------------------------------------- */
@@ -157,34 +164,34 @@ module memblock (
     reg  [`RESULT_RANGE] opload_read_data_wb_raw;
 
     always @(*) begin
-        if (tbus_operation_done) begin
+        if (lsu2arb_tbus_operation_done) begin
             case ({
                 size_1b, size_1h, size_1w, size_2w, is_unsigned_latch
             })
 
                 5'b10001: begin
-                    opload_read_data_wb_raw = (tbus_read_data >> ((ls_address[2:0]) * 8));
+                    opload_read_data_wb_raw = (lsu2arb_tbus_read_data >> ((ls_address[2:0]) * 8));
                     opload_read_data_wb     = {56'h0, opload_read_data_wb_raw[7:0]};
                 end
                 5'b01001: begin
-                    opload_read_data_wb_raw = tbus_read_data >> ((ls_address[2:1]) * 16);
+                    opload_read_data_wb_raw = lsu2arb_tbus_read_data >> ((ls_address[2:1]) * 16);
                     opload_read_data_wb     = {48'h0, opload_read_data_wb_raw[15:0]};
                 end
                 5'b00101: begin
-                    opload_read_data_wb_raw = tbus_read_data >> ((ls_address[2]) * 32);
+                    opload_read_data_wb_raw = lsu2arb_tbus_read_data >> ((ls_address[2]) * 32);
                     opload_read_data_wb     = {32'h0, opload_read_data_wb_raw[31:0]};
                 end
-                5'b00010: opload_read_data_wb = tbus_read_data;
+                5'b00010: opload_read_data_wb = lsu2arb_tbus_read_data;
                 5'b10000: begin
-                    opload_read_data_wb_raw = tbus_read_data >> ((ls_address[2:0]) * 8);
+                    opload_read_data_wb_raw = lsu2arb_tbus_read_data >> ((ls_address[2:0]) * 8);
                     opload_read_data_wb     = {{56{opload_read_data_wb_raw[7]}}, opload_read_data_wb_raw[7:0]};
                 end
                 5'b01000: begin
-                    opload_read_data_wb_raw = tbus_read_data >> ((ls_address[2:1]) * 16);
+                    opload_read_data_wb_raw = lsu2arb_tbus_read_data >> ((ls_address[2:1]) * 16);
                     opload_read_data_wb     = {{48{opload_read_data_wb_raw[15]}}, opload_read_data_wb_raw[15:0]};
                 end
                 5'b00100: begin
-                    opload_read_data_wb_raw = tbus_read_data >> ((ls_address[2]) * 32);
+                    opload_read_data_wb_raw = lsu2arb_tbus_read_data >> ((ls_address[2]) * 32);
                     opload_read_data_wb     = {{32{opload_read_data_wb_raw[31]}}, opload_read_data_wb_raw[31:0]};
                 end
                 default:  ;
@@ -200,24 +207,24 @@ module memblock (
     assign mmio_valid = (is_load | is_store) & instr_valid & ('h30000000 <= ls_address_in) & (ls_address_in <= 'h40700000);
 
     always @(*) begin
-        tbus_index_valid    = 'b0;
-        tbus_index          = 'b0;
-        tbus_write_data     = 'b0;
-        tbus_write_mask     = 'b0;
-        tbus_operation_type = 'b0;
+        lsu2arb_tbus_index_valid    = 'b0;
+        lsu2arb_tbus_index          = 'b0;
+        lsu2arb_tbus_write_data     = 'b0;
+        lsu2arb_tbus_write_mask     = 'b0;
+        lsu2arb_tbus_operation_type = 'b0;
         if (is_load & instr_valid) begin
             if ((~is_outstanding) & ~mmio_valid) begin
-                tbus_index_valid    = 1'b1;
-                tbus_index          = ls_address_in[`RESULT_WIDTH-1:0];
-                tbus_operation_type = `TBUS_READ;
+                lsu2arb_tbus_index_valid    = 1'b1;
+                lsu2arb_tbus_index          = ls_address_in[`RESULT_WIDTH-1:0];
+                lsu2arb_tbus_operation_type = `TBUS_READ;
             end
         end else if (is_store & instr_valid) begin
             if (~is_outstanding & ~mmio_valid) begin
-                tbus_index_valid    = 1'b1;
-                tbus_index          = ls_address_in[`RESULT_WIDTH-1:0];
-                tbus_write_mask     = opstore_write_mask_qual;
-                tbus_write_data     = opstore_write_data_qual;
-                tbus_operation_type = `TBUS_WRITE;
+                lsu2arb_tbus_index_valid    = 1'b1;
+                lsu2arb_tbus_index          = ls_address_in[`RESULT_WIDTH-1:0];
+                lsu2arb_tbus_write_mask     = opstore_write_mask_qual;
+                lsu2arb_tbus_write_data     = opstore_write_data_qual;
+                lsu2arb_tbus_operation_type = `TBUS_WRITE;
             end
         end else begin
 
@@ -245,7 +252,7 @@ module memblock (
                     end
                 end
                 OUTSTANDING: begin
-                    if (tbus_operation_done) begin
+                    if (lsu2arb_tbus_operation_done) begin
                         ls_state <= IDLE;
                     end
                 end
@@ -271,7 +278,7 @@ module memblock (
             outstanding_need_to_wb <= 'b0;
         end else if (req_fire | mmio_valid) begin
             outstanding_need_to_wb <= instr_valid & is_load;
-        end else if (tbus_operation_done | is_idle) begin
+        end else if (lsu2arb_tbus_operation_done | is_idle) begin
             outstanding_need_to_wb <= 'b0;
         end
     end
@@ -280,7 +287,7 @@ module memblock (
             outstanding_prd <= 'b0;
         end else if (req_fire | mmio_valid) begin
             outstanding_prd <= prd;
-        end else if (tbus_operation_done | is_idle) begin
+        end else if (lsu2arb_tbus_operation_done | is_idle) begin
             outstanding_prd <= 'b0;
         end
     end
@@ -289,7 +296,7 @@ module memblock (
             outstanding_robidx_flag <= 'b0;
         end else if (req_fire | mmio_valid) begin
             outstanding_robidx_flag <= robidx_flag;
-        end else if (tbus_operation_done | is_idle) begin
+        end else if (lsu2arb_tbus_operation_done | is_idle) begin
             outstanding_robidx_flag <= 'b0;
         end
     end
@@ -298,7 +305,7 @@ module memblock (
             outstanding_robidx <= 'b0;
         end else if (req_fire | mmio_valid) begin
             outstanding_robidx <= robidx;
-        end else if (tbus_operation_done | is_idle) begin
+        end else if (lsu2arb_tbus_operation_done | is_idle) begin
             outstanding_robidx <= 'b0;
         end
     end
@@ -308,7 +315,7 @@ module memblock (
     `MACRO_DFF_NONEN(out_mmio_valid, mmio_valid, 1)
 
     //when flush instr older than you,could not high out valid!
-    assign out_instr_valid = is_outstanding & (tbus_operation_done) & ~need_flush | out_mmio_valid;
+    assign out_instr_valid = is_outstanding & (lsu2arb_tbus_operation_done) & ~need_flush | out_mmio_valid;
     assign out_need_to_wb  = outstanding_need_to_wb;
 
     assign out_prd         = outstanding_prd;

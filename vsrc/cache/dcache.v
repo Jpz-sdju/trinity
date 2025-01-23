@@ -3,7 +3,7 @@ module dcache #(
     parameter TAG_WIDTH  = 38,  // Width of TAGRAM
     parameter ADDR_WIDTH = 9    // Width of address bus
 ) (
-
+/* verilator lint_off UNOPTFLAT */
     input wire clock,    // Clock signal
     input wire reset_n,  // Active low reset
     input wire flush,
@@ -735,7 +735,7 @@ module dcache #(
     end
 
 
-
+/* verilator lint_off UNOPTFLAT */
 endmodule
 
 

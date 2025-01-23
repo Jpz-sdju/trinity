@@ -145,6 +145,9 @@
 `define WALK_SIZE 2
 `define COMMIT_SIZE 2
 
+`define STOREQUEUE_DEPTH 4
+`define STOREQUEUE_LOG 2
+
 `define MACRO_DFF_NONEN(dff_data_q, dff_data_in, dff_data_width) \
 always @(posedge clock or negedge reset_n) begin \
     if(reset_n == 1'b0) \
@@ -161,23 +164,24 @@ always @(posedge clock or negedge reset_n) begin \
         dff_data_q <= dff_data_in; \
 end
 
-`define MACRO_ENQ_DEC(enq_ptr_oh, enq_dec_reg, enq_entity) \
+`define MACRO_ENQ_DEC(enq_ptr_oh, enq_dec_reg, enq_entity,length) \
     always @(*) begin\
         integer i;\
-        for (i = 0; i < `ISSUE_QUEUE_DEPTH; i = i + 1) begin\
+        for (i = 0; i < length; i = i + 1) begin\
             enq_dec_reg[i] = 'b0;\
             if (enq_ptr_oh[i]) begin\
                 enq_dec_reg[i] = enq_entity;\
             end\
         end\
     end
-`define MACRO_DEQ_DEC(deq_ptr_oh, enq_entity,  deq_dec_reg) \
+
+`define MACRO_DEQ_DEC(deq_ptr_oh, deq_entity,  deq_dec_reg, length) \
     always @(*) begin\
         integer i;\
-        enq_entity = 'b0;\
-        for (i = 0; i < `ISSUE_QUEUE_DEPTH; i = i + 1) begin\
+        deq_entity = 'b0;\
+        for (i = 0; i < length; i = i + 1) begin\
             if (deq_ptr_oh[i]) begin\
-                enq_entity = deq_dec_reg[i];\
+                deq_entity = deq_dec_reg[i];\
             end\
         end\
     end

@@ -21,8 +21,7 @@ module backend (
     /* -------------------------------------------------------------------------- */
     /*                                TO L1 D$/MEM                                */
     /* -------------------------------------------------------------------------- */
-    // LSU store Channel Inputs and Outputs
-    //trinity bus channel
+    // Arbiter Output
     output reg                  tbus_index_valid,
     input  wire                 tbus_index_ready,
     output reg  [`RESULT_RANGE] tbus_index,
@@ -107,6 +106,32 @@ module backend (
     wire [       `PREG_RANGE] debug_preg30;
     wire [       `PREG_RANGE] debug_preg31;
 
+
+    /* -------------------------------------------------------------------------- */
+    /*                             arb sigs definition                            */
+    /* -------------------------------------------------------------------------- */
+
+
+    /* ------------------------- sq to dcache port ------------------------ */
+    wire                      sq2arb_tbus_index_valid;
+    wire                      sq2arb_tbus_index_ready;
+    wire [     `RESULT_RANGE] sq2arb_tbus_index;
+    wire [        `SRC_RANGE] sq2arb_tbus_write_data;
+    wire [              63:0] sq2arb_tbus_write_mask;
+    wire [     `RESULT_RANGE] sq2arb_tbus_read_data;
+    wire [`TBUS_OPTYPE_RANGE] sq2arb_tbus_operation_type;
+    wire                      sq2arb_tbus_operation_done;
+
+    /* --------------------------- lsu to dcache port --------------------------- */
+    wire                      lsu2arb_tbus_index_valid;
+    wire                      lsu2arb_tbus_index_ready;
+    wire [     `RESULT_RANGE] lsu2arb_tbus_index;
+    wire [        `SRC_RANGE] lsu2arb_tbus_write_data;
+    wire [              63:0] lsu2arb_tbus_write_mask;
+    wire [     `RESULT_RANGE] lsu2arb_tbus_read_data;
+    wire [`TBUS_OPTYPE_RANGE] lsu2arb_tbus_operation_type;
+    wire                      lsu2arb_tbus_operation_done;
+
     /* -------------------------------------------------------------------------- */
     /*                                ctrl block                                  */
     /* -------------------------------------------------------------------------- */
@@ -188,47 +213,66 @@ module backend (
         .writeback0_redirect_target(writeback0_redirect_target),
         .writeback0_robidx_flag    (writeback0_robidx_flag),
         .writeback0_robidx         (writeback0_robidx),
-
-        .writeback1_valid      (writeback1_instr_valid),
-        .writeback1_need_to_wb (writeback1_need_to_wb),
-        .writeback1_prd        (writeback1_prd),
-        .writeback1_mmio       (writeback1_mmio),
-        .writeback1_robidx_flag(writeback1_robidx_flag),
-        .writeback1_robidx     (writeback1_robidx),
+        .writeback1_valid          (writeback1_instr_valid),
+        .writeback1_need_to_wb     (writeback1_need_to_wb),
+        .writeback1_prd            (writeback1_prd),
+        .writeback1_mmio           (writeback1_mmio),
+        .writeback1_robidx_flag    (writeback1_robidx_flag),
+        .writeback1_robidx         (writeback1_robidx),
+        .writeback1_store_addr     (writeback1_store_addr),
+        .writeback1_store_data     (writeback1_store_data),
+        .writeback1_store_mask     (writeback1_store_mask),
+        .writeback1_store_ls_size  (writeback1_store_ls_size),
+        /* --------------------------------- to arb --------------------------------- */
+        .sq2arb_tbus_index_valid   (sq2arb_tbus_index_valid),
+        .sq2arb_tbus_index_ready   (sq2arb_tbus_index_ready),
+        .sq2arb_tbus_index         (sq2arb_tbus_index),
+        .sq2arb_tbus_write_data    (sq2arb_tbus_write_data),
+        .sq2arb_tbus_write_mask    (sq2arb_tbus_write_mask),
+        .sq2arb_tbus_read_data     (sq2arb_tbus_read_data),
+        .sq2arb_tbus_operation_type(sq2arb_tbus_operation_type),
+        .sq2arb_tbus_operation_done(sq2arb_tbus_operation_done),
         //debug
-        .debug_preg0           (debug_preg0),
-        .debug_preg1           (debug_preg1),
-        .debug_preg2           (debug_preg2),
-        .debug_preg3           (debug_preg3),
-        .debug_preg4           (debug_preg4),
-        .debug_preg5           (debug_preg5),
-        .debug_preg6           (debug_preg6),
-        .debug_preg7           (debug_preg7),
-        .debug_preg8           (debug_preg8),
-        .debug_preg9           (debug_preg9),
-        .debug_preg10          (debug_preg10),
-        .debug_preg11          (debug_preg11),
-        .debug_preg12          (debug_preg12),
-        .debug_preg13          (debug_preg13),
-        .debug_preg14          (debug_preg14),
-        .debug_preg15          (debug_preg15),
-        .debug_preg16          (debug_preg16),
-        .debug_preg17          (debug_preg17),
-        .debug_preg18          (debug_preg18),
-        .debug_preg19          (debug_preg19),
-        .debug_preg20          (debug_preg20),
-        .debug_preg21          (debug_preg21),
-        .debug_preg22          (debug_preg22),
-        .debug_preg23          (debug_preg23),
-        .debug_preg24          (debug_preg24),
-        .debug_preg25          (debug_preg25),
-        .debug_preg26          (debug_preg26),
-        .debug_preg27          (debug_preg27),
-        .debug_preg28          (debug_preg28),
-        .debug_preg29          (debug_preg29),
-        .debug_preg30          (debug_preg30),
-        .debug_preg31          (debug_preg31)
+        .debug_preg0               (debug_preg0),
+        .debug_preg1               (debug_preg1),
+        .debug_preg2               (debug_preg2),
+        .debug_preg3               (debug_preg3),
+        .debug_preg4               (debug_preg4),
+        .debug_preg5               (debug_preg5),
+        .debug_preg6               (debug_preg6),
+        .debug_preg7               (debug_preg7),
+        .debug_preg8               (debug_preg8),
+        .debug_preg9               (debug_preg9),
+        .debug_preg10              (debug_preg10),
+        .debug_preg11              (debug_preg11),
+        .debug_preg12              (debug_preg12),
+        .debug_preg13              (debug_preg13),
+        .debug_preg14              (debug_preg14),
+        .debug_preg15              (debug_preg15),
+        .debug_preg16              (debug_preg16),
+        .debug_preg17              (debug_preg17),
+        .debug_preg18              (debug_preg18),
+        .debug_preg19              (debug_preg19),
+        .debug_preg20              (debug_preg20),
+        .debug_preg21              (debug_preg21),
+        .debug_preg22              (debug_preg22),
+        .debug_preg23              (debug_preg23),
+        .debug_preg24              (debug_preg24),
+        .debug_preg25              (debug_preg25),
+        .debug_preg26              (debug_preg26),
+        .debug_preg27              (debug_preg27),
+        .debug_preg28              (debug_preg28),
+        .debug_preg29              (debug_preg29),
+        .debug_preg30              (debug_preg30),
+        .debug_preg31              (debug_preg31)
     );
+
+
+
+
+
+
+
 
     /* -------------------------------------------------------------------------- */
     /*                                 issue queue                                */
@@ -263,7 +307,7 @@ module backend (
     wire [ `ROB_SIZE_LOG-1:0] deq_instr0_robidx;
 
     /* ------------------------------- to memBlock ------------------------------ */
- 
+
 
 
     /* -------------------------------------------------------------------------- */
@@ -275,7 +319,7 @@ module backend (
     wire                      intiq_ready;
     wire                      memiq_ready;
 
-    assign to_iq_instr0_ready = intiq_ready ;//& memiq_ready;
+    assign to_iq_instr0_ready = intiq_ready;  //& memiq_ready;
     issuequeue u_issuequeue (
         .clock                 (clock),
         .reset_n               (reset_n),
@@ -368,6 +412,12 @@ module backend (
     reg                      writeback1_mmio;
     reg                      writeback1_robidx_flag;
     reg  [`ROB_SIZE_LOG-1:0] writeback1_robidx;
+
+    reg  [       `SRC_RANGE] writeback1_store_addr;
+    reg  [       `SRC_RANGE] writeback1_store_data;
+    reg  [       `SRC_RANGE] writeback1_store_mask;
+    reg  [              3:0] writeback1_store_ls_size;
+
     regfile64 u_regfile64 (
         .clock       (clock),
         .reset_n     (reset_n),
@@ -488,6 +538,13 @@ module backend (
     wire                     memblock_out_mmio;
     wire                     memblock_out_robidx_flag;
     wire [`ROB_SIZE_LOG-1:0] memblock_out_robidx;
+
+    wire [       `SRC_RANGE] memblock_out_store_addr;
+    wire [       `SRC_RANGE] memblock_out_store_data;
+    wire [       `SRC_RANGE] memblock_out_store_mask;
+    wire [              3:0] memblock_out_store_ls_size;
+
+
     wire                     memblock_out_stall;
     //can use instr_valid to control a clock gate here to save power
     memblock u_memblock (
@@ -507,22 +564,27 @@ module backend (
         .robidx     (deq_instr0_robidx),
 
         //trinity bus channel
-        .tbus_index_valid     (tbus_index_valid),
-        .tbus_index_ready     (tbus_index_ready),
-        .tbus_index           (tbus_index),
-        .tbus_write_data      (tbus_write_data),
-        .tbus_write_mask      (tbus_write_mask),
-        .tbus_read_data       (tbus_read_data),
-        .tbus_operation_done  (tbus_operation_done),
-        .tbus_operation_type  (tbus_operation_type),
+        .lsu2arb_tbus_index_valid   (lsu2arb_tbus_index_valid),
+        .lsu2arb_tbus_index_ready   (lsu2arb_tbus_index_ready),
+        .lsu2arb_tbus_index         (lsu2arb_tbus_index),
+        .lsu2arb_tbus_write_data    (lsu2arb_tbus_write_data),
+        .lsu2arb_tbus_write_mask    (lsu2arb_tbus_write_mask),
+        .lsu2arb_tbus_read_data     (lsu2arb_tbus_read_data),
+        .lsu2arb_tbus_operation_done(lsu2arb_tbus_operation_done),
+        .lsu2arb_tbus_operation_type(lsu2arb_tbus_operation_type),
         //output 
-        .out_instr_valid      (memblock_out_instr_valid),
-        .out_need_to_wb       (memblock_out_need_to_wb),
-        .out_prd              (memblock_out_prd),
-        .opload_read_data_wb  (memblock_out_opload_read_data_wb),
-        .out_mmio             (memblock_out_mmio),
-        .out_robidx_flag      (memblock_out_robidx_flag),
-        .out_robidx           (memblock_out_robidx),
+        .out_instr_valid            (memblock_out_instr_valid),
+        .out_need_to_wb             (memblock_out_need_to_wb),
+        .out_prd                    (memblock_out_prd),
+        .opload_read_data_wb        (memblock_out_opload_read_data_wb),
+        .out_mmio                   (memblock_out_mmio),
+        .out_robidx_flag            (memblock_out_robidx_flag),
+        .out_robidx                 (memblock_out_robidx),
+        .out_store_addr             (memblock_out_store_addr),
+        .out_store_data             (memblock_out_store_data),
+        .out_store_mask             (memblock_out_store_mask),
+        .out_store_ls_size          (memblock_out_store_ls_size),
+
         .mem_stall            (memblock_out_stall),
         /* -------------------------- redirect flush logic -------------------------- */
         .flush_valid          (redirect_valid),
@@ -532,6 +594,42 @@ module backend (
         .memblock2dcache_flush(memblock2dcache_flush)
     );
     assign mem_stall = memblock_out_stall;
+
+    /* -------------------------------------------------------------------------- */
+    /*                                 arb region                                 */
+    /* -------------------------------------------------------------------------- */
+
+
+
+    dcache_arb u_dcache_arb (
+        .clock                      (clock),
+        .reset_n                    (reset_n),
+        .lsu2arb_tbus_index_valid   (lsu2arb_tbus_index_valid),
+        .lsu2arb_tbus_index         (lsu2arb_tbus_index),
+        .lsu2arb_tbus_index_ready   (lsu2arb_tbus_index_ready),
+        .lsu2arb_tbus_read_data     (lsu2arb_tbus_read_data),
+        .lsu2arb_tbus_operation_done(lsu2arb_tbus_operation_done),
+        .sq2arb_tbus_index_valid    (sq2arb_tbus_index_valid),
+        .sq2arb_tbus_index_ready    (sq2arb_tbus_index_ready),
+        .sq2arb_tbus_index          (sq2arb_tbus_index),
+        .sq2arb_tbus_write_data     (sq2arb_tbus_write_data),
+        .sq2arb_tbus_write_mask     (sq2arb_tbus_write_mask),
+        .sq2arb_tbus_read_data      (sq2arb_tbus_read_data),
+        .sq2arb_tbus_operation_done (sq2arb_tbus_operation_done),
+        .sq2arb_tbus_operation_type (sq2arb_tbus_operation_type),
+        .tbus_index_valid           (tbus_index_valid),
+        .tbus_index_ready           (tbus_index_ready),
+        .tbus_index                 (tbus_index),
+        .tbus_write_mask            (tbus_write_mask),
+        .tbus_write_data            (tbus_write_data),
+        .tbus_read_data             (tbus_read_data),
+        .tbus_operation_type        (tbus_operation_type),
+        .tbus_operation_done        (tbus_operation_done)
+    );
+
+
+
+
 
     /* -------------------------------------------------------------------------- */
     /*                              stage:   write back                           */
@@ -557,6 +655,13 @@ module backend (
     `MACRO_DFF_NONEN(writeback1_mmio, memblock_out_mmio, 1)
     `MACRO_DFF_NONEN(writeback1_robidx_flag, memblock_out_robidx_flag, 1)
     `MACRO_DFF_NONEN(writeback1_robidx, memblock_out_robidx, `ROB_SIZE_LOG)
+
+    `MACRO_DFF_NONEN(writeback1_store_addr, memblock_out_store_addr, 64)
+    `MACRO_DFF_NONEN(writeback1_store_data, memblock_out_store_data, 64)
+    `MACRO_DFF_NONEN(writeback1_store_mask, memblock_out_store_mask, 64)
+    `MACRO_DFF_NONEN(writeback1_store_ls_size, memblock_out_store_ls_size, 4)
+
+
 
     /* verilator lint_off PINCONNECTEMPTY */
     /* verilator lint_off UNUSEDSIGNAL */

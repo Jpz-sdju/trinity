@@ -194,7 +194,7 @@ module issuequeue (
     `MACRO_ENQ_DEC(enq_ptr_oh, iq_entries_enq_robidx_dec, enq_instr0_robidx)
 
 
-    io_policy enq_io_policy (
+    io_enq_policy enq_io_policy (
         .clock          (clock),
         .reset_n        (reset_n),
         .flush          (flush_valid),

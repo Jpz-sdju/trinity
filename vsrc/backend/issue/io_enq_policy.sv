@@ -1,5 +1,5 @@
 `include "defines.sv"
-module io_policy (
+module io_enq_policy (
     input wire clock,
     input wire reset_n,
     input wire flush,

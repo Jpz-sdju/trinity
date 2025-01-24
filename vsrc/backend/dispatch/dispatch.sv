@@ -59,7 +59,10 @@ module dispatch (
     input wire [`PREG_RANGE] instr1_prs2,
     input wire [`PREG_RANGE] instr1_prd,
     input wire [`PREG_RANGE] instr1_old_prd,
-
+    //ready sigs,cause dispathc only can dispatch when rob,IQ,SQ both have avail entry
+    input wire                     iq_can_alloc0,
+    input wire                     iq_can_alloc1,
+    input wire                     sq_can_alloc,
     /* ----------------------------------- rob ---------------------------------- */
     //counter(temp sig)
     input wire [`ROB_SIZE_LOG-1:0] counter,
@@ -68,7 +71,6 @@ module dispatch (
 
     /* ------------------------ issue instr0 and enq rob ------------------------ */
     output wire               to_iq_instr0_valid,
-    input  wire               to_iq_instr0_ready,
     output wire [`LREG_RANGE] to_iq_instr0_lrs1,
     output wire [`LREG_RANGE] to_iq_instr0_lrs2,
     output wire [`LREG_RANGE] to_iq_instr0_lrd,
@@ -98,8 +100,8 @@ module dispatch (
     output wire [`ROB_SIZE_LOG-1:0] to_iq_instr0_robidx,
 
     /* ------------------------ issue instr1 and enq rob ------------------------ */
-    output wire               to_iq_instr1_valid,
-    input  wire               to_iq_instr1_ready,
+    output wire to_iq_instr1_valid,
+
     output wire [`LREG_RANGE] to_iq_instr1_lrs1,
     output wire [`LREG_RANGE] to_iq_instr1_lrs2,
     output wire [`LREG_RANGE] to_iq_instr1_lrd,
@@ -143,7 +145,7 @@ module dispatch (
     wire is_alu = ~is_lsu;
 
     //redirect flush!
-    assign to_iq_instr0_valid       = instr0_valid & ~flush_valid ;
+    assign to_iq_instr0_valid       = instr0_valid & ~flush_valid;
     assign to_iq_instr0_lrs1        = instr0_lrs1;
     assign to_iq_instr0_lrs2        = instr0_lrs2;
     assign to_iq_instr0_lrd         = instr0_lrd;
@@ -173,9 +175,10 @@ module dispatch (
     assign to_iq_instr0_robidx      = enq_robidx;
 
     // assign to_iq_instr1_valid = instr0_valid & ~flush_valid & is_lsu;
-
-    assign instr0_ready                = (counter < `ROB_SIZE) & to_iq_instr0_ready & ~flush_valid & (rob_state == `ROB_STATE_IDLE);
-    assign instr1_ready                = 'b0;
+    
+    //when IQ,SQ,ROB all avail ,could let younger instr flow 
+    assign instr0_ready = (counter < `ROB_SIZE) & iq_can_alloc0 & ~flush_valid & (rob_state == `ROB_STATE_IDLE) & sq_can_alloc;
+    assign instr1_ready = 'b0;
 endmodule
 /* verilator lint_off UNUSEDSIGNAL */
 

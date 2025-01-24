@@ -26,8 +26,6 @@ module core_top #(
     wire [                  `PC_RANGE] redirect_target;
     wire                               redirect_robidx_flag;
     wire [          `ROB_SIZE_LOG-1:0] redirect_robidx;
-    //mem stall
-    wire                               mem_stall;
     // PC Channel Inputs and Outputs
     wire                               pc_index_valid;  // Valid signal for pc_index
     wire [                       63:0] pc_index;  // 64-bit input for pc_index (Channel 1)
@@ -156,7 +154,6 @@ module core_top #(
         .redirect_target      (redirect_target),
         .redirect_robidx_flag (redirect_robidx_flag),
         .redirect_robidx      (redirect_robidx),
-        .mem_stall            (mem_stall),
         .tbus_index_valid     (tbus_index_valid),
         .tbus_index_ready     (tbus_index_ready),
         .tbus_index           (tbus_index),

@@ -27,24 +27,19 @@ module memblock (
     output wire [`TBUS_OPTYPE_RANGE] lsu2arb_tbus_operation_type,
 
     /* --------------------------- output to writeback -------------------------- */
-    output wire               out_instr_valid,
-    output wire               out_need_to_wb,
-    output wire [`PREG_RANGE] out_prd,
-    output wire               out_mmio,
+    output wire               memblock_out_instr_valid,
+    output wire               memblock_out_need_to_wb,
+    output wire [`PREG_RANGE] memblock_out_prd,
+    output wire               memblock_out_mmio,
 
-    output wire                     out_robidx_flag,
-    output wire [`ROB_SIZE_LOG-1:0] out_robidx,
+    output wire                     memblock_out_robidx_flag,
+    output wire [`ROB_SIZE_LOG-1:0] memblock_out_robidx,
 
-    output wire [       `SRC_RANGE] out_store_addr,
-    output wire [       `SRC_RANGE] out_store_data,
-    output wire [       `SRC_RANGE] out_store_mask,
-    output wire [              3:0] out_store_ls_size,
-
-
-    //read data to wb stage
-    output wire [    `RESULT_RANGE] opload_read_data_wb,
-    //mem stall
-    output wire                     mem_stall,
+    output wire [       `SRC_RANGE] memblock_out_store_addr,
+    output wire [       `SRC_RANGE] memblock_out_store_data,
+    output wire [       `SRC_RANGE] memblock_out_store_mask,
+    output wire [              3:0] memblock_out_store_ls_size,
+    output wire [    `RESULT_RANGE] memblock_out_load_data,
     /* -------------------------- redirect flush logic -------------------------- */
     input  wire                     flush_valid,
     input  wire                     flush_robidx_flag,
@@ -52,277 +47,109 @@ module memblock (
 
     /* --------------------------- memblock to dcache --------------------------- */
     output wire memblock2dcache_flush
-
-
 );
-
-
-    //redirect flush logic 
-    wire need_flush;
-    wire flush_this_beat;
-    wire flush_outstanding;
-    assign flush_this_beat       = instr_valid & flush_valid & ((flush_robidx_flag ^ robidx_flag) ^ (flush_robidx < robidx));
-    assign flush_outstanding     = (~is_idle) & flush_valid & ((flush_robidx_flag ^ out_robidx_flag) ^ (flush_robidx < out_robidx));
-    assign need_flush            = flush_this_beat | flush_outstanding;
-
-    assign memblock2dcache_flush = need_flush;
-
-    wire [`RESULT_RANGE] ls_address_in;
-    reg  [`RESULT_RANGE] ls_address;
+    wire [`RESULT_RANGE] ls_address;
     agu u_agu (
         .src1      (src1),
         .imm       (imm),
-        .ls_address(ls_address_in)
+        .ls_address(ls_address)
     );
-
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            ls_address <= 'b0;
-        end else if (instr_valid & instr_ready) begin
-            ls_address <= ls_address_in;
-        end
-    end
-
-
-    localparam IDLE = 2'b00;
-    localparam PENDING = 2'b01;
-    localparam OUTSTANDING = 2'b10;
-    localparam TEMP = 2'b11;
-    reg  [1:0] ls_state;
-    wire       is_idle = ls_state == IDLE;
-    wire       is_pending = ls_state == PENDING;
-    wire       is_outstanding = ls_state == OUTSTANDING;
-    wire       is_temp = ls_state == TEMP;
-    /*
-    0 = B
-    1 = HALF WORD
-    2 = WORD
-    3 = DOUBLE WORD
-*/
-
-    /* ------------------------------ ls size latch ----------------------------- */
-    reg        size_1b;
-    reg        size_1h;
-    reg        size_1w;
-    reg        size_2w;
-
-    reg        is_unsigned_latch;
-
-    wire       size_1b_in;
-    wire       size_1h_in;
-    wire       size_1w_in;
-    wire       size_2w_in;
-
-    assign size_1b_in = ls_size[0];
-    assign size_1h_in = ls_size[1];
-    assign size_1w_in = ls_size[2];
-    assign size_2w_in = ls_size[3];
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            size_1b <= 'b0;
-            size_1h <= 'b0;
-            size_1w <= 'b0;
-            size_2w <= 'b0;
-        end else if (instr_valid & instr_ready) begin
-            size_1b <= ls_size[0];
-            size_1h <= ls_size[1];
-            size_1w <= ls_size[2];
-            size_2w <= ls_size[3];
-        end
-    end
-
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            is_unsigned_latch <= 'b0;
-        end else if (instr_valid & instr_ready) begin
-            is_unsigned_latch <= is_unsigned;
-        end
-    end
-    wire req_fire;
-    wire req_pending;
-
-
-    assign req_fire    = lsu2arb_tbus_index_valid & lsu2arb_tbus_index_ready;
-    assign req_pending = lsu2arb_tbus_index_valid & ~lsu2arb_tbus_index_ready;
-
-
     /* -------------------------------------------------------------------------- */
-    /*                            tbus signal generate                            */
+    /*                            store signal generate                            */
     /* -------------------------------------------------------------------------- */
 
-    wire [63:0] write_1b_mask = {56'b0, {8{1'b1}}};
-    wire [63:0] write_1h_mask = {48'b0, {16{1'b1}}};
-    wire [63:0] write_1w_mask = {32'b0, {32{1'b1}}};
-    wire [63:0] write_2w_mask = {64{1'b1}};
+    wire size_1b;
+    wire size_1h;
+    wire size_1w;
+    wire size_2w;
+    assign size_1b = ls_size[0];
+    assign size_1h = ls_size[1];
+    assign size_1w = ls_size[2];
+    assign size_2w = ls_size[3];
+    wire [          2:0] shift_size;
+    wire [         63:0] opstore_write_mask_qual;
+    wire [`RESULT_RANGE] opstore_write_data_qual;
 
-    wire [ 2:0] shift_size = ls_address_in[2:0];
+    wire [         63:0] write_1b_mask = {56'b0, {8{1'b1}}};
+    wire [         63:0] write_1h_mask = {48'b0, {16{1'b1}}};
+    wire [         63:0] write_1w_mask = {32'b0, {32{1'b1}}};
+    wire [         63:0] write_2w_mask = {64{1'b1}};
 
-    wire [63:0] opstore_write_mask_qual;
-    assign opstore_write_mask_qual = size_1b_in ? write_1b_mask << (shift_size * 8) : size_1h_in ? write_1h_mask << (shift_size * 8) : size_1w_in ? write_1w_mask << (shift_size * 8) : write_2w_mask;
-
-    wire [`RESULT_RANGE] opstore_write_data_qual = src2 << (shift_size * 8);
-    reg  [`RESULT_RANGE] opload_read_data_wb_raw;
-
-    always @(*) begin
-        if (lsu2arb_tbus_operation_done) begin
-            case ({
-                size_1b, size_1h, size_1w, size_2w, is_unsigned_latch
-            })
-
-                5'b10001: begin
-                    opload_read_data_wb_raw = (lsu2arb_tbus_read_data >> ((ls_address[2:0]) * 8));
-                    opload_read_data_wb     = {56'h0, opload_read_data_wb_raw[7:0]};
-                end
-                5'b01001: begin
-                    opload_read_data_wb_raw = lsu2arb_tbus_read_data >> ((ls_address[2:1]) * 16);
-                    opload_read_data_wb     = {48'h0, opload_read_data_wb_raw[15:0]};
-                end
-                5'b00101: begin
-                    opload_read_data_wb_raw = lsu2arb_tbus_read_data >> ((ls_address[2]) * 32);
-                    opload_read_data_wb     = {32'h0, opload_read_data_wb_raw[31:0]};
-                end
-                5'b00010: opload_read_data_wb = lsu2arb_tbus_read_data;
-                5'b10000: begin
-                    opload_read_data_wb_raw = lsu2arb_tbus_read_data >> ((ls_address[2:0]) * 8);
-                    opload_read_data_wb     = {{56{opload_read_data_wb_raw[7]}}, opload_read_data_wb_raw[7:0]};
-                end
-                5'b01000: begin
-                    opload_read_data_wb_raw = lsu2arb_tbus_read_data >> ((ls_address[2:1]) * 16);
-                    opload_read_data_wb     = {{48{opload_read_data_wb_raw[15]}}, opload_read_data_wb_raw[15:0]};
-                end
-                5'b00100: begin
-                    opload_read_data_wb_raw = lsu2arb_tbus_read_data >> ((ls_address[2]) * 32);
-                    opload_read_data_wb     = {{32{opload_read_data_wb_raw[31]}}, opload_read_data_wb_raw[31:0]};
-                end
-                default:  ;
-            endcase
-        end
-    end
+    assign shift_size              = ls_address[2:0];
+    assign opstore_write_mask_qual = size_1b ? write_1b_mask << (shift_size * 8) : size_1h ? write_1h_mask << (shift_size * 8) : size_1w ? write_1w_mask << (shift_size * 8) : write_2w_mask;
+    assign opstore_write_data_qual = src2 << (shift_size * 8);
 
 
-    /* -------------------------------------------------------------------------- */
-    /*                             bus request region                             */
-    /* -------------------------------------------------------------------------- */
-    wire mmio_valid;
-    assign mmio_valid = (is_load | is_store) & instr_valid & ('h30000000 <= ls_address_in) & (ls_address_in <= 'h40700000);
-
-    always @(*) begin
-        lsu2arb_tbus_index_valid    = 'b0;
-        lsu2arb_tbus_index          = 'b0;
-        lsu2arb_tbus_write_data     = 'b0;
-        lsu2arb_tbus_write_mask     = 'b0;
-        lsu2arb_tbus_operation_type = 'b0;
-        if (is_load & instr_valid) begin
-            if ((~is_outstanding) & ~mmio_valid) begin
-                lsu2arb_tbus_index_valid    = 1'b1;
-                lsu2arb_tbus_index          = ls_address_in[`RESULT_WIDTH-1:0];
-                lsu2arb_tbus_operation_type = `TBUS_READ;
-            end
-        end else if (is_store & instr_valid) begin
-            if (~is_outstanding & ~mmio_valid) begin
-                lsu2arb_tbus_index_valid    = 1'b1;
-                lsu2arb_tbus_index          = ls_address_in[`RESULT_WIDTH-1:0];
-                lsu2arb_tbus_write_mask     = opstore_write_mask_qual;
-                lsu2arb_tbus_write_data     = opstore_write_data_qual;
-                lsu2arb_tbus_operation_type = `TBUS_WRITE;
-            end
-        end else begin
-
-        end
-    end
-
-    /* -------------------------------------------------------------------------- */
-    /*                                     FSM                                    */
-    /* -------------------------------------------------------------------------- */
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n | need_flush) begin
-            ls_state <= IDLE;
-        end else begin
-            case (ls_state)
-                IDLE: begin
-                    if (req_pending) begin
-                        ls_state <= PENDING;
-                    end else if (req_fire) begin
-                        ls_state <= OUTSTANDING;
-                    end
-                end
-                PENDING: begin
-                    if (req_fire) begin
-                        ls_state <= OUTSTANDING;
-                    end
-                end
-                OUTSTANDING: begin
-                    if (lsu2arb_tbus_operation_done) begin
-                        ls_state <= IDLE;
-                    end
-                end
-
-                default: ;
-            endcase
-        end
-    end
-
-    // assign mem_stall = req_fire | ~is_idle;
-    assign mem_stall = ~is_idle;
     /* -------------------------------------------------------------------------- */
     /*                                 output logic                               */
     /* -------------------------------------------------------------------------- */
+    wire mmio_valid;
+    wire mmio_valid_or_store;
+    assign mmio_valid                 = instr_valid & instr_ready & ('h30000000 <= ls_address) & (ls_address <= 'h40700000);
+    assign mmio_valid_or_store        = mmio_valid | is_store & instr_ready & instr_valid;
 
-    reg                     outstanding_need_to_wb;
-    reg [      `PREG_RANGE] outstanding_prd;
-    reg                     outstanding_robidx_flag;
-    reg [`ROB_SIZE_LOG-1:0] outstanding_robidx;
+    assign memblock_out_store_addr    = ls_address;
+    assign memblock_out_store_data    = opstore_write_data_qual;
+    assign memblock_out_store_mask    = opstore_write_mask_qual;
+    assign memblock_out_store_ls_size = ls_size;
 
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            outstanding_need_to_wb <= 'b0;
-        end else if (req_fire | mmio_valid) begin
-            outstanding_need_to_wb <= instr_valid & is_load;
-        end else if (lsu2arb_tbus_operation_done | is_idle) begin
-            outstanding_need_to_wb <= 'b0;
-        end
-    end
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            outstanding_prd <= 'b0;
-        end else if (req_fire | mmio_valid) begin
-            outstanding_prd <= prd;
-        end else if (lsu2arb_tbus_operation_done | is_idle) begin
-            outstanding_prd <= 'b0;
-        end
-    end
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            outstanding_robidx_flag <= 'b0;
-        end else if (req_fire | mmio_valid) begin
-            outstanding_robidx_flag <= robidx_flag;
-        end else if (lsu2arb_tbus_operation_done | is_idle) begin
-            outstanding_robidx_flag <= 'b0;
-        end
-    end
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            outstanding_robidx <= 'b0;
-        end else if (req_fire | mmio_valid) begin
-            outstanding_robidx <= robidx;
-        end else if (lsu2arb_tbus_operation_done | is_idle) begin
-            outstanding_robidx <= 'b0;
-        end
-    end
+    assign memblock_out_instr_valid   = flush_this_beat ? 1'b0 : mmio_valid_or_store ? 1'b1 : ldu_out_instr_valid;
+    assign memblock_out_need_to_wb    = mmio_valid_or_store ? is_load : ldu_out_need_to_wb;
+    assign memblock_out_prd           = mmio_valid_or_store ? prd : ldu_out_prd;
+    assign memblock_out_mmio          = mmio_valid;
+    assign memblock_out_robidx_flag   = mmio_valid_or_store ? robidx_flag : ldu_out_robidx_flag;
+    assign memblock_out_robidx        = mmio_valid_or_store ? robidx : ldu_out_robidx;
+    assign memblock_out_load_data     = ldu_out_load_data;
 
-    reg out_mmio_valid;
 
-    `MACRO_DFF_NONEN(out_mmio_valid, mmio_valid, 1)
+    /* -------------------------------------------------------------------------- */
+    /*                                  load unit                                 */
+    /* -------------------------------------------------------------------------- */
+    /* --------------------------- output to writeback -------------------------- */
+    wire                     ldu_out_instr_valid;
+    wire                     ldu_out_need_to_wb;
+    wire [      `PREG_RANGE] ldu_out_prd;
+    wire                     ldu_out_robidx_flag;
+    wire [`ROB_SIZE_LOG-1:0] ldu_out_robidx;
+    wire [    `RESULT_RANGE] ldu_out_load_data;
 
-    //when flush instr older than you,could not high out valid!
-    assign out_instr_valid = is_outstanding & (lsu2arb_tbus_operation_done) & ~need_flush | out_mmio_valid;
-    assign out_need_to_wb  = outstanding_need_to_wb;
+    wire                     flush_this_beat;
+    assign flush_this_beat = instr_valid & flush_valid & ((flush_robidx_flag ^ robidx_flag) ^ (flush_robidx < robidx));
 
-    assign out_prd         = outstanding_prd;
-    assign out_mmio        = out_mmio_valid;
 
-    assign out_robidx_flag = outstanding_robidx_flag;
-    assign out_robidx      = outstanding_robidx;
+    loadunit u_loadunit (
+        .clock                      (clock),
+        .reset_n                    (reset_n),
+        .flush_this_beat            (flush_this_beat),
+        .instr_valid                (instr_valid & is_load & ~mmio_valid),
+        .instr_ready                (instr_ready),
+        .prd                        (prd),
+        .is_load                    (is_load),
+        .is_unsigned                (is_unsigned),
+        .imm                        (imm),
+        .src1                       (src1),
+        .src2                       (src2),
+        .ls_size                    (ls_size),
+        .robidx_flag                (robidx_flag),
+        .robidx                     (robidx),
+        .lsu2arb_tbus_index_valid   (lsu2arb_tbus_index_valid),
+        .lsu2arb_tbus_index_ready   (lsu2arb_tbus_index_ready),
+        .lsu2arb_tbus_index         (lsu2arb_tbus_index),
+        .lsu2arb_tbus_write_data    (lsu2arb_tbus_write_data),
+        .lsu2arb_tbus_write_mask    (lsu2arb_tbus_write_mask),
+        .lsu2arb_tbus_read_data     (lsu2arb_tbus_read_data),
+        .lsu2arb_tbus_operation_done(lsu2arb_tbus_operation_done),
+        .lsu2arb_tbus_operation_type(lsu2arb_tbus_operation_type),
+        .flush_valid                (flush_valid),
+        .flush_robidx_flag          (flush_robidx_flag),
+        .flush_robidx               (flush_robidx),
+        .memblock2dcache_flush      (memblock2dcache_flush),
+        .ldu_out_instr_valid        (ldu_out_instr_valid),
+        .ldu_out_need_to_wb         (ldu_out_need_to_wb),
+        .ldu_out_prd                (ldu_out_prd),
+        .ldu_out_robidx_flag        (ldu_out_robidx_flag),
+        .ldu_out_robidx             (ldu_out_robidx),
+        .ldu_out_load_data          (ldu_out_load_data)
+    );
 
-    assign instr_ready     = ~mem_stall;
 endmodule

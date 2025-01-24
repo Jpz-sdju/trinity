@@ -1,15 +1,18 @@
 `include "defines.sv"
 module issuequeue (
-    input  wire               clock,
-    input  wire               reset_n,
-    input  wire               all_iq_ready,
-    input  wire               enq_instr0_valid,
-    output wire               enq_instr0_ready,
-    input  wire [`LREG_RANGE] enq_instr0_lrs1,
-    input  wire [`LREG_RANGE] enq_instr0_lrs2,
-    input  wire [`LREG_RANGE] enq_instr0_lrd,
-    input  wire [  `PC_RANGE] enq_instr0_pc,
-    input  wire [       31:0] enq_instr0,
+    input  wire clock,
+    input  wire reset_n,
+    //ready sigs,cause dispathc only can dispatch when rob,IQ,SQ both have avail entry
+    output wire iq_can_alloc0,
+    input  wire sq_can_alloc,
+
+    input wire               all_iq_ready,
+    input wire               enq_instr0_valid,
+    input wire [`LREG_RANGE] enq_instr0_lrs1,
+    input wire [`LREG_RANGE] enq_instr0_lrs2,
+    input wire [`LREG_RANGE] enq_instr0_lrd,
+    input wire [  `PC_RANGE] enq_instr0_pc,
+    input wire [       31:0] enq_instr0,
 
     input wire [              63:0] enq_instr0_imm,
     input wire                      enq_instr0_src1_is_reg,
@@ -147,7 +150,7 @@ module issuequeue (
     wire                             enq_has_avail_entry;
     wire                             enq_fire;
     assign enq_has_avail_entry = |(enq_ptr_oh & ~iq_entries_valid_dec);
-    assign enq_fire            = enq_has_avail_entry & enq_instr0_valid;
+    assign enq_fire            = enq_has_avail_entry & enq_instr0_valid & sq_can_alloc;
     always @(posedge clock or negedge reset_n) begin
         if (~reset_n) begin
             enq_ptr_oh <= 'b1;
@@ -194,7 +197,9 @@ module issuequeue (
     `MACRO_ENQ_DEC(enq_ptr_oh, iq_entries_enq_robidx_dec, enq_instr0_robidx, `ISSUE_QUEUE_DEPTH)
 
 
-    io_enq_policy enq_io_policy (
+    io_enq_policy #(
+        .QUEUE_SIZE(`ISSUE_QUEUE_DEPTH)
+    ) enq_io_policy (
         .clock          (clock),
         .reset_n        (reset_n),
         .flush          (flush_valid),
@@ -262,9 +267,13 @@ module issuequeue (
         end
     end
 
+    wire deq_has_req;
     wire deq_fire;
-    assign deq_fire = (|(deq_ptr_oh & iq_entries_valid_dec & iq_entries_ready_to_go_dec)) & deq_instr0_ready;
-    io_deq_policy io_deq_policy (
+    assign deq_has_req = (|(deq_ptr_oh & iq_entries_valid_dec & iq_entries_ready_to_go_dec));
+    assign deq_fire    = deq_has_req & deq_instr0_ready;
+    io_deq_policy #(
+        .QUEUE_SIZE(`ISSUE_QUEUE_DEPTH)
+    ) io_deq_policy (
         .clock          (clock),
         .reset_n        (reset_n),
         .flush          (flush_valid),
@@ -289,35 +298,35 @@ module issuequeue (
             end
         end
     end
-    assign deq_instr0_valid = |iq_entries_issuing_dec;
+    assign deq_instr0_valid = deq_has_req;
     /* -------------------------------------------------------------------------- */
     /*                               deq dec region                               */
     /* -------------------------------------------------------------------------- */
 
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_pc, iq_entries_deq_pc_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_prs1, iq_entries_deq_prs1_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_prs2, iq_entries_deq_prs2_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_src1_is_reg, iq_entries_deq_src1_is_reg_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_src2_is_reg, iq_entries_deq_src2_is_reg_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_prd, iq_entries_deq_prd_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_old_prd, iq_entries_deq_old_prd_dec, `ISSUE_QUEUE_DEPTH)
-    // `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0, iq_entries_deq_instr_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_imm, iq_entries_deq_imm_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_need_to_wb, iq_entries_deq_need_to_wb_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_cx_type, iq_entries_deq_cx_type_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_is_unsigned, iq_entries_deq_is_unsigned_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_alu_type, iq_entries_deq_alu_type_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_muldiv_type, iq_entries_deq_muldiv_type_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_is_word, iq_entries_deq_is_word_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_is_imm, iq_entries_deq_is_imm_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_is_load, iq_entries_deq_is_load_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_is_store, iq_entries_deq_is_store_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_ls_size, iq_entries_deq_ls_size_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_robidx_flag, iq_entries_deq_robidx_flag_dec, `ISSUE_QUEUE_DEPTH)
-    `MACRO_DEQ_DEC(iq_entries_issuing_dec, deq_instr0_robidx, iq_entries_deq_robidx_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_pc, iq_entries_deq_pc_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_prs1, iq_entries_deq_prs1_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_prs2, iq_entries_deq_prs2_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_src1_is_reg, iq_entries_deq_src1_is_reg_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_src2_is_reg, iq_entries_deq_src2_is_reg_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_prd, iq_entries_deq_prd_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_old_prd, iq_entries_deq_old_prd_dec, `ISSUE_QUEUE_DEPTH)
+    // `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0, iq_entries_deq_instr_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_imm, iq_entries_deq_imm_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_need_to_wb, iq_entries_deq_need_to_wb_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_cx_type, iq_entries_deq_cx_type_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_is_unsigned, iq_entries_deq_is_unsigned_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_alu_type, iq_entries_deq_alu_type_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_muldiv_type, iq_entries_deq_muldiv_type_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_is_word, iq_entries_deq_is_word_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_is_imm, iq_entries_deq_is_imm_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_is_load, iq_entries_deq_is_load_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_is_store, iq_entries_deq_is_store_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_ls_size, iq_entries_deq_ls_size_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_robidx_flag, iq_entries_deq_robidx_flag_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_robidx, iq_entries_deq_robidx_dec, `ISSUE_QUEUE_DEPTH)
 
 
-    assign enq_instr0_ready = enq_has_avail_entry;
+    assign iq_can_alloc0 = enq_has_avail_entry;
     genvar i;
     generate
         for (i = 0; i < `ISSUE_QUEUE_DEPTH; i = i + 1) begin : iq_entity

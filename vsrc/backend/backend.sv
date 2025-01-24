@@ -15,8 +15,6 @@ module backend (
     output wire [             63:0] redirect_target,
     output wire                     redirect_robidx_flag,
     output wire [`ROB_SIZE_LOG-1:0] redirect_robidx,
-    //stall pipeline
-    output wire                     mem_stall,
 
     /* -------------------------------------------------------------------------- */
     /*                                TO L1 D$/MEM                                */
@@ -37,9 +35,9 @@ module backend (
 );
 
     /* ---------------------------- issue information --------------------------- */
-    wire                      to_iq_instr0_ready;
+    wire                      iq_can_alloc0;
+    wire                      sq_can_alloc;
     wire                      to_iq_instr0_valid;
-    //used to memIQ
     wire                      to_iq_instr1_valid;
     wire [       `LREG_RANGE] to_iq_instr0_lrs1;
     wire [       `LREG_RANGE] to_iq_instr0_lrs2;
@@ -143,7 +141,9 @@ module backend (
         .ibuffer_inst_out        (ibuffer_inst_out),
         .ibuffer_pc_out          (ibuffer_pc_out),
         .ibuffer_ready           (ibuffer_ready),
-        .to_iq_instr0_ready      (to_iq_instr0_ready),
+        .iq_can_alloc0           (iq_can_alloc0),
+        .iq_can_alloc1           (),
+        .sq_can_alloc            (sq_can_alloc),
         .to_iq_instr0_valid      (to_iq_instr0_valid),
         .to_iq_instr0_lrs1       (to_iq_instr0_lrs1),
         .to_iq_instr0_lrs2       (to_iq_instr0_lrs2),
@@ -169,7 +169,6 @@ module backend (
         .to_iq_instr0_old_prd    (to_iq_instr0_old_prd),
         .to_iq_instr0_robidx_flag(to_iq_instr0_robidx_flag),
         .to_iq_instr0_robidx     (to_iq_instr0_robidx),
-        .to_iq_instr1_ready      (),
         .to_iq_instr1_valid      (),
         .to_iq_instr1_lrs1       (),
         .to_iq_instr1_lrs2       (),
@@ -319,13 +318,22 @@ module backend (
     wire                      intiq_ready;
     wire                      memiq_ready;
 
-    assign to_iq_instr0_ready = intiq_ready;  //& memiq_ready;
+
+xbar u_xbar(
+    .valid_in   (valid_in   ),
+    .ready_out0 (ready_out0 ),
+    .ready_out1 (ready_out1 ),
+    .valid_out  (valid_out  )
+);
+
+
     issuequeue u_issuequeue (
         .clock                 (clock),
         .reset_n               (reset_n),
         .all_iq_ready          (),
+        .iq_can_alloc0         (iq_can_alloc0),
+        .sq_can_alloc          (sq_can_alloc),
         .enq_instr0_valid      (to_iq_instr0_valid),
-        .enq_instr0_ready      (to_iq_instr0_ready),
         .enq_instr0_lrs1       (to_iq_instr0_lrs1),
         .enq_instr0_lrs2       (to_iq_instr0_lrs2),
         .enq_instr0_lrd        (to_iq_instr0_lrd),
@@ -534,7 +542,7 @@ module backend (
     wire                     memblock_out_instr_valid;
     wire                     memblock_out_need_to_wb;
     wire [      `PREG_RANGE] memblock_out_prd;
-    wire [    `RESULT_RANGE] memblock_out_opload_read_data_wb;
+    wire [    `RESULT_RANGE] memblock_out_load_data;
     wire                     memblock_out_mmio;
     wire                     memblock_out_robidx_flag;
     wire [`ROB_SIZE_LOG-1:0] memblock_out_robidx;
@@ -573,19 +581,17 @@ module backend (
         .lsu2arb_tbus_operation_done(lsu2arb_tbus_operation_done),
         .lsu2arb_tbus_operation_type(lsu2arb_tbus_operation_type),
         //output 
-        .out_instr_valid            (memblock_out_instr_valid),
-        .out_need_to_wb             (memblock_out_need_to_wb),
-        .out_prd                    (memblock_out_prd),
-        .opload_read_data_wb        (memblock_out_opload_read_data_wb),
-        .out_mmio                   (memblock_out_mmio),
-        .out_robidx_flag            (memblock_out_robidx_flag),
-        .out_robidx                 (memblock_out_robidx),
-        .out_store_addr             (memblock_out_store_addr),
-        .out_store_data             (memblock_out_store_data),
-        .out_store_mask             (memblock_out_store_mask),
-        .out_store_ls_size          (memblock_out_store_ls_size),
-
-        .mem_stall            (memblock_out_stall),
+        .memblock_out_instr_valid   (memblock_out_instr_valid),
+        .memblock_out_need_to_wb    (memblock_out_need_to_wb),
+        .memblock_out_prd           (memblock_out_prd),
+        .memblock_out_load_data     (memblock_out_load_data),
+        .memblock_out_mmio          (memblock_out_mmio),
+        .memblock_out_robidx_flag   (memblock_out_robidx_flag),
+        .memblock_out_robidx        (memblock_out_robidx),
+        .memblock_out_store_addr    (memblock_out_store_addr),
+        .memblock_out_store_data    (memblock_out_store_data),
+        .memblock_out_store_mask    (memblock_out_store_mask),
+        .memblock_out_store_ls_size (memblock_out_store_ls_size),
         /* -------------------------- redirect flush logic -------------------------- */
         .flush_valid          (redirect_valid),
         .flush_robidx_flag    (redirect_robidx_flag),
@@ -593,7 +599,6 @@ module backend (
         /* --------------------------- memblock to dcache --------------------------- */
         .memblock2dcache_flush(memblock2dcache_flush)
     );
-    assign mem_stall = memblock_out_stall;
 
     /* -------------------------------------------------------------------------- */
     /*                                 arb region                                 */
@@ -651,7 +656,7 @@ module backend (
     `MACRO_DFF_NONEN(writeback1_instr_valid, memblock_out_instr_valid, 1)
     `MACRO_DFF_NONEN(writeback1_need_to_wb, memblock_out_need_to_wb, 1)
     `MACRO_DFF_NONEN(writeback1_prd, memblock_out_prd, `PREG_LENGTH)
-    `MACRO_DFF_NONEN(writeback1_result, memblock_out_opload_read_data_wb, 64)
+    `MACRO_DFF_NONEN(writeback1_result, memblock_out_load_data, 64)
     `MACRO_DFF_NONEN(writeback1_mmio, memblock_out_mmio, 1)
     `MACRO_DFF_NONEN(writeback1_robidx_flag, memblock_out_robidx_flag, 1)
     `MACRO_DFF_NONEN(writeback1_robidx, memblock_out_robidx, `ROB_SIZE_LOG)

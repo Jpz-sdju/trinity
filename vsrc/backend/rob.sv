@@ -4,9 +4,12 @@
 module rob (
     input wire               clock,
     input wire               reset_n,
+    //ready sigs,cause dispathc only can dispatch when rob,IQ,SQ both have avail entry
+    input wire               iq_can_alloc0,
+    input wire               iq_can_alloc1,
+    input wire               sq_can_alloc,
     //rob enq logic
     input wire               instr0_enq_valid,
-    input wire               issuequeue2rob_instr0_can_accept,
     input wire [  `PC_RANGE] instr0_pc,
     input wire [       31:0] instr0,
     input wire [`LREG_RANGE] instr0_lrs1,
@@ -17,7 +20,6 @@ module rob (
     input wire               instr0_need_to_wb,
 
     input wire               instr1_enq_valid,
-    input wire               issuequeue2rob_instr1_can_accept,
     input wire [  `PC_RANGE] instr1_pc,
     input wire [       31:0] instr1,
     input wire [`LREG_RANGE] instr1_lrs1,
@@ -144,8 +146,10 @@ module rob (
     wire                     instr0_actually_enq;
     wire                     instr1_actually_enq;
 
-    assign instr0_actually_enq = instr0_enq_valid & issuequeue2rob_instr0_can_accept;
-    assign instr1_actually_enq = instr1_enq_valid & issuequeue2rob_instr1_can_accept;
+    //ready sigs,cause dispathc only can dispatch when rob,IQ,SQ both have avail entry
+
+    assign instr0_actually_enq = instr0_enq_valid & iq_can_alloc0 & sq_can_alloc;
+    assign instr1_actually_enq = instr1_enq_valid & iq_can_alloc1;
 
     /* -------------------------------------------------------------------------- */
     /*                        enq information to dec format                       */

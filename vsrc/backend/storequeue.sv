@@ -48,6 +48,10 @@ module storequeue (
     input  wire                      sq2arb_tbus_operation_done
 
 
+    /* ----------------------------- sq bypass port ----------------------------- */
+
+
+
 
 );
     /* -------------------------------------------------------------------------- */
@@ -209,12 +213,14 @@ module storequeue (
     /* -------------------------------------------------------------------------- */
     /*                                 flush logic                                */
     /* -------------------------------------------------------------------------- */
+
+    //when ready togo,cannot flush use robidx,cause idx compare would be lleagal
     always @(flush_valid or flush_robidx or flush_robidx_flag) begin
         integer i;
         flush_dec = 'b0;
         for (i = 0; i < `STOREQUEUE_DEPTH; i = i + 1) begin
             if (flush_valid) begin
-                if (flush_valid & sq_entries_valid_dec[i] & ((flush_robidx_flag ^ sq_entries_robidx_flag_dec[i]) ^ (flush_robidx < sq_entries_robidx_dec[i]))) begin
+                if (flush_valid & sq_entries_valid_dec[i] &(~sq_entries_ready_to_go_dec[i])&((flush_robidx_flag ^ sq_entries_robidx_flag_dec[i]) ^ (flush_robidx < sq_entries_robidx_dec[i]))) begin
                     flush_dec[i] = 1'b1;
                 end
             end

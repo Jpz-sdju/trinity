@@ -54,7 +54,7 @@ module io_deq_policy #(
     find_first1 #(
         .WIDTH(QUEUE_SIZE)
     ) u_find_last1 (
-        .data_in (valid_dec),
+        .data_in (valid_dec_except_deq_inc_enq),
         .data_out(data_out_last1)
     );
 

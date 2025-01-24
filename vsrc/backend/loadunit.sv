@@ -198,7 +198,7 @@ module loadunit (
         end else begin
             case (ls_state)
                 IDLE: begin
-                    if(req_fire)begin
+                    if(req_fire&~flush_this_beat)begin
                         ls_state <= TAKEIN;                        
                     end
                 end

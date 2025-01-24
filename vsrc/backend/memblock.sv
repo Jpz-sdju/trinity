@@ -99,7 +99,7 @@ module memblock (
     assign memblock_out_mmio          = mmio_valid;
     assign memblock_out_robidx_flag   = mmio_valid_or_store ? robidx_flag : ldu_out_robidx_flag;
     assign memblock_out_robidx        = mmio_valid_or_store ? robidx : ldu_out_robidx;
-    assign memblock_out_load_data     = ldu_out_load_data;
+    assign memblock_out_load_data     = mmio_valid_or_store ? 'b0 : ldu_out_load_data;
 
 
     /* -------------------------------------------------------------------------- */

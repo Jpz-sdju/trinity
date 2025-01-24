@@ -236,7 +236,7 @@ module storequeue (
     end
     assign deq_has_req    = (|(deq_ptr_oh & sq_entries_valid_dec & sq_entries_ready_to_go_dec & ~sq_entries_mmio_dec));
     assign mmio_fake_fire = (|(deq_ptr_oh & sq_entries_valid_dec & sq_entries_ready_to_go_dec & sq_entries_mmio_dec));
-    assign deq_fire       = deq_has_req & sq2arb_tbus_operation_done | mmio_fake_fire;
+    assign deq_fire       = deq_has_req & sq2arb_tbus_index_ready | mmio_fake_fire;
 
 
     always @(*) begin

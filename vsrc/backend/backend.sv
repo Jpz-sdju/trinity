@@ -319,13 +319,6 @@ module backend (
     wire                      memiq_ready;
 
 
-xbar u_xbar(
-    .valid_in   (valid_in   ),
-    .ready_out0 (ready_out0 ),
-    .ready_out1 (ready_out1 ),
-    .valid_out  (valid_out  )
-);
-
 
     issuequeue u_issuequeue (
         .clock                 (clock),
@@ -500,13 +493,20 @@ xbar u_xbar(
     wire                     intblock_out_redirect_valid;
     wire [             63:0] intblock_out_redirect_target;
 
-    //assign issue ready to all ready!
+    wire xbar_valid;
+    xbar u_xbar (
+        .valid_in  (deq_instr0_valid),
+        .ready_out0(intblock_instr_ready),
+        .ready_out1(memblock_instr_ready),
+        .valid_out (xbar_valid)
+    );
+
 
     //can use instr_valid to control a clock gate here to save power
     intblock u_intblock (
         .clock      (clock),
         .reset_n    (reset_n),
-        .instr_valid(deq_instr0_valid & ~(deq_instr0_is_load | deq_instr0_is_store)),
+        .instr_valid(xbar_valid & ~(deq_instr0_is_load | deq_instr0_is_store)),
         .instr_ready(intblock_instr_ready),
         .prd        (deq_instr0_prd),
         .src1       (deq_instr0_src1),
@@ -558,7 +558,7 @@ xbar u_xbar(
     memblock u_memblock (
         .clock      (clock),
         .reset_n    (reset_n),
-        .instr_valid(deq_instr0_valid & (deq_instr0_is_load | deq_instr0_is_store)),
+        .instr_valid(xbar_valid & (deq_instr0_is_load | deq_instr0_is_store)),
         .instr_ready(memblock_instr_ready),
         .prd        (deq_instr0_prd),
         .is_load    (deq_instr0_is_load),
@@ -593,11 +593,11 @@ xbar u_xbar(
         .memblock_out_store_mask    (memblock_out_store_mask),
         .memblock_out_store_ls_size (memblock_out_store_ls_size),
         /* -------------------------- redirect flush logic -------------------------- */
-        .flush_valid          (redirect_valid),
-        .flush_robidx_flag    (redirect_robidx_flag),
-        .flush_robidx         (redirect_robidx),
+        .flush_valid                (redirect_valid),
+        .flush_robidx_flag          (redirect_robidx_flag),
+        .flush_robidx               (redirect_robidx),
         /* --------------------------- memblock to dcache --------------------------- */
-        .memblock2dcache_flush(memblock2dcache_flush)
+        .memblock2dcache_flush      (memblock2dcache_flush)
     );
 
     /* -------------------------------------------------------------------------- */

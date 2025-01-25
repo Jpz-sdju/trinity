@@ -35,74 +35,76 @@ module backend (
 );
 
     /* ---------------------------- issue information --------------------------- */
-    wire                      iq_can_alloc0;
-    wire                      sq_can_alloc;
-    wire                      to_iq_instr0_valid;
-    wire                      to_iq_instr1_valid;
-    wire [       `LREG_RANGE] to_iq_instr0_lrs1;
-    wire [       `LREG_RANGE] to_iq_instr0_lrs2;
-    wire [       `LREG_RANGE] to_iq_instr0_lrd;
-    wire [         `PC_RANGE] to_iq_instr0_pc;
-    wire [              31:0] to_iq_instr0;
+    wire                       iq_can_alloc0;
+    wire                       sq_can_alloc;
+    wire                       to_iq_instr0_valid;
+    wire                       to_iq_instr1_valid;
+    wire [        `LREG_RANGE] to_iq_instr0_lrs1;
+    wire [        `LREG_RANGE] to_iq_instr0_lrs2;
+    wire [        `LREG_RANGE] to_iq_instr0_lrd;
+    wire [          `PC_RANGE] to_iq_instr0_pc;
+    wire [               31:0] to_iq_instr0;
 
-    wire [              63:0] to_iq_instr0_imm;
-    wire                      to_iq_instr0_src1_is_reg;
-    wire                      to_iq_instr0_src2_is_reg;
-    wire                      to_iq_instr0_need_to_wb;
-    wire [    `CX_TYPE_RANGE] to_iq_instr0_cx_type;
-    wire                      to_iq_instr0_is_unsigned;
-    wire [   `ALU_TYPE_RANGE] to_iq_instr0_alu_type;
-    wire [`MULDIV_TYPE_RANGE] to_iq_instr0_muldiv_type;
-    wire                      to_iq_instr0_is_word;
-    wire                      to_iq_instr0_is_imm;
-    wire                      to_iq_instr0_is_load;
-    wire                      to_iq_instr0_is_store;
-    wire [               3:0] to_iq_instr0_ls_size;
+    wire [               63:0] to_iq_instr0_imm;
+    wire                       to_iq_instr0_src1_is_reg;
+    wire                       to_iq_instr0_src2_is_reg;
+    wire                       to_iq_instr0_need_to_wb;
+    wire [     `CX_TYPE_RANGE] to_iq_instr0_cx_type;
+    wire                       to_iq_instr0_is_unsigned;
+    wire [    `ALU_TYPE_RANGE] to_iq_instr0_alu_type;
+    wire [ `MULDIV_TYPE_RANGE] to_iq_instr0_muldiv_type;
+    wire                       to_iq_instr0_is_word;
+    wire                       to_iq_instr0_is_imm;
+    wire                       to_iq_instr0_is_load;
+    wire                       to_iq_instr0_is_store;
+    wire [                3:0] to_iq_instr0_ls_size;
 
-    wire [       `PREG_RANGE] to_iq_instr0_prs1;
-    wire [       `PREG_RANGE] to_iq_instr0_prs2;
-    wire [       `PREG_RANGE] to_iq_instr0_prd;
-    wire [       `PREG_RANGE] to_iq_instr0_old_prd;
+    wire [        `PREG_RANGE] to_iq_instr0_prs1;
+    wire [        `PREG_RANGE] to_iq_instr0_prs2;
+    wire [        `PREG_RANGE] to_iq_instr0_prd;
+    wire [        `PREG_RANGE] to_iq_instr0_old_prd;
 
-    wire                      to_iq_instr0_robidx_flag;
-    wire [ `ROB_SIZE_LOG-1:0] to_iq_instr0_robidx;
+    wire                       to_iq_instr0_robidx_flag;
+    wire [  `ROB_SIZE_LOG-1:0] to_iq_instr0_robidx;
+    wire                       to_iq_instr0_sqidx_flag;
+    wire [`STOREQUEUE_LOG-1:0] to_iq_instr0_sqidx;
 
-    wire                      to_iq_instr0_src1_state;
-    wire                      to_iq_instr0_src2_state;
+    wire                       to_iq_instr0_src1_state;
+    wire                       to_iq_instr0_src2_state;
 
     /* ------------------- debug:to pregfile read for difftest ------------------ */
-    wire [       `PREG_RANGE] debug_preg0;
-    wire [       `PREG_RANGE] debug_preg1;
-    wire [       `PREG_RANGE] debug_preg2;
-    wire [       `PREG_RANGE] debug_preg3;
-    wire [       `PREG_RANGE] debug_preg4;
-    wire [       `PREG_RANGE] debug_preg5;
-    wire [       `PREG_RANGE] debug_preg6;
-    wire [       `PREG_RANGE] debug_preg7;
-    wire [       `PREG_RANGE] debug_preg8;
-    wire [       `PREG_RANGE] debug_preg9;
-    wire [       `PREG_RANGE] debug_preg10;
-    wire [       `PREG_RANGE] debug_preg11;
-    wire [       `PREG_RANGE] debug_preg12;
-    wire [       `PREG_RANGE] debug_preg13;
-    wire [       `PREG_RANGE] debug_preg14;
-    wire [       `PREG_RANGE] debug_preg15;
-    wire [       `PREG_RANGE] debug_preg16;
-    wire [       `PREG_RANGE] debug_preg17;
-    wire [       `PREG_RANGE] debug_preg18;
-    wire [       `PREG_RANGE] debug_preg19;
-    wire [       `PREG_RANGE] debug_preg20;
-    wire [       `PREG_RANGE] debug_preg21;
-    wire [       `PREG_RANGE] debug_preg22;
-    wire [       `PREG_RANGE] debug_preg23;
-    wire [       `PREG_RANGE] debug_preg24;
-    wire [       `PREG_RANGE] debug_preg25;
-    wire [       `PREG_RANGE] debug_preg26;
-    wire [       `PREG_RANGE] debug_preg27;
-    wire [       `PREG_RANGE] debug_preg28;
-    wire [       `PREG_RANGE] debug_preg29;
-    wire [       `PREG_RANGE] debug_preg30;
-    wire [       `PREG_RANGE] debug_preg31;
+    wire [        `PREG_RANGE] debug_preg0;
+    wire [        `PREG_RANGE] debug_preg1;
+    wire [        `PREG_RANGE] debug_preg2;
+    wire [        `PREG_RANGE] debug_preg3;
+    wire [        `PREG_RANGE] debug_preg4;
+    wire [        `PREG_RANGE] debug_preg5;
+    wire [        `PREG_RANGE] debug_preg6;
+    wire [        `PREG_RANGE] debug_preg7;
+    wire [        `PREG_RANGE] debug_preg8;
+    wire [        `PREG_RANGE] debug_preg9;
+    wire [        `PREG_RANGE] debug_preg10;
+    wire [        `PREG_RANGE] debug_preg11;
+    wire [        `PREG_RANGE] debug_preg12;
+    wire [        `PREG_RANGE] debug_preg13;
+    wire [        `PREG_RANGE] debug_preg14;
+    wire [        `PREG_RANGE] debug_preg15;
+    wire [        `PREG_RANGE] debug_preg16;
+    wire [        `PREG_RANGE] debug_preg17;
+    wire [        `PREG_RANGE] debug_preg18;
+    wire [        `PREG_RANGE] debug_preg19;
+    wire [        `PREG_RANGE] debug_preg20;
+    wire [        `PREG_RANGE] debug_preg21;
+    wire [        `PREG_RANGE] debug_preg22;
+    wire [        `PREG_RANGE] debug_preg23;
+    wire [        `PREG_RANGE] debug_preg24;
+    wire [        `PREG_RANGE] debug_preg25;
+    wire [        `PREG_RANGE] debug_preg26;
+    wire [        `PREG_RANGE] debug_preg27;
+    wire [        `PREG_RANGE] debug_preg28;
+    wire [        `PREG_RANGE] debug_preg29;
+    wire [        `PREG_RANGE] debug_preg30;
+    wire [        `PREG_RANGE] debug_preg31;
 
 
     /* -------------------------------------------------------------------------- */
@@ -111,90 +113,93 @@ module backend (
 
 
     /* ------------------------- sq to dcache port ------------------------ */
-    wire                      sq2arb_tbus_index_valid;
-    wire                      sq2arb_tbus_index_ready;
-    wire [     `RESULT_RANGE] sq2arb_tbus_index;
-    wire [        `SRC_RANGE] sq2arb_tbus_write_data;
-    wire [              63:0] sq2arb_tbus_write_mask;
-    wire [     `RESULT_RANGE] sq2arb_tbus_read_data;
-    wire [`TBUS_OPTYPE_RANGE] sq2arb_tbus_operation_type;
-    wire                      sq2arb_tbus_operation_done;
+    wire                       sq2arb_tbus_index_valid;
+    wire                       sq2arb_tbus_index_ready;
+    wire [      `RESULT_RANGE] sq2arb_tbus_index;
+    wire [         `SRC_RANGE] sq2arb_tbus_write_data;
+    wire [               63:0] sq2arb_tbus_write_mask;
+    wire [      `RESULT_RANGE] sq2arb_tbus_read_data;
+    wire [ `TBUS_OPTYPE_RANGE] sq2arb_tbus_operation_type;
+    wire                       sq2arb_tbus_operation_done;
 
     /* --------------------------- lsu to dcache port --------------------------- */
-    wire                      lsu2arb_tbus_index_valid;
-    wire                      lsu2arb_tbus_index_ready;
-    wire [     `RESULT_RANGE] lsu2arb_tbus_index;
-    wire [        `SRC_RANGE] lsu2arb_tbus_write_data;
-    wire [              63:0] lsu2arb_tbus_write_mask;
-    wire [     `RESULT_RANGE] lsu2arb_tbus_read_data;
-    wire [`TBUS_OPTYPE_RANGE] lsu2arb_tbus_operation_type;
-    wire                      lsu2arb_tbus_operation_done;
+    wire                       lsu2arb_tbus_index_valid;
+    wire                       lsu2arb_tbus_index_ready;
+    wire [      `RESULT_RANGE] lsu2arb_tbus_index;
+    wire [         `SRC_RANGE] lsu2arb_tbus_write_data;
+    wire [               63:0] lsu2arb_tbus_write_mask;
+    wire [      `RESULT_RANGE] lsu2arb_tbus_read_data;
+    wire [ `TBUS_OPTYPE_RANGE] lsu2arb_tbus_operation_type;
+    wire                       lsu2arb_tbus_operation_done;
 
     /* -------------------------------------------------------------------------- */
     /*                                ctrl block                                  */
     /* -------------------------------------------------------------------------- */
 
     ctrlblock u_ctrlblock (
-        .clock                   (clock),
-        .reset_n                 (reset_n),
-        .ibuffer_instr_valid     (ibuffer_instr_valid),
-        .ibuffer_inst_out        (ibuffer_inst_out),
-        .ibuffer_pc_out          (ibuffer_pc_out),
-        .ibuffer_ready           (ibuffer_ready),
-        .iq_can_alloc0           (iq_can_alloc0),
-        .iq_can_alloc1           (),
-        .sq_can_alloc            (sq_can_alloc),
-        .to_iq_instr0_valid      (to_iq_instr0_valid),
-        .to_iq_instr0_lrs1       (to_iq_instr0_lrs1),
-        .to_iq_instr0_lrs2       (to_iq_instr0_lrs2),
-        .to_iq_instr0_lrd        (to_iq_instr0_lrd),
-        .to_iq_instr0_pc         (to_iq_instr0_pc),
-        .to_iq_instr0            (to_iq_instr0),
-        .to_iq_instr0_imm        (to_iq_instr0_imm),
-        .to_iq_instr0_src1_is_reg(to_iq_instr0_src1_is_reg),
-        .to_iq_instr0_src2_is_reg(to_iq_instr0_src2_is_reg),
-        .to_iq_instr0_need_to_wb (to_iq_instr0_need_to_wb),
-        .to_iq_instr0_cx_type    (to_iq_instr0_cx_type),
-        .to_iq_instr0_is_unsigned(to_iq_instr0_is_unsigned),
-        .to_iq_instr0_alu_type   (to_iq_instr0_alu_type),
-        .to_iq_instr0_muldiv_type(to_iq_instr0_muldiv_type),
-        .to_iq_instr0_is_word    (to_iq_instr0_is_word),
-        .to_iq_instr0_is_imm     (to_iq_instr0_is_imm),
-        .to_iq_instr0_is_load    (to_iq_instr0_is_load),
-        .to_iq_instr0_is_store   (to_iq_instr0_is_store),
-        .to_iq_instr0_ls_size    (to_iq_instr0_ls_size),
-        .to_iq_instr0_prs1       (to_iq_instr0_prs1),
-        .to_iq_instr0_prs2       (to_iq_instr0_prs2),
-        .to_iq_instr0_prd        (to_iq_instr0_prd),
-        .to_iq_instr0_old_prd    (to_iq_instr0_old_prd),
-        .to_iq_instr0_robidx_flag(to_iq_instr0_robidx_flag),
-        .to_iq_instr0_robidx     (to_iq_instr0_robidx),
-        .to_iq_instr1_valid      (),
-        .to_iq_instr1_lrs1       (),
-        .to_iq_instr1_lrs2       (),
-        .to_iq_instr1_lrd        (),
-        .to_iq_instr1_pc         (),
-        .to_iq_instr1            (),
-        .to_iq_instr1_imm        (),
-        .to_iq_instr1_src1_is_reg(),
-        .to_iq_instr1_src2_is_reg(),
-        .to_iq_instr1_need_to_wb (),
-        .to_iq_instr1_cx_type    (),
-        .to_iq_instr1_is_unsigned(),
-        .to_iq_instr1_alu_type   (),
-        .to_iq_instr1_muldiv_type(),
-        .to_iq_instr1_is_word    (),
-        .to_iq_instr1_is_imm     (),
-        .to_iq_instr1_is_load    (),
-        .to_iq_instr1_is_store   (),
-        .to_iq_instr1_ls_size    (),
-        .to_iq_instr1_prs1       (),
-        .to_iq_instr1_prs2       (),
-        .to_iq_instr1_prd        (),
-        .to_iq_instr1_old_prd    (),
-        .to_iq_instr1_robidx_flag(),
-        .to_iq_instr1_robidx     (),
-
+        .clock                     (clock),
+        .reset_n                   (reset_n),
+        .ibuffer_instr_valid       (ibuffer_instr_valid),
+        .ibuffer_inst_out          (ibuffer_inst_out),
+        .ibuffer_pc_out            (ibuffer_pc_out),
+        .ibuffer_ready             (ibuffer_ready),
+        .iq_can_alloc0             (iq_can_alloc0),
+        .iq_can_alloc1             (),
+        .sq_can_alloc              (sq_can_alloc),
+        .to_iq_instr0_valid        (to_iq_instr0_valid),
+        .to_iq_instr0_lrs1         (to_iq_instr0_lrs1),
+        .to_iq_instr0_lrs2         (to_iq_instr0_lrs2),
+        .to_iq_instr0_lrd          (to_iq_instr0_lrd),
+        .to_iq_instr0_pc           (to_iq_instr0_pc),
+        .to_iq_instr0              (to_iq_instr0),
+        .to_iq_instr0_imm          (to_iq_instr0_imm),
+        .to_iq_instr0_src1_is_reg  (to_iq_instr0_src1_is_reg),
+        .to_iq_instr0_src2_is_reg  (to_iq_instr0_src2_is_reg),
+        .to_iq_instr0_need_to_wb   (to_iq_instr0_need_to_wb),
+        .to_iq_instr0_cx_type      (to_iq_instr0_cx_type),
+        .to_iq_instr0_is_unsigned  (to_iq_instr0_is_unsigned),
+        .to_iq_instr0_alu_type     (to_iq_instr0_alu_type),
+        .to_iq_instr0_muldiv_type  (to_iq_instr0_muldiv_type),
+        .to_iq_instr0_is_word      (to_iq_instr0_is_word),
+        .to_iq_instr0_is_imm       (to_iq_instr0_is_imm),
+        .to_iq_instr0_is_load      (to_iq_instr0_is_load),
+        .to_iq_instr0_is_store     (to_iq_instr0_is_store),
+        .to_iq_instr0_ls_size      (to_iq_instr0_ls_size),
+        .to_iq_instr0_prs1         (to_iq_instr0_prs1),
+        .to_iq_instr0_prs2         (to_iq_instr0_prs2),
+        .to_iq_instr0_prd          (to_iq_instr0_prd),
+        .to_iq_instr0_old_prd      (to_iq_instr0_old_prd),
+        .to_iq_instr0_robidx_flag  (to_iq_instr0_robidx_flag),
+        .to_iq_instr0_robidx       (to_iq_instr0_robidx),
+        .to_iq_instr0_sqidx_flag   (to_iq_instr0_sqidx_flag),
+        .to_iq_instr0_sqidx        (to_iq_instr0_sqidx),
+        .to_iq_instr1_valid        (),
+        .to_iq_instr1_lrs1         (),
+        .to_iq_instr1_lrs2         (),
+        .to_iq_instr1_lrd          (),
+        .to_iq_instr1_pc           (),
+        .to_iq_instr1              (),
+        .to_iq_instr1_imm          (),
+        .to_iq_instr1_src1_is_reg  (),
+        .to_iq_instr1_src2_is_reg  (),
+        .to_iq_instr1_need_to_wb   (),
+        .to_iq_instr1_cx_type      (),
+        .to_iq_instr1_is_unsigned  (),
+        .to_iq_instr1_alu_type     (),
+        .to_iq_instr1_muldiv_type  (),
+        .to_iq_instr1_is_word      (),
+        .to_iq_instr1_is_imm       (),
+        .to_iq_instr1_is_load      (),
+        .to_iq_instr1_is_store     (),
+        .to_iq_instr1_ls_size      (),
+        .to_iq_instr1_prs1         (),
+        .to_iq_instr1_prs2         (),
+        .to_iq_instr1_prd          (),
+        .to_iq_instr1_old_prd      (),
+        .to_iq_instr1_robidx_flag  (),
+        .to_iq_instr1_robidx       (),
+        .to_iq_instr1_sqidx_flag   (),
+        .to_iq_instr1_sqidx        (),
         //src state
         .to_iq_instr0_src1_state   (to_iq_instr0_src1_state),
         .to_iq_instr0_src2_state   (to_iq_instr0_src2_state),
@@ -231,6 +236,16 @@ module backend (
         .sq2arb_tbus_read_data     (sq2arb_tbus_read_data),
         .sq2arb_tbus_operation_type(sq2arb_tbus_operation_type),
         .sq2arb_tbus_operation_done(sq2arb_tbus_operation_done),
+        /* --------------------------------- forward -------------------------------- */
+        .ldu2sq_forward_req_valid     (ldu2sq_forward_req_valid),
+        .ldu2sq_forward_req_sqidx_flag(ldu2sq_forward_req_sqidx_flag),
+        .ldu2sq_forward_req_sqmask    (ldu2sq_forward_req_sqmask),
+        .ldu2sq_forward_req_load_addr (ldu2sq_forward_req_load_addr),
+        .ldu2sq_forward_req_load_mask (ldu2sq_forward_req_load_mask),
+        .ldu2sq_forward_resp_valid    (ldu2sq_forward_resp_valid),
+        .ldu2sq_forward_resp_data     (ldu2sq_forward_resp_data),
+        .ldu2sq_forward_resp_mask     (ldu2sq_forward_resp_mask),
+
         //debug
         .debug_preg0               (debug_preg0),
         .debug_preg1               (debug_preg1),
@@ -278,33 +293,34 @@ module backend (
     /* -------------------------------------------------------------------------- */
 
     /* ------------------------------- to intBlock ------------------------------ */
-    wire                      deq_instr0_valid;
-    wire                      deq_instr0_ready;
-    wire [       `PREG_RANGE] deq_instr0_prs1;
-    wire [       `PREG_RANGE] deq_instr0_prs2;
-    wire                      deq_instr0_src1_is_reg;
-    wire                      deq_instr0_src2_is_reg;
+    wire                       deq_instr0_valid;
+    wire                       deq_instr0_ready;
+    wire [        `PREG_RANGE] deq_instr0_prs1;
+    wire [        `PREG_RANGE] deq_instr0_prs2;
+    wire                       deq_instr0_src1_is_reg;
+    wire                       deq_instr0_src2_is_reg;
 
-    wire [       `PREG_RANGE] deq_instr0_prd;
-    wire [       `PREG_RANGE] deq_instr0_old_prd;
+    wire [        `PREG_RANGE] deq_instr0_prd;
+    wire [        `PREG_RANGE] deq_instr0_old_prd;
 
-    wire [        `SRC_RANGE] deq_instr0_pc;
-    wire [        `SRC_RANGE] deq_instr0_imm;
+    wire [         `SRC_RANGE] deq_instr0_pc;
+    wire [         `SRC_RANGE] deq_instr0_imm;
 
-    wire                      deq_instr0_need_to_wb;
-    wire [    `CX_TYPE_RANGE] deq_instr0_cx_type;
-    wire                      deq_instr0_is_unsigned;
-    wire [   `ALU_TYPE_RANGE] deq_instr0_alu_type;
-    wire [`MULDIV_TYPE_RANGE] deq_instr0_muldiv_type;
-    wire                      deq_instr0_is_word;
-    wire                      deq_instr0_is_imm;
-    wire                      deq_instr0_is_load;
-    wire                      deq_instr0_is_store;
-    wire [               3:0] deq_instr0_ls_size;
+    wire                       deq_instr0_need_to_wb;
+    wire [     `CX_TYPE_RANGE] deq_instr0_cx_type;
+    wire                       deq_instr0_is_unsigned;
+    wire [    `ALU_TYPE_RANGE] deq_instr0_alu_type;
+    wire [ `MULDIV_TYPE_RANGE] deq_instr0_muldiv_type;
+    wire                       deq_instr0_is_word;
+    wire                       deq_instr0_is_imm;
+    wire                       deq_instr0_is_load;
+    wire                       deq_instr0_is_store;
+    wire [                3:0] deq_instr0_ls_size;
 
-    wire                      deq_instr0_robidx_flag;
-    wire [ `ROB_SIZE_LOG-1:0] deq_instr0_robidx;
-
+    wire                       deq_instr0_robidx_flag;
+    wire [  `ROB_SIZE_LOG-1:0] deq_instr0_robidx;
+    wire                       deq_instr0_sqidx_flag;
+    wire [`STOREQUEUE_LOG-1:0] deq_instr0_sqidx;
     /* ------------------------------- to memBlock ------------------------------ */
 
 
@@ -313,10 +329,10 @@ module backend (
     /*                                 issue queue                                */
     /* -------------------------------------------------------------------------- */
 
-    wire                      is_lsu = to_iq_instr0_is_load | to_iq_instr0_is_store;
-    wire                      is_alu = ~is_lsu;
-    wire                      intiq_ready;
-    wire                      memiq_ready;
+    wire                       is_lsu = to_iq_instr0_is_load | to_iq_instr0_is_store;
+    wire                       is_alu = ~is_lsu;
+    wire                       intiq_ready;
+    wire                       memiq_ready;
 
 
 
@@ -351,6 +367,8 @@ module backend (
         .enq_instr0_old_prd    (to_iq_instr0_old_prd),
         .enq_instr0_robidx_flag(to_iq_instr0_robidx_flag),
         .enq_instr0_robidx     (to_iq_instr0_robidx),
+        .enq_instr0_sqidx_flag (to_iq_instr0_sqidx_flag),
+        .enq_instr0_sqidx      (to_iq_instr0_sqidx),
         .enq_instr0_src1_state (to_iq_instr0_src1_state),
         .enq_instr0_src2_state (to_iq_instr0_src2_state),
         .deq_instr0_valid      (deq_instr0_valid),
@@ -375,6 +393,8 @@ module backend (
         .deq_instr0_ls_size    (deq_instr0_ls_size),
         .deq_instr0_robidx_flag(deq_instr0_robidx_flag),
         .deq_instr0_robidx     (deq_instr0_robidx),
+        .deq_instr0_sqidx_flag (deq_instr0_sqidx_flag),
+        .deq_instr0_sqidx      (deq_instr0_sqidx),
         /* ------------------------- writeback wakeup logic ------------------------- */
         .writeback0_valid      (writeback0_instr_valid),
         .writeback0_need_to_wb (writeback0_need_to_wb),
@@ -493,7 +513,7 @@ module backend (
     wire                     intblock_out_redirect_valid;
     wire [             63:0] intblock_out_redirect_target;
 
-    wire xbar_valid;
+    wire                     xbar_valid;
     xbar u_xbar (
         .valid_in  (deq_instr0_valid),
         .ready_out0(intblock_instr_ready),
@@ -539,65 +559,85 @@ module backend (
     );
 
 
-    wire                     memblock_out_instr_valid;
-    wire                     memblock_out_need_to_wb;
-    wire [      `PREG_RANGE] memblock_out_prd;
-    wire [    `RESULT_RANGE] memblock_out_load_data;
-    wire                     memblock_out_mmio;
-    wire                     memblock_out_robidx_flag;
-    wire [`ROB_SIZE_LOG-1:0] memblock_out_robidx;
+    wire                         memblock_out_instr_valid;
+    wire                         memblock_out_need_to_wb;
+    wire [          `PREG_RANGE] memblock_out_prd;
+    wire [        `RESULT_RANGE] memblock_out_load_data;
+    wire                         memblock_out_mmio;
+    wire                         memblock_out_robidx_flag;
+    wire [    `ROB_SIZE_LOG-1:0] memblock_out_robidx;
 
-    wire [       `SRC_RANGE] memblock_out_store_addr;
-    wire [       `SRC_RANGE] memblock_out_store_data;
-    wire [       `SRC_RANGE] memblock_out_store_mask;
-    wire [              3:0] memblock_out_store_ls_size;
+    wire [           `SRC_RANGE] memblock_out_store_addr;
+    wire [           `SRC_RANGE] memblock_out_store_data;
+    wire [           `SRC_RANGE] memblock_out_store_mask;
+    wire [                  3:0] memblock_out_store_ls_size;
+    wire                         memblock_out_stall;
+
+    wire                         ldu2sq_forward_req_valid;
+    wire                         ldu2sq_forward_req_sqidx_flag;
+    wire [`STOREQUEUE_DEPTH-1:0] ldu2sq_forward_req_sqmask;
+    wire [           `SRC_RANGE] ldu2sq_forward_req_load_addr;
+    wire [           `SRC_RANGE] ldu2sq_forward_req_load_mask;
+    wire                         ldu2sq_forward_resp_valid;
+    wire [           `SRC_RANGE] ldu2sq_forward_resp_data;
+    wire [           `SRC_RANGE] ldu2sq_forward_resp_mask;
 
 
-    wire                     memblock_out_stall;
+
     //can use instr_valid to control a clock gate here to save power
     memblock u_memblock (
-        .clock      (clock),
-        .reset_n    (reset_n),
-        .instr_valid(xbar_valid & (deq_instr0_is_load | deq_instr0_is_store)),
-        .instr_ready(memblock_instr_ready),
-        .prd        (deq_instr0_prd),
-        .is_load    (deq_instr0_is_load),
-        .is_store   (deq_instr0_is_store),
-        .is_unsigned(deq_instr0_is_unsigned),
-        .imm        (deq_instr0_imm),
-        .src1       (deq_instr0_src1),
-        .src2       (deq_instr0_src2),
-        .ls_size    (deq_instr0_ls_size),
-        .robidx_flag(deq_instr0_robidx_flag),
-        .robidx     (deq_instr0_robidx),
-
+        .clock                        (clock),
+        .reset_n                      (reset_n),
+        .instr_valid                  (xbar_valid & (deq_instr0_is_load | deq_instr0_is_store)),
+        .instr_ready                  (memblock_instr_ready),
+        .prd                          (deq_instr0_prd),
+        .is_load                      (deq_instr0_is_load),
+        .is_store                     (deq_instr0_is_store),
+        .is_unsigned                  (deq_instr0_is_unsigned),
+        .imm                          (deq_instr0_imm),
+        .src1                         (deq_instr0_src1),
+        .src2                         (deq_instr0_src2),
+        .ls_size                      (deq_instr0_ls_size),
+        .robidx_flag                  (deq_instr0_robidx_flag),
+        .robidx                       (deq_instr0_robidx),
+        .sqidx_flag                   (deq_instr0_sqidx_flag),
+        .sqidx                        (deq_instr0_sqidx),
         //trinity bus channel
-        .lsu2arb_tbus_index_valid   (lsu2arb_tbus_index_valid),
-        .lsu2arb_tbus_index_ready   (lsu2arb_tbus_index_ready),
-        .lsu2arb_tbus_index         (lsu2arb_tbus_index),
-        .lsu2arb_tbus_write_data    (lsu2arb_tbus_write_data),
-        .lsu2arb_tbus_write_mask    (lsu2arb_tbus_write_mask),
-        .lsu2arb_tbus_read_data     (lsu2arb_tbus_read_data),
-        .lsu2arb_tbus_operation_done(lsu2arb_tbus_operation_done),
-        .lsu2arb_tbus_operation_type(lsu2arb_tbus_operation_type),
+        .lsu2arb_tbus_index_valid     (lsu2arb_tbus_index_valid),
+        .lsu2arb_tbus_index_ready     (lsu2arb_tbus_index_ready),
+        .lsu2arb_tbus_index           (lsu2arb_tbus_index),
+        .lsu2arb_tbus_write_data      (lsu2arb_tbus_write_data),
+        .lsu2arb_tbus_write_mask      (lsu2arb_tbus_write_mask),
+        .lsu2arb_tbus_read_data       (lsu2arb_tbus_read_data),
+        .lsu2arb_tbus_operation_done  (lsu2arb_tbus_operation_done),
+        .lsu2arb_tbus_operation_type  (lsu2arb_tbus_operation_type),
         //output 
-        .memblock_out_instr_valid   (memblock_out_instr_valid),
-        .memblock_out_need_to_wb    (memblock_out_need_to_wb),
-        .memblock_out_prd           (memblock_out_prd),
-        .memblock_out_load_data     (memblock_out_load_data),
-        .memblock_out_mmio          (memblock_out_mmio),
-        .memblock_out_robidx_flag   (memblock_out_robidx_flag),
-        .memblock_out_robidx        (memblock_out_robidx),
-        .memblock_out_store_addr    (memblock_out_store_addr),
-        .memblock_out_store_data    (memblock_out_store_data),
-        .memblock_out_store_mask    (memblock_out_store_mask),
-        .memblock_out_store_ls_size (memblock_out_store_ls_size),
+        .memblock_out_instr_valid     (memblock_out_instr_valid),
+        .memblock_out_need_to_wb      (memblock_out_need_to_wb),
+        .memblock_out_prd             (memblock_out_prd),
+        .memblock_out_load_data       (memblock_out_load_data),
+        .memblock_out_mmio            (memblock_out_mmio),
+        .memblock_out_robidx_flag     (memblock_out_robidx_flag),
+        .memblock_out_robidx          (memblock_out_robidx),
+        .memblock_out_store_addr      (memblock_out_store_addr),
+        .memblock_out_store_data      (memblock_out_store_data),
+        .memblock_out_store_mask      (memblock_out_store_mask),
+        .memblock_out_store_ls_size   (memblock_out_store_ls_size),
         /* -------------------------- redirect flush logic -------------------------- */
-        .flush_valid                (redirect_valid),
-        .flush_robidx_flag          (redirect_robidx_flag),
-        .flush_robidx               (redirect_robidx),
+        .flush_valid                  (redirect_valid),
+        .flush_robidx_flag            (redirect_robidx_flag),
+        .flush_robidx                 (redirect_robidx),
         /* --------------------------- memblock to dcache --------------------------- */
-        .memblock2dcache_flush      (memblock2dcache_flush)
+        .memblock2dcache_flush        (memblock2dcache_flush),
+        /* --------------------------------- forward -------------------------------- */
+        .ldu2sq_forward_req_valid     (ldu2sq_forward_req_valid),
+        .ldu2sq_forward_req_sqidx_flag(ldu2sq_forward_req_sqidx_flag),
+        .ldu2sq_forward_req_sqmask    (ldu2sq_forward_req_sqmask),
+        .ldu2sq_forward_req_load_addr (ldu2sq_forward_req_load_addr),
+        .ldu2sq_forward_req_load_mask (ldu2sq_forward_req_load_mask),
+        .ldu2sq_forward_resp_valid    (ldu2sq_forward_resp_valid),
+        .ldu2sq_forward_resp_data     (ldu2sq_forward_resp_data),
+        .ldu2sq_forward_resp_mask     (ldu2sq_forward_resp_mask)
     );
 
     /* -------------------------------------------------------------------------- */
@@ -631,8 +671,6 @@ module backend (
         .tbus_operation_type        (tbus_operation_type),
         .tbus_operation_done        (tbus_operation_done)
     );
-
-
 
 
 

@@ -45,7 +45,10 @@ module storequeue (
 
     input  wire [     `RESULT_RANGE] sq2arb_tbus_read_data,
     output wire [`TBUS_OPTYPE_RANGE] sq2arb_tbus_operation_type,
-    input  wire                      sq2arb_tbus_operation_done
+    input  wire                      sq2arb_tbus_operation_done,
+
+    output wire                       enq_sqidx_flag,
+    output wire [`STOREQUEUE_LOG-1:0] enq_sqidx
 
 
     /* ----------------------------- sq bypass port ----------------------------- */
@@ -94,6 +97,10 @@ module storequeue (
     /* -------------------------------------------------------------------------- */
     /*                                  pointers                                  */
     /* -------------------------------------------------------------------------- */
+    //sqidx
+    reg                             enq_ptr_flag;
+    reg  [  `STOREQUEUE_LOG -1 : 0] enq_ptr;
+
     reg  [`STOREQUEUE_DEPTH -1 : 0] enq_ptr_oh;
     reg  [`STOREQUEUE_DEPTH -1 : 0] enq_ptr_oh_next;
     reg  [`STOREQUEUE_DEPTH -1 : 0] deq_ptr_oh;
@@ -117,6 +124,26 @@ module storequeue (
         end
     end
 
+    always @(*) begin
+        integer i;
+        enq_ptr = 'b0;
+        for (i = 0; i < `STOREQUEUE_DEPTH; i = i + 1) begin
+            if (enq_ptr_oh[i]) begin
+                enq_ptr = i;
+            end
+        end
+    end
+
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            enq_ptr_flag <= 'b0;
+        end else if (sq_entries_enq_valid_dec[`STOREQUEUE_DEPTH-1]   ) begin
+            enq_ptr_flag <= ~enq_ptr_flag;
+        end
+    end
+    assign enq_sqidx_flag = enq_ptr_flag;
+    assign enq_sqidx = enq_ptr;
+    
     always @(*) begin
         integer i;
         sq_entries_enq_valid_dec = 'b0;
@@ -220,7 +247,7 @@ module storequeue (
         flush_dec = 'b0;
         for (i = 0; i < `STOREQUEUE_DEPTH; i = i + 1) begin
             if (flush_valid) begin
-                if (flush_valid & sq_entries_valid_dec[i] &(~sq_entries_ready_to_go_dec[i])&((flush_robidx_flag ^ sq_entries_robidx_flag_dec[i]) ^ (flush_robidx < sq_entries_robidx_dec[i]))) begin
+                if (flush_valid & sq_entries_valid_dec[i] & (~sq_entries_ready_to_go_dec[i]) & ((flush_robidx_flag ^ sq_entries_robidx_flag_dec[i]) ^ (flush_robidx < sq_entries_robidx_dec[i]))) begin
                     flush_dec[i] = 1'b1;
                 end
             end

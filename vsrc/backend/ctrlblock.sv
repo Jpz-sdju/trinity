@@ -41,16 +41,17 @@ module ctrlblock (
     output wire [`PREG_RANGE] to_iq_instr0_prd,
     output wire [`PREG_RANGE] to_iq_instr0_old_prd,
 
-    output wire                     to_iq_instr0_robidx_flag,
-    output wire [`ROB_SIZE_LOG-1:0] to_iq_instr0_robidx,
-
+    output wire                       to_iq_instr0_robidx_flag,
+    output wire [  `ROB_SIZE_LOG-1:0] to_iq_instr0_robidx,
+    output wire                       to_iq_instr0_sqidx_flag,
+    output wire [`STOREQUEUE_LOG-1:0] to_iq_instr0_sqidx,
     /* --------------------------------- instr 1 -------------------------------- */
-    output wire               to_iq_instr1_valid,
-    output wire [`LREG_RANGE] to_iq_instr1_lrs1,
-    output wire [`LREG_RANGE] to_iq_instr1_lrs2,
-    output wire [`LREG_RANGE] to_iq_instr1_lrd,
-    output wire [  `PC_RANGE] to_iq_instr1_pc,
-    output wire [       31:0] to_iq_instr1,
+    output wire                       to_iq_instr1_valid,
+    output wire [        `LREG_RANGE] to_iq_instr1_lrs1,
+    output wire [        `LREG_RANGE] to_iq_instr1_lrs2,
+    output wire [        `LREG_RANGE] to_iq_instr1_lrd,
+    output wire [          `PC_RANGE] to_iq_instr1_pc,
+    output wire [               31:0] to_iq_instr1,
 
     output wire [              63:0] to_iq_instr1_imm,
     output wire                      to_iq_instr1_src1_is_reg,
@@ -71,13 +72,15 @@ module ctrlblock (
     output wire [`PREG_RANGE] to_iq_instr1_prd,
     output wire [`PREG_RANGE] to_iq_instr1_old_prd,
 
-    output wire                     to_iq_instr1_robidx_flag,
-    output wire [`ROB_SIZE_LOG-1:0] to_iq_instr1_robidx,
+    output wire                       to_iq_instr1_robidx_flag,
+    output wire [  `ROB_SIZE_LOG-1:0] to_iq_instr1_robidx,
+    output wire                       to_iq_instr1_sqidx_flag,
+    output wire [`STOREQUEUE_LOG-1:0] to_iq_instr1_sqidx,
     //src state
-    output wire                     to_iq_instr0_src1_state,
-    output wire                     to_iq_instr0_src2_state,
-    output wire                     to_iq_instr1_src1_state,
-    output wire                     to_iq_instr1_src2_state,
+    output wire                       to_iq_instr0_src1_state,
+    output wire                       to_iq_instr0_src2_state,
+    output wire                       to_iq_instr1_src1_state,
+    output wire                       to_iq_instr1_src2_state,
 
     /* ------------------------------ flush sigs ----------------------------- */
     input wire                     flush_valid,
@@ -121,7 +124,15 @@ module ctrlblock (
     output wire [`TBUS_OPTYPE_RANGE] sq2arb_tbus_operation_type,
     input  wire                      sq2arb_tbus_operation_done,
 
-
+    /* --------------------------- SQ forwarding query -------------------------- */
+    input  wire                         ldu2sq_forward_req_valid,
+    input  wire                         ldu2sq_forward_req_sqidx_flag,
+    input  wire [`STOREQUEUE_DEPTH-1:0] ldu2sq_forward_req_sqmask,
+    input  wire [           `SRC_RANGE] ldu2sq_forward_req_load_addr,
+    input  wire [           `SRC_RANGE] ldu2sq_forward_req_load_mask,
+    output wire                         ldu2sq_forward_resp_valid,
+    output wire [           `SRC_RANGE] ldu2sq_forward_resp_data,
+    output wire [           `SRC_RANGE] ldu2sq_forward_resp_mask,
 
     //debug
     output wire [`PREG_RANGE] debug_preg0,
@@ -572,9 +583,11 @@ module ctrlblock (
     /* -------------------------------------------------------------------------- */
     /*                                state:  dispatch                            */
     /* -------------------------------------------------------------------------- */
-    wire [`ROB_SIZE_LOG-1:0] counter;
-    wire                     enq_robidx_flag;
-    wire [`ROB_SIZE_LOG-1:0] enq_robidx;
+    wire [  `ROB_SIZE_LOG-1:0] counter;
+    wire                       enq_robidx_flag;
+    wire [  `ROB_SIZE_LOG-1:0] enq_robidx;
+    wire                       enq_sqidx_flag;
+    wire [`STOREQUEUE_LOG-1:0] enq_sqidx;
 
     dispatch u_dispatch (
         .clock                   (clock),
@@ -634,6 +647,8 @@ module ctrlblock (
         .counter                 (counter),
         .enq_robidx_flag         (enq_robidx_flag),
         .enq_robidx              (enq_robidx),
+        .enq_sqidx_flag          (enq_sqidx_flag),
+        .enq_sqidx               (enq_sqidx),
         .to_iq_instr0_valid      (to_iq_instr0_valid),
         .to_iq_instr0_lrs1       (to_iq_instr0_lrs1),
         .to_iq_instr0_lrs2       (to_iq_instr0_lrs2),
@@ -659,6 +674,8 @@ module ctrlblock (
         .to_iq_instr0_old_prd    (to_iq_instr0_old_prd),
         .to_iq_instr0_robidx_flag(to_iq_instr0_robidx_flag),
         .to_iq_instr0_robidx     (to_iq_instr0_robidx),
+        .to_iq_instr0_sqidx_flag (to_iq_instr0_sqidx_flag),
+        .to_iq_instr0_sqidx      (to_iq_instr0_sqidx),
         .to_iq_instr1_valid      (to_iq_instr1_valid),
         .to_iq_instr1_lrs1       (to_iq_instr1_lrs1),
         .to_iq_instr1_lrs2       (to_iq_instr1_lrs2),
@@ -684,6 +701,8 @@ module ctrlblock (
         .to_iq_instr1_old_prd    (to_iq_instr1_old_prd),
         .to_iq_instr1_robidx_flag(to_iq_instr1_robidx_flag),
         .to_iq_instr1_robidx     (to_iq_instr1_robidx),
+        .to_iq_instr1_sqidx_flag (to_iq_instr1_sqidx_flag),
+        .to_iq_instr1_sqidx      (to_iq_instr1_sqidx),
         /* -------------------------- redirect flush logic -------------------------- */
         .flush_valid             (writeback0_redirect_valid),
         .flush_robidx_flag       (writeback0_robidx_flag),
@@ -844,7 +863,9 @@ module ctrlblock (
         .sq2arb_tbus_write_mask     (sq2arb_tbus_write_mask),
         .sq2arb_tbus_read_data      (sq2arb_tbus_read_data),
         .sq2arb_tbus_operation_type (sq2arb_tbus_operation_type),
-        .sq2arb_tbus_operation_done (sq2arb_tbus_operation_done)
+        .sq2arb_tbus_operation_done (sq2arb_tbus_operation_done),
+        .enq_sqidx_flag             (enq_sqidx_flag),
+        .enq_sqidx                  (enq_sqidx)
     );
 
 

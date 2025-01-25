@@ -35,9 +35,12 @@ module issuequeue (
 
     input wire                     enq_instr0_robidx_flag,
     input wire [`ROB_SIZE_LOG-1:0] enq_instr0_robidx,
+
+    input wire                       enq_instr0_sqidx_flag,
+    input wire [`STOREQUEUE_LOG-1:0] enq_instr0_sqidx,
     /* -------------------------------- src state ------------------------------- */
-    input wire                     enq_instr0_src1_state,
-    input wire                     enq_instr0_src2_state,
+    input wire                       enq_instr0_src1_state,
+    input wire                       enq_instr0_src2_state,
 
     /* ------------------------------- output to execute block ------------------------------- */
     output wire               deq_instr0_valid,
@@ -66,13 +69,14 @@ module issuequeue (
     output reg                      deq_instr0_is_store,
     output reg [               3:0] deq_instr0_ls_size,
 
-    output reg                     deq_instr0_robidx_flag,
-    output reg [`ROB_SIZE_LOG-1:0] deq_instr0_robidx,
-
+    output reg                        deq_instr0_robidx_flag,
+    output reg  [  `ROB_SIZE_LOG-1:0] deq_instr0_robidx,
+    output reg                        deq_instr0_sqidx_flag,
+    output reg  [`STOREQUEUE_LOG-1:0] deq_instr0_sqidx,
     /* ---------------------------- write back wakeup --------------------------- */
-    input wire               writeback0_valid,
-    input wire               writeback0_need_to_wb,
-    input wire [`PREG_RANGE] writeback0_prd,
+    input  wire                       writeback0_valid,
+    input  wire                       writeback0_need_to_wb,
+    input  wire [        `PREG_RANGE] writeback0_prd,
 
     input wire               writeback1_valid,
     input wire               writeback1_need_to_wb,
@@ -112,7 +116,8 @@ module issuequeue (
     reg  [                      3:0] iq_entries_enq_ls_size_dec     [`ISSUE_QUEUE_DEPTH-1:0];
     reg  [   `ISSUE_QUEUE_DEPTH-1:0] iq_entries_enq_robidx_flag_dec;
     reg  [        `ROB_SIZE_LOG-1:0] iq_entries_enq_robidx_dec      [`ISSUE_QUEUE_DEPTH-1:0];
-
+    reg [   `ISSUE_QUEUE_DEPTH-1:0] iq_entries_enq_sqidx_flag_dec;
+    reg [      `STOREQUEUE_LOG-1:0] iq_entries_enq_sqidx_dec       [`ISSUE_QUEUE_DEPTH-1:0];
     /* -------------------------------------------------------------------------- */
     /*                                   deq dec                                  */
     /* -------------------------------------------------------------------------- */
@@ -137,6 +142,8 @@ module issuequeue (
     wire [                      3:0] iq_entries_deq_ls_size_dec     [`ISSUE_QUEUE_DEPTH-1:0];
     wire [   `ISSUE_QUEUE_DEPTH-1:0] iq_entries_deq_robidx_flag_dec;
     wire [        `ROB_SIZE_LOG-1:0] iq_entries_deq_robidx_dec      [`ISSUE_QUEUE_DEPTH-1:0];
+    wire [   `ISSUE_QUEUE_DEPTH-1:0] iq_entries_deq_sqidx_flag_dec;
+    wire [      `STOREQUEUE_LOG-1:0] iq_entries_deq_sqidx_dec       [`ISSUE_QUEUE_DEPTH-1:0];
 
     wire [   `ISSUE_QUEUE_DEPTH-1:0] iq_entries_ready_to_go_dec;
     wire [   `ISSUE_QUEUE_DEPTH-1:0] iq_entries_valid_dec;
@@ -195,6 +202,8 @@ module issuequeue (
     `MACRO_ENQ_DEC(enq_ptr_oh, iq_entries_enq_ls_size_dec, enq_instr0_ls_size, `ISSUE_QUEUE_DEPTH)
     `MACRO_ENQ_DEC(enq_ptr_oh, iq_entries_enq_robidx_flag_dec, enq_instr0_robidx_flag, `ISSUE_QUEUE_DEPTH)
     `MACRO_ENQ_DEC(enq_ptr_oh, iq_entries_enq_robidx_dec, enq_instr0_robidx, `ISSUE_QUEUE_DEPTH)
+    `MACRO_ENQ_DEC(enq_ptr_oh, iq_entries_enq_sqidx_flag_dec, enq_instr0_sqidx_flag, `ISSUE_QUEUE_DEPTH)
+    `MACRO_ENQ_DEC(enq_ptr_oh, iq_entries_enq_sqidx_dec, enq_instr0_sqidx, `ISSUE_QUEUE_DEPTH)
 
 
     io_enq_policy #(
@@ -324,7 +333,8 @@ module issuequeue (
     `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_ls_size, iq_entries_deq_ls_size_dec, `ISSUE_QUEUE_DEPTH)
     `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_robidx_flag, iq_entries_deq_robidx_flag_dec, `ISSUE_QUEUE_DEPTH)
     `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_robidx, iq_entries_deq_robidx_dec, `ISSUE_QUEUE_DEPTH)
-
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_sqidx_flag, iq_entries_deq_sqidx_flag_dec, `ISSUE_QUEUE_DEPTH)
+    `MACRO_DEQ_DEC(deq_ptr_oh, deq_instr0_sqidx, iq_entries_deq_sqidx_dec, `ISSUE_QUEUE_DEPTH)
 
     assign iq_can_alloc0 = enq_has_avail_entry;
     genvar i;
@@ -355,6 +365,8 @@ module issuequeue (
                 .enq_old_prd          (iq_entries_enq_old_prd_dec[i]),
                 .enq_robidx_flag      (iq_entries_enq_robidx_flag_dec[i]),
                 .enq_robidx           (iq_entries_enq_robidx_dec[i]),
+                .enq_sqidx_flag       (iq_entries_enq_sqidx_flag_dec[i]),
+                .enq_sqidx            (iq_entries_enq_sqidx_dec[i]),
                 .enq_src1_state       (iq_entries_enq_src1_state_dec[i]),
                 .enq_src2_state       (iq_entries_enq_src2_state_dec[i]),
                 .ready_to_go          (iq_entries_ready_to_go_dec[i]),
@@ -383,7 +395,9 @@ module issuequeue (
                 .deq_prd              (iq_entries_deq_prd_dec[i]),
                 .deq_old_prd          (iq_entries_deq_old_prd_dec[i]),
                 .deq_robidx_flag      (iq_entries_deq_robidx_flag_dec[i]),
-                .deq_robidx           (iq_entries_deq_robidx_dec[i])
+                .deq_robidx           (iq_entries_deq_robidx_dec[i]),
+                .deq_sqidx_flag       (iq_entries_deq_sqidx_flag_dec[i]),
+                .deq_sqidx            (iq_entries_deq_sqidx_dec[i])
             );
         end
     endgenerate

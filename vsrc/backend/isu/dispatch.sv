@@ -55,19 +55,21 @@ module dispatch (
     input wire                      instr1_is_store,
     input wire [               3:0] instr1_ls_size,
 
-    input wire [`PREG_RANGE] instr1_prs1,
-    input wire [`PREG_RANGE] instr1_prs2,
-    input wire [`PREG_RANGE] instr1_prd,
-    input wire [`PREG_RANGE] instr1_old_prd,
-    //ready sigs,cause dispathc only can dispatch when rob,IQ,SQ both have avail entry
-    input wire                     iq_can_alloc0,
-    input wire                     iq_can_alloc1,
-    input wire                     sq_can_alloc,
-    /* ----------------------------------- rob ---------------------------------- */
+    input wire [        `PREG_RANGE] instr1_prs1,
+    input wire [        `PREG_RANGE] instr1_prs2,
+    input wire [        `PREG_RANGE] instr1_prd,
+    input wire [        `PREG_RANGE] instr1_old_prd,
+    //ready sigs,cause only can dispatch when rob,IQ,SQ both have avail entry
+    input wire                       iq_can_alloc0,
+    input wire                       iq_can_alloc1,
+    input wire                       sq_can_alloc,
+    /* ---------------------------------- rob and sq-------------------------------- */
     //counter(temp sig)
-    input wire [`ROB_SIZE_LOG-1:0] counter,
-    input wire                     enq_robidx_flag,
-    input wire [`ROB_SIZE_LOG-1:0] enq_robidx,
+    input wire [  `ROB_SIZE_LOG-1:0] counter,
+    input wire                       enq_robidx_flag,
+    input wire [  `ROB_SIZE_LOG-1:0] enq_robidx,
+    input wire                       enq_sqidx_flag,
+    input wire [`STOREQUEUE_LOG-1:0] enq_sqidx,
 
     /* ------------------------ issue instr0 and enq rob ------------------------ */
     output wire               to_iq_instr0_valid,
@@ -96,8 +98,10 @@ module dispatch (
     output wire [`PREG_RANGE] to_iq_instr0_prd,
     output wire [`PREG_RANGE] to_iq_instr0_old_prd,
 
-    output wire                     to_iq_instr0_robidx_flag,
-    output wire [`ROB_SIZE_LOG-1:0] to_iq_instr0_robidx,
+    output wire                       to_iq_instr0_robidx_flag,
+    output wire [  `ROB_SIZE_LOG-1:0] to_iq_instr0_robidx,
+    output wire                       to_iq_instr0_sqidx_flag,
+    output wire [`STOREQUEUE_LOG-1:0] to_iq_instr0_sqidx,
 
     /* ------------------------ issue instr1 and enq rob ------------------------ */
     output wire to_iq_instr1_valid,
@@ -127,13 +131,14 @@ module dispatch (
     output wire [`PREG_RANGE] to_iq_instr1_prd,
     output wire [`PREG_RANGE] to_iq_instr1_old_prd,
 
-    output wire                     to_iq_instr1_robidx_flag,
-    output wire [`ROB_SIZE_LOG-1:0] to_iq_instr1_robidx,
-
+    output wire                       to_iq_instr1_robidx_flag,
+    output wire [  `ROB_SIZE_LOG-1:0] to_iq_instr1_robidx,
+    output wire                       to_iq_instr1_sqidx_flag,
+    output wire [`STOREQUEUE_LOG-1:0] to_iq_instr1_sqidx,
     /* -------------------------- redirect flush logic -------------------------- */
-    input wire                     flush_valid,
-    input wire                     flush_robidx_flag,
-    input wire [`ROB_SIZE_LOG-1:0] flush_robidx,
+    input  wire                       flush_valid,
+    input  wire                       flush_robidx_flag,
+    input  wire [  `ROB_SIZE_LOG-1:0] flush_robidx,
 
     input wire [1:0] rob_state
 
@@ -173,12 +178,15 @@ module dispatch (
 
     assign to_iq_instr0_robidx_flag = enq_robidx_flag;
     assign to_iq_instr0_robidx      = enq_robidx;
+    assign to_iq_instr0_sqidx_flag  = enq_sqidx_flag;
+    assign to_iq_instr0_sqidx       = enq_sqidx;
+
 
     // assign to_iq_instr1_valid = instr0_valid & ~flush_valid & is_lsu;
-    
+
     //when IQ,SQ,ROB all avail ,could let younger instr flow 
-    assign instr0_ready = (counter < `ROB_SIZE) & iq_can_alloc0 & ~flush_valid & (rob_state == `ROB_STATE_IDLE) & sq_can_alloc;
-    assign instr1_ready = 'b0;
+    assign instr0_ready             = (counter < `ROB_SIZE) & iq_can_alloc0 & ~flush_valid & (rob_state == `ROB_STATE_IDLE) & sq_can_alloc;
+    assign instr1_ready             = 'b0;
 endmodule
 /* verilator lint_off UNUSEDSIGNAL */
 

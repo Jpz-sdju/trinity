@@ -23,8 +23,10 @@ module iq_entry (
     input wire [`PREG_RANGE] enq_prd,
     input wire [`PREG_RANGE] enq_old_prd,
 
-    input wire                     enq_robidx_flag,
-    input wire [`ROB_SIZE_LOG-1:0] enq_robidx,
+    input wire                       enq_robidx_flag,
+    input wire [  `ROB_SIZE_LOG-1:0] enq_robidx,
+    input wire                       enq_sqidx_flag,
+    input wire [`STOREQUEUE_LOG-1:0] enq_sqidx,
 
     /* -------------------------------- src state ------------------------------- */
     input wire enq_src1_state,
@@ -66,36 +68,38 @@ module iq_entry (
     output wire [`PREG_RANGE] deq_prd,
     output wire [`PREG_RANGE] deq_old_prd,
 
-    output wire                     deq_robidx_flag,
-    output wire [`ROB_SIZE_LOG-1:0] deq_robidx
-
+    output wire                       deq_robidx_flag,
+    output wire [  `ROB_SIZE_LOG-1:0] deq_robidx,
+    output wire                       deq_sqidx_flag,
+    output wire [`STOREQUEUE_LOG-1:0] deq_sqidx
 );
     // Internal queue storage
-    reg                      queue_valid;
-    reg [         `PC_RANGE] queue_pc;
-    reg [              31:0] queue_instr;
-    reg [       `PREG_RANGE] queue_prs1;
-    reg [       `PREG_RANGE] queue_prs2;
-    reg                      queue_src1_is_reg;
-    reg                      queue_src2_is_reg;
-    reg                      queue_src1_state;
-    reg                      queue_src2_state;
-    reg [       `PREG_RANGE] queue_prd;
-    reg [       `PREG_RANGE] queue_old_prd;
-    reg [        `SRC_RANGE] queue_imm;
-    reg                      queue_need_to_wb;
-    reg [    `CX_TYPE_RANGE] queue_cx_type;
-    reg                      queue_is_unsigned;
-    reg [   `ALU_TYPE_RANGE] queue_alu_type;
-    reg [`MULDIV_TYPE_RANGE] queue_muldiv_type;
-    reg                      queue_is_word;
-    reg                      queue_is_imm;
-    reg                      queue_is_load;
-    reg                      queue_is_store;
-    reg [               3:0] queue_ls_size;
-    reg                      queue_robidx_flag;
-    reg [ `ROB_SIZE_LOG-1:0] queue_robidx;
-
+    reg                       queue_valid;
+    reg [          `PC_RANGE] queue_pc;
+    reg [               31:0] queue_instr;
+    reg [        `PREG_RANGE] queue_prs1;
+    reg [        `PREG_RANGE] queue_prs2;
+    reg                       queue_src1_is_reg;
+    reg                       queue_src2_is_reg;
+    reg                       queue_src1_state;
+    reg                       queue_src2_state;
+    reg [        `PREG_RANGE] queue_prd;
+    reg [        `PREG_RANGE] queue_old_prd;
+    reg [         `SRC_RANGE] queue_imm;
+    reg                       queue_need_to_wb;
+    reg [     `CX_TYPE_RANGE] queue_cx_type;
+    reg                       queue_is_unsigned;
+    reg [    `ALU_TYPE_RANGE] queue_alu_type;
+    reg [ `MULDIV_TYPE_RANGE] queue_muldiv_type;
+    reg                       queue_is_word;
+    reg                       queue_is_imm;
+    reg                       queue_is_load;
+    reg                       queue_is_store;
+    reg [                3:0] queue_ls_size;
+    reg                       queue_robidx_flag;
+    reg [  `ROB_SIZE_LOG-1:0] queue_robidx;
+    reg                       queue_sqidx_flag;
+    reg [`STOREQUEUE_LOG-1:0] queue_sqidx;
 
     always @(posedge clock or negedge reset_n) begin
         if (!reset_n | flush) begin
@@ -149,6 +153,8 @@ module iq_entry (
     `MACRO_LATCH_NONEN(queue_ls_size, enq_ls_size, enq_valid, 4)
     `MACRO_LATCH_NONEN(queue_robidx_flag, enq_robidx_flag, enq_valid, 1)
     `MACRO_LATCH_NONEN(queue_robidx, enq_robidx, enq_valid, `ROB_SIZE_LOG)
+    `MACRO_LATCH_NONEN(queue_sqidx_flag, enq_sqidx_flag, enq_valid, 1)
+    `MACRO_LATCH_NONEN(queue_sqidx, enq_sqidx, enq_valid, `STOREQUEUE_LOG)
 
     assign valid           = queue_valid;
     assign deq_pc          = queue_pc;
@@ -172,6 +178,8 @@ module iq_entry (
     assign deq_ls_size     = queue_ls_size;
     assign deq_robidx_flag = queue_robidx_flag;
     assign deq_robidx      = queue_robidx;
+    assign deq_sqidx_flag = queue_sqidx_flag;
+    assign deq_sqidx      = queue_sqidx;
     assign ready_to_go     = (~queue_src1_state) & (~queue_src2_state) & queue_valid;
 
 

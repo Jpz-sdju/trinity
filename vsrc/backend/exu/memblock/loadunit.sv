@@ -1,18 +1,20 @@
 module loadunit (
-    input  wire                     clock,
-    input  wire                     reset_n,
-    input  wire                     flush_this_beat,
-    input  wire                     instr_valid,
-    output wire                     instr_ready,
-    input  wire [      `PREG_RANGE] prd,
-    input  wire                     is_load,
-    input  wire                     is_unsigned,
-    input  wire [       `SRC_RANGE] imm,
-    input  wire [       `SRC_RANGE] src1,
-    input  wire [       `SRC_RANGE] src2,
-    input  wire [   `LS_SIZE_RANGE] ls_size,
-    input  wire                     robidx_flag,
-    input  wire [`ROB_SIZE_LOG-1:0] robidx,
+    input  wire                       clock,
+    input  wire                       reset_n,
+    input  wire                       flush_this_beat,
+    input  wire                       instr_valid,
+    output wire                       instr_ready,
+    input  wire [        `PREG_RANGE] prd,
+    input  wire                       is_load,
+    input  wire                       is_unsigned,
+    input  wire [         `SRC_RANGE] imm,
+    input  wire [         `SRC_RANGE] src1,
+    input  wire [         `SRC_RANGE] src2,
+    input  wire [     `LS_SIZE_RANGE] ls_size,
+    input  wire                       robidx_flag,
+    input  wire [  `ROB_SIZE_LOG-1:0] robidx,
+    input  wire                       sqidx_flag,
+    input  wire [`STOREQUEUE_LOG-1:0] sqidx,
 
     //trinity bus channel
     output reg                  lsu2arb_tbus_index_valid,
@@ -37,7 +39,17 @@ module loadunit (
     output wire [      `PREG_RANGE] ldu_out_prd,
     output wire                     ldu_out_robidx_flag,
     output wire [`ROB_SIZE_LOG-1:0] ldu_out_robidx,
-    output wire [    `RESULT_RANGE] ldu_out_load_data
+    output wire [    `RESULT_RANGE] ldu_out_load_data,
+
+    /* --------------------------- SQ forwarding query -------------------------- */
+    output wire                         ldu2sq_forward_req_valid,
+    output wire                         ldu2sq_forward_req_sqidx_flag,
+    output wire [`STOREQUEUE_DEPTH-1:0] ldu2sq_forward_req_sqmask,
+    output wire [           `SRC_RANGE] ldu2sq_forward_req_load_addr,
+    output wire [           `SRC_RANGE] ldu2sq_forward_req_load_mask,
+    input  wire                         ldu2sq_forward_resp_valid,
+    input  wire [           `SRC_RANGE] ldu2sq_forward_resp_data,
+    input  wire [           `SRC_RANGE] ldu2sq_forward_resp_mask
 
 );
     localparam IDLE = 2'b00;
@@ -161,9 +173,16 @@ module loadunit (
         end
     end
 
+    /* -------------------------------------------------------------------------- */
+    /*                         stage : SQ forwarding query                        */
+    /* -------------------------------------------------------------------------- */
+
+
+
+
 
     /* -------------------------------------------------------------------------- */
-    /*                      stage: load tbus request generate                      */
+    /*                      stage: load tbus request generate                     */
     /* -------------------------------------------------------------------------- */
 
     wire tbus_fire;
@@ -198,8 +217,8 @@ module loadunit (
         end else begin
             case (ls_state)
                 IDLE: begin
-                    if(req_fire&~flush_this_beat)begin
-                        ls_state <= TAKEIN;                        
+                    if (req_fire & ~flush_this_beat) begin
+                        ls_state <= TAKEIN;
                     end
                 end
                 TAKEIN: begin

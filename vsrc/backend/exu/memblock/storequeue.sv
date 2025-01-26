@@ -47,13 +47,17 @@ module storequeue (
     output wire [`TBUS_OPTYPE_RANGE] sq2arb_tbus_operation_type,
     input  wire                      sq2arb_tbus_operation_done,
 
-    output wire                       enq_sqidx_flag,
-    output wire [`STOREQUEUE_LOG-1:0] enq_sqidx
-
-
-    /* ----------------------------- sq bypass port ----------------------------- */
-
-
+    output wire                         enq_sqidx_flag,
+    output wire [  `STOREQUEUE_LOG-1:0] enq_sqidx,
+    /* --------------------------- SQ forwarding  -------------------------- */
+    input  wire                         ldu2sq_forward_req_valid,
+    input  wire                         ldu2sq_forward_req_sqidx_flag,
+    input  wire [`STOREQUEUE_DEPTH-1:0] ldu2sq_forward_req_sqmask,
+    input  wire [           `SRC_RANGE] ldu2sq_forward_req_load_addr,
+    input  wire [       `LS_SIZE_RANGE] ldu2sq_forward_req_load_size,
+    output wire                         ldu2sq_forward_resp_valid,
+    output wire [           `SRC_RANGE] ldu2sq_forward_resp_data,
+    output wire [           `SRC_RANGE] ldu2sq_forward_resp_mask
 
 
 );
@@ -100,6 +104,8 @@ module storequeue (
     //sqidx
     reg                             enq_ptr_flag;
     reg  [  `STOREQUEUE_LOG -1 : 0] enq_ptr;
+    reg                             deq_ptr_flag;
+    reg  [  `STOREQUEUE_LOG -1 : 0] deq_ptr;
 
     reg  [`STOREQUEUE_DEPTH -1 : 0] enq_ptr_oh;
     reg  [`STOREQUEUE_DEPTH -1 : 0] enq_ptr_oh_next;
@@ -137,13 +143,13 @@ module storequeue (
     always @(posedge clock or negedge reset_n) begin
         if (~reset_n) begin
             enq_ptr_flag <= 'b0;
-        end else if (sq_entries_enq_valid_dec[`STOREQUEUE_DEPTH-1]   ) begin
+        end else if (sq_entries_enq_valid_dec[`STOREQUEUE_DEPTH-1]) begin
             enq_ptr_flag <= ~enq_ptr_flag;
         end
     end
     assign enq_sqidx_flag = enq_ptr_flag;
-    assign enq_sqidx = enq_ptr;
-    
+    assign enq_sqidx      = enq_ptr;
+
     always @(*) begin
         integer i;
         sq_entries_enq_valid_dec = 'b0;
@@ -257,9 +263,10 @@ module storequeue (
     /* -------------------------------------------------------------------------- */
     /*                                  deq logic                                 */
     /* -------------------------------------------------------------------------- */
-    wire deq_fire;
-    wire deq_has_req;
-    wire mmio_fake_fire;
+    wire                         deq_fire;
+    wire                         deq_has_req;
+    wire                         mmio_fake_fire;
+    reg  [`STOREQUEUE_DEPTH-1:0] deq_ptr_mask;
     always @(posedge clock or negedge reset_n) begin
         if (~reset_n) begin
             deq_ptr_oh <= 'b1;
@@ -282,6 +289,33 @@ module storequeue (
         end
     end
 
+    always @(*) begin
+        integer i;
+        deq_ptr = 'b0;
+        for (i = 0; i < `STOREQUEUE_DEPTH; i = i + 1) begin
+            if (deq_ptr_oh[i]) begin
+                deq_ptr = i;
+            end
+        end
+    end
+    always @(*) begin
+        integer i;
+        deq_ptr_mask = 'b0;
+        for (i = 0; i < `STOREQUEUE_DEPTH; i = i + 1) begin
+            if (deq_ptr_oh[i] == 1'b0) begin
+                deq_ptr_mask[i] = 'b1;
+            end else begin
+                break;
+            end
+        end
+    end
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            deq_ptr_flag <= 'b0;
+        end else if (sq_entries_issuing_dec[`STOREQUEUE_DEPTH-1]) begin
+            deq_ptr_flag <= ~deq_ptr_flag;
+        end
+    end
 
     io_deq_policy #(
         .QUEUE_SIZE(`STOREQUEUE_DEPTH)
@@ -312,6 +346,39 @@ module storequeue (
     `MACRO_DEQ_DEC(deq_ptr_oh, sq2arb_tbus_write_mask, sq_entries_deq_store_mask_dec, `STOREQUEUE_DEPTH)
 
     assign sq2arb_tbus_index_valid = deq_has_req;
+
+
+
+    /* -------------------------------------------------------------------------- */
+    /*                                  forwading                                 */
+    /* -------------------------------------------------------------------------- */
+    // jpz note:below cite from Kunminghu Core.
+    // "Compare deqPtr (deqPtr) and forward.sqIdx, we have two cases:
+    // (1) if they have the same flag, we need to check range(tail, sqIdx)
+    // (2) if they have different flags, we need to check range(tail, VirtualLoadQueueSize) and range(0, sqIdx)""
+    wire                         same_flag;
+    wire [`STOREQUEUE_DEPTH-1:0] cmp_sqmask;
+    assign same_flag  = ldu2sq_forward_req_sqidx_flag == deq_ptr_flag;
+    assign cmp_sqmask = same_flag ? ldu2sq_forward_req_sqmask ^ deq_ptr_mask : ldu2sq_forward_req_sqmask | ~deq_ptr_mask;
+    //we can use cam to checkout addr hit
+    reg  [`STOREQUEUE_DEPTH-1:0] cmp_addr_hit;
+    wire [           `SRC_RANGE] cmp_addr_mask;
+    assign cmp_addr_mask = ldu2sq_forward_req_load_size[0] ? {64{1'b1}} : ldu2sq_forward_req_load_size[1] ? {{63{1'b1}}, 1'b0} : ldu2sq_forward_req_load_size[2] ? {{62{1'b1}}, 2'b0} : {{61{1'b1}}, 3'b0};
+
+    always @(*) begin
+        integer i;
+        cmp_addr_hit = 'b0;
+        for (i = 0; i < `STOREQUEUE_DEPTH; i = i + 1) begin
+            if (cmp_sqmask[i] & sq_entries_valid_dec[i] & ldu2sq_forward_req_valid) begin
+                if ((sq_entries_deq_store_addr_dec[i] & cmp_addr_mask) == (ldu2sq_forward_req_load_addr & cmp_addr_mask)) begin
+                    cmp_addr_hit[i] = 1'b1;
+                end
+            end
+        end
+    end
+
+
+
 
 
 

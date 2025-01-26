@@ -46,7 +46,7 @@ module loadunit (
     output wire                         ldu2sq_forward_req_sqidx_flag,
     output wire [`STOREQUEUE_DEPTH-1:0] ldu2sq_forward_req_sqmask,
     output wire [           `SRC_RANGE] ldu2sq_forward_req_load_addr,
-    output wire [           `SRC_RANGE] ldu2sq_forward_req_load_mask,
+    output wire [       `LS_SIZE_RANGE] ldu2sq_forward_req_load_size,
     input  wire                         ldu2sq_forward_resp_valid,
     input  wire [           `SRC_RANGE] ldu2sq_forward_resp_data,
     input  wire [           `SRC_RANGE] ldu2sq_forward_resp_mask

@@ -54,7 +54,7 @@ module memblock (
     output wire                         ldu2sq_forward_req_sqidx_flag,
     output wire [`STOREQUEUE_DEPTH-1:0] ldu2sq_forward_req_sqmask,
     output wire [           `SRC_RANGE] ldu2sq_forward_req_load_addr,
-    output wire [           `SRC_RANGE] ldu2sq_forward_req_load_mask,
+    output wire [       `LS_SIZE_RANGE] ldu2sq_forward_req_load_size,
     input  wire                         ldu2sq_forward_resp_valid,
     input  wire [           `SRC_RANGE] ldu2sq_forward_resp_data,
     input  wire [           `SRC_RANGE] ldu2sq_forward_resp_mask
@@ -168,7 +168,7 @@ module memblock (
         .ldu2sq_forward_req_sqidx_flag(ldu2sq_forward_req_sqidx_flag),
         .ldu2sq_forward_req_sqmask    (ldu2sq_forward_req_sqmask),
         .ldu2sq_forward_req_load_addr (ldu2sq_forward_req_load_addr),
-        .ldu2sq_forward_req_load_mask (ldu2sq_forward_req_load_mask),
+        .ldu2sq_forward_req_load_size (ldu2sq_forward_req_load_size),
         .ldu2sq_forward_resp_valid    (ldu2sq_forward_resp_valid),
         .ldu2sq_forward_resp_data     (ldu2sq_forward_resp_data),
         .ldu2sq_forward_resp_mask     (ldu2sq_forward_resp_mask)

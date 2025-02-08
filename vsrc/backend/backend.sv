@@ -26,17 +26,17 @@ module backend #(
     output              arb2dcache_flush_valid,
 
     //bht btb port
-    output         intwb0_bht_write_enable,
-    output [  8:0] intwb0_bht_write_index,
-    output [  1:0] intwb0_bht_write_counter_select,
-    output         intwb0_bht_write_inc,
-    output         intwb0_bht_write_dec,
-    output         intwb0_bht_valid_in,
-    output         intwb0_btb_ce,
-    output         intwb0_btb_we,
-    output [128:0] intwb0_btb_wmask,
-    output [  8:0] intwb0_btb_write_index,
-    output [128:0] intwb0_btb_din,
+    output         commit0_bht_write_enable,
+    output [  8:0] commit0_bht_write_index,
+    output [  1:0] commit0_bht_write_counter_select,
+    output         commit0_bht_write_inc,
+    output         commit0_bht_write_dec,
+    output         commit0_bht_valid_in,
+    output         commit0_btb_ce,
+    output         commit0_btb_we,
+    output [128:0] commit0_btb_wmask,
+    output [  8:0] commit0_btb_write_index,
+    output [128:0] commit0_btb_din,
     output         end_of_program
 );
     //---------------- internal signals ----------------//
@@ -414,6 +414,17 @@ module backend #(
         .end_of_program              (end_of_program)
     );
 
+    wire                           intwb0_bht_write_enable;
+    wire [`BHTBTB_INDEX_WIDTH-1:0] intwb0_bht_write_index;
+    wire [                    1:0] intwb0_bht_write_counter_select;
+    wire                           intwb0_bht_write_inc;
+    wire                           intwb0_bht_write_dec;
+    wire                           intwb0_bht_valid_in;
+    wire                           intwb0_btb_ce;
+    wire                           intwb0_btb_we;
+    wire [                  128:0] intwb0_btb_wmask;
+    wire [                    8:0] intwb0_btb_write_index;
+    wire [                  128:0] intwb0_btb_din;
 
     wire                   disp2sq_valid;
     wire                   sq_can_alloc;
@@ -422,126 +433,148 @@ module backend #(
 
 
     isu_top u_isu_top (
-        .clock                       (clock),
-        .reset_n                     (reset_n),
-        .iru2isu_instr0_valid        (iru2isu_instr0_valid),
-        .iru2isu_instr0_ready        (iru2isu_instr0_ready),
-        .iru2isu_instr0_pc           (iru2isu_instr0_pc),
-        .iru2isu_instr0_instr        (iru2isu_instr0_instr),
-        .iru2isu_instr0_lrs1         (iru2isu_instr0_lrs1),
-        .iru2isu_instr0_lrs2         (iru2isu_instr0_lrs2),
-        .iru2isu_instr0_lrd          (iru2isu_instr0_lrd),
-        .iru2isu_instr0_prd          (iru2isu_instr0_prd),
-        .iru2isu_instr0_old_prd      (iru2isu_instr0_old_prd),
-        .iru2isu_instr0_need_to_wb   (iru2isu_instr0_need_to_wb),
-        .iru2isu_instr0_prs1         (iru2isu_instr0_prs1),
-        .iru2isu_instr0_prs2         (iru2isu_instr0_prs2),
-        .iru2isu_instr0_src1_is_reg  (iru2isu_instr0_src1_is_reg),
-        .iru2isu_instr0_src2_is_reg  (iru2isu_instr0_src2_is_reg),
-        .iru2isu_instr0_imm          (iru2isu_instr0_imm),
-        .iru2isu_instr0_cx_type      (iru2isu_instr0_cx_type),
-        .iru2isu_instr0_is_unsigned  (iru2isu_instr0_is_unsigned),
-        .iru2isu_instr0_alu_type     (iru2isu_instr0_alu_type),
-        .iru2isu_instr0_muldiv_type  (iru2isu_instr0_muldiv_type),
-        .iru2isu_instr0_is_word      (iru2isu_instr0_is_word),
-        .iru2isu_instr0_is_imm       (iru2isu_instr0_is_imm),
-        .iru2isu_instr0_is_load      (iru2isu_instr0_is_load),
-        .iru2isu_instr0_is_store     (iru2isu_instr0_is_store),
-        .iru2isu_instr0_ls_size      (iru2isu_instr0_ls_size),
-        .iru2isu_instr0_predicttaken (iru2isu_instr0_predicttaken),
-        .iru2isu_instr0_predicttarget(iru2isu_instr0_predicttarget),
-        .iru2isu_instr1_valid        (),
-        .iru2isu_instr1_ready        (),
-        .iru2isu_instr1_pc           (),
-        .iru2isu_instr1_instr        (),
-        .iru2isu_instr1_lrs1         (),
-        .iru2isu_instr1_lrs2         (),
-        .iru2isu_instr1_lrd          (),
-        .iru2isu_instr1_prd          (),
-        .iru2isu_instr1_old_prd      (),
-        .iru2isu_instr1_need_to_wb   (),
-        .iru2isu_instr1_prs1         (),
-        .iru2isu_instr1_prs2         (),
-        .iru2isu_instr1_src1_is_reg  (),
-        .iru2isu_instr1_src2_is_reg  (),
-        .iru2isu_instr1_imm          (),
-        .iru2isu_instr1_cx_type      (),
-        .iru2isu_instr1_is_unsigned  (),
-        .iru2isu_instr1_alu_type     (),
-        .iru2isu_instr1_muldiv_type  (),
-        .iru2isu_instr1_is_word      (),
-        .iru2isu_instr1_is_imm       (),
-        .iru2isu_instr1_is_load      (),
-        .iru2isu_instr1_is_store     (),
-        .iru2isu_instr1_ls_size      (),
-        .iru2isu_instr1_predicttaken (),
-        .iru2isu_instr1_predicttarget(),
-        .disp2sq_valid               (disp2sq_valid),
-        .sq_can_alloc                (sq_can_alloc),
-        .disp2sq_robid               (disp2sq_robid),
-        .disp2sq_pc                  (disp2sq_pc),
-        .intwb0_instr_valid          (intwb0_instr_valid),                 //input
-        .intwb0_robid                (intwb0_robid),                       //input
-        .intwb0_prd                  (intwb0_prd),                         //input
-        .intwb0_need_to_wb           (intwb0_need_to_wb),                  //input
-        .intwb0_result               (intwb0_result),
-        .memwb_instr_valid           (memwb_instr_valid),                  //input
-        .memwb_robid                 (memwb_robid),                        //input
-        .memwb_prd                   (memwb_prd),                          //input
-        .memwb_need_to_wb            (memwb_need_to_wb),                   //input
-        .memwb_mmio_valid            (memwb_mmio_valid),                   //input
-        .memwb_result                (memwb_result),
-        .flush_valid                 (flush_valid),                        //input
-        .flush_robid                 (flush_robid),                        //input
-        .commit0_valid               (commit0_valid),                      //OUTUPT
-        .commit0_pc                  (commit0_pc),                         //OUTUPT
-        .commit0_instr               (commit0_instr),                      //OUTUPT
-        .commit0_lrd                 (commit0_lrd),                        //OUTUPT
-        .commit0_prd                 (commit0_prd),                        //OUTUPT
-        .commit0_old_prd             (commit0_old_prd),                    //OUTUPT
-        .commit0_need_to_wb          (commit0_need_to_wb),                 //OUTUPT
-        .commit0_robid               (commit0_robid),                      //OUTUPT
-        .commit0_skip                (commit0_skip),                       //OUTUPT
-        .commit1_valid               (),
-        .commit1_pc                  (),
-        .commit1_instr               (),
-        .commit1_lrd                 (),
-        .commit1_prd                 (),
-        .commit1_old_prd             (),
-        .commit1_robid               (),
-        .commit1_need_to_wb          (),
-        .commit1_skip                (),
+        .clock                           (clock),
+        .reset_n                         (reset_n),
+        .iru2isu_instr0_valid            (iru2isu_instr0_valid),
+        .iru2isu_instr0_ready            (iru2isu_instr0_ready),
+        .iru2isu_instr0_pc               (iru2isu_instr0_pc),
+        .iru2isu_instr0_instr            (iru2isu_instr0_instr),
+        .iru2isu_instr0_lrs1             (iru2isu_instr0_lrs1),
+        .iru2isu_instr0_lrs2             (iru2isu_instr0_lrs2),
+        .iru2isu_instr0_lrd              (iru2isu_instr0_lrd),
+        .iru2isu_instr0_prd              (iru2isu_instr0_prd),
+        .iru2isu_instr0_old_prd          (iru2isu_instr0_old_prd),
+        .iru2isu_instr0_need_to_wb       (iru2isu_instr0_need_to_wb),
+        .iru2isu_instr0_prs1             (iru2isu_instr0_prs1),
+        .iru2isu_instr0_prs2             (iru2isu_instr0_prs2),
+        .iru2isu_instr0_src1_is_reg      (iru2isu_instr0_src1_is_reg),
+        .iru2isu_instr0_src2_is_reg      (iru2isu_instr0_src2_is_reg),
+        .iru2isu_instr0_imm              (iru2isu_instr0_imm),
+        .iru2isu_instr0_cx_type          (iru2isu_instr0_cx_type),
+        .iru2isu_instr0_is_unsigned      (iru2isu_instr0_is_unsigned),
+        .iru2isu_instr0_alu_type         (iru2isu_instr0_alu_type),
+        .iru2isu_instr0_muldiv_type      (iru2isu_instr0_muldiv_type),
+        .iru2isu_instr0_is_word          (iru2isu_instr0_is_word),
+        .iru2isu_instr0_is_imm           (iru2isu_instr0_is_imm),
+        .iru2isu_instr0_is_load          (iru2isu_instr0_is_load),
+        .iru2isu_instr0_is_store         (iru2isu_instr0_is_store),
+        .iru2isu_instr0_ls_size          (iru2isu_instr0_ls_size),
+        .iru2isu_instr0_predicttaken     (iru2isu_instr0_predicttaken),
+        .iru2isu_instr0_predicttarget    (iru2isu_instr0_predicttarget),
+        .iru2isu_instr1_valid            (),
+        .iru2isu_instr1_ready            (),
+        .iru2isu_instr1_pc               (),
+        .iru2isu_instr1_instr            (),
+        .iru2isu_instr1_lrs1             (),
+        .iru2isu_instr1_lrs2             (),
+        .iru2isu_instr1_lrd              (),
+        .iru2isu_instr1_prd              (),
+        .iru2isu_instr1_old_prd          (),
+        .iru2isu_instr1_need_to_wb       (),
+        .iru2isu_instr1_prs1             (),
+        .iru2isu_instr1_prs2             (),
+        .iru2isu_instr1_src1_is_reg      (),
+        .iru2isu_instr1_src2_is_reg      (),
+        .iru2isu_instr1_imm              (),
+        .iru2isu_instr1_cx_type          (),
+        .iru2isu_instr1_is_unsigned      (),
+        .iru2isu_instr1_alu_type         (),
+        .iru2isu_instr1_muldiv_type      (),
+        .iru2isu_instr1_is_word          (),
+        .iru2isu_instr1_is_imm           (),
+        .iru2isu_instr1_is_load          (),
+        .iru2isu_instr1_is_store         (),
+        .iru2isu_instr1_ls_size          (),
+        .iru2isu_instr1_predicttaken     (),
+        .iru2isu_instr1_predicttarget    (),
+        .disp2sq_valid                   (disp2sq_valid),
+        .sq_can_alloc                    (sq_can_alloc),
+        .disp2sq_robid                   (disp2sq_robid),
+        .disp2sq_pc                      (disp2sq_pc),
+        .intwb0_instr_valid              (intwb0_instr_valid),                 //input
+        .intwb0_robid                    (intwb0_robid),                       //input
+        .intwb0_prd                      (intwb0_prd),                         //input
+        .intwb0_need_to_wb               (intwb0_need_to_wb),                  //input
+        .intwb0_result                   (intwb0_result),
+        .intwb0_bht_write_enable         (intwb0_bht_write_enable),
+        .intwb0_bht_write_index          (intwb0_bht_write_index),
+        .intwb0_bht_write_counter_select (intwb0_bht_write_counter_select),
+        .intwb0_bht_write_inc            (intwb0_bht_write_inc),
+        .intwb0_bht_write_dec            (intwb0_bht_write_dec),
+        .intwb0_bht_valid_in             (intwb0_bht_valid_in),
+        .intwb0_btb_ce                   (intwb0_btb_ce),
+        .intwb0_btb_we                   (intwb0_btb_we),
+        .intwb0_btb_wmask                (intwb0_btb_wmask),
+        .intwb0_btb_write_index          (intwb0_btb_write_index),
+        .intwb0_btb_din                  (intwb0_btb_din),
+        .memwb_instr_valid               (memwb_instr_valid),                  //input
+        .memwb_robid                     (memwb_robid),                        //input
+        .memwb_prd                       (memwb_prd),                          //input
+        .memwb_need_to_wb                (memwb_need_to_wb),                   //input
+        .memwb_mmio_valid                (memwb_mmio_valid),                   //input
+        .memwb_result                    (memwb_result),
+        .flush_valid                     (flush_valid),                        //input
+        .flush_robid                     (flush_robid),                        //input
+        .commit0_valid                   (commit0_valid),                      //OUTUPT
+        .commit0_pc                      (commit0_pc),                         //OUTUPT
+        .commit0_instr                   (commit0_instr),                      //OUTUPT
+        .commit0_lrd                     (commit0_lrd),                        //OUTUPT
+        .commit0_prd                     (commit0_prd),                        //OUTUPT
+        .commit0_old_prd                 (commit0_old_prd),                    //OUTUPT
+        .commit0_need_to_wb              (commit0_need_to_wb),                 //OUTUPT
+        .commit0_robid                   (commit0_robid),                      //OUTUPT
+        .commit0_skip                    (commit0_skip),                       //OUTUPT
+        .commit0_bht_write_enable        (commit0_bht_write_enable),
+        .commit0_bht_write_index         (commit0_bht_write_index),
+        .commit0_bht_write_counter_select(commit0_bht_write_counter_select),
+        .commit0_bht_write_inc           (commit0_bht_write_inc),
+        .commit0_bht_write_dec           (commit0_bht_write_dec),
+        .commit0_bht_valid_in            (commit0_bht_valid_in),
+        .commit0_btb_ce                  (commit0_btb_ce),
+        .commit0_btb_we                  (commit0_btb_we),
+        .commit0_btb_wmask               (commit0_btb_wmask),
+        .commit0_btb_write_index         (commit0_btb_write_index),
+        .commit0_btb_din                 (commit0_btb_din),
+        .commit1_valid                   (),
+        .commit1_pc                      (),
+        .commit1_instr                   (),
+        .commit1_lrd                     (),
+        .commit1_prd                     (),
+        .commit1_old_prd                 (),
+        .commit1_robid                   (),
+        .commit1_need_to_wb              (),
+        .commit1_skip                    (),
         /* ----------------------------------int issue --------------------------------- */
-        .issue0_valid                (issue0_valid),
-        .issue0_ready                (issue0_ready),
-        .issue0_robid                (isu2intblock_instr0_robid),
-        .issue0_sqid                 (isu2intblock_instr0_sqid),
-        .issue0_pc                   (isu2intblock_instr0_pc),
-        .issue0_instr                (isu2intblock_instr0_instr),
-        .issue0_lrs1                 (isu2intblock_instr0_lrs1),
-        .issue0_lrs2                 (isu2intblock_instr0_lrs2),
-        .issue0_lrd                  (isu2intblock_instr0_lrd),
-        .issue0_prd                  (isu2intblock_instr0_prd),
-        .issue0_old_prd              (isu2intblock_instr0_old_prd),
-        .issue0_need_to_wb           (isu2intblock_instr0_need_to_wb),
-        .issue0_prs1                 (isu2intblock_instr0_prs1),
-        .issue0_prs2                 (isu2intblock_instr0_prs2),
-        .issue0_src1_is_reg          (isu2intblock_instr0_src1_is_reg),
-        .issue0_src2_is_reg          (isu2intblock_instr0_src2_is_reg),
-        .issue0_imm                  (isu2intblock_instr0_imm),
-        .issue0_cx_type              (isu2intblock_instr0_cx_type),
-        .issue0_is_unsigned          (isu2intblock_instr0_is_unsigned),
-        .issue0_alu_type             (isu2intblock_instr0_alu_type),
-        .issue0_muldiv_type          (isu2intblock_instr0_muldiv_type),
-        .issue0_is_word              (isu2intblock_instr0_is_word),
-        .issue0_is_imm               (isu2intblock_instr0_is_imm),
-        .issue0_is_load              (isu2intblock_instr0_is_load),
-        .issue0_is_store             (isu2intblock_instr0_is_store),
-        .issue0_ls_size              (isu2intblock_instr0_ls_size),
-        .issue0_predicttaken         (isu2intblock_instr0_predicttaken),
-        .issue0_predicttarget        (isu2intblock_instr0_predicttarget),
-        .issue0_src1                 (isu2intblock_instr0_src1),
-        .issue0_src2                 (isu2intblock_instr0_src2),
+        .issue0_valid                    (issue0_valid),
+        .issue0_ready                    (issue0_ready),
+        .issue0_robid                    (isu2intblock_instr0_robid),
+        .issue0_sqid                     (isu2intblock_instr0_sqid),
+        .issue0_pc                       (isu2intblock_instr0_pc),
+        .issue0_instr                    (isu2intblock_instr0_instr),
+        .issue0_lrs1                     (isu2intblock_instr0_lrs1),
+        .issue0_lrs2                     (isu2intblock_instr0_lrs2),
+        .issue0_lrd                      (isu2intblock_instr0_lrd),
+        .issue0_prd                      (isu2intblock_instr0_prd),
+        .issue0_old_prd                  (isu2intblock_instr0_old_prd),
+        .issue0_need_to_wb               (isu2intblock_instr0_need_to_wb),
+        .issue0_prs1                     (isu2intblock_instr0_prs1),
+        .issue0_prs2                     (isu2intblock_instr0_prs2),
+        .issue0_src1_is_reg              (isu2intblock_instr0_src1_is_reg),
+        .issue0_src2_is_reg              (isu2intblock_instr0_src2_is_reg),
+        .issue0_imm                      (isu2intblock_instr0_imm),
+        .issue0_cx_type                  (isu2intblock_instr0_cx_type),
+        .issue0_is_unsigned              (isu2intblock_instr0_is_unsigned),
+        .issue0_alu_type                 (isu2intblock_instr0_alu_type),
+        .issue0_muldiv_type              (isu2intblock_instr0_muldiv_type),
+        .issue0_is_word                  (isu2intblock_instr0_is_word),
+        .issue0_is_imm                   (isu2intblock_instr0_is_imm),
+        .issue0_is_load                  (isu2intblock_instr0_is_load),
+        .issue0_is_store                 (isu2intblock_instr0_is_store),
+        .issue0_ls_size                  (isu2intblock_instr0_ls_size),
+        .issue0_predicttaken             (isu2intblock_instr0_predicttaken),
+        .issue0_predicttarget            (isu2intblock_instr0_predicttarget),
+        .issue0_src1                     (isu2intblock_instr0_src1),
+        .issue0_src2                     (isu2intblock_instr0_src2),
 
         /* ----------------------------------mem issue --------------------------------- */
         .issue1_valid        (issue1_valid),

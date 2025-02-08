@@ -15,6 +15,17 @@ module robentry
     /* -------------------------------- wireback -------------------------------- */
     input  wire               wb_set_complete,//
     input  wire               wb_set_skip,//
+    input wire                           wb_bht_write_enable,
+    input wire [`BHTBTB_INDEX_WIDTH-1:0] wb_bht_write_index,
+    input wire [                    1:0] wb_bht_write_counter_select,
+    input wire                           wb_bht_write_inc,
+    input wire                           wb_bht_write_dec,
+    input wire                           wb_bht_valid_in,
+    input wire                           wb_btb_ce,
+    input wire                           wb_btb_we,
+    input wire [                  128:0] wb_btb_wmask,
+    input wire [                    8:0] wb_btb_write_index,
+    input wire [                  128:0] wb_btb_din,
     /* ------------------------------- entry valid ------------------------------ */
     output reg               entry_ready_to_commit,
     output reg               entry_valid,
@@ -27,6 +38,17 @@ module robentry
     //debug
     output reg               entry_need_to_wb,
     output reg               entry_skip,
+    output reg                           entry_bht_write_enable,
+    output reg [`BHTBTB_INDEX_WIDTH-1:0] entry_bht_write_index,
+    output reg [                    1:0] entry_bht_write_counter_select,
+    output reg                           entry_bht_write_inc,
+    output reg                           entry_bht_write_dec,
+    output reg                           entry_bht_valid_in,
+    output reg                           entry_btb_ce,
+    output reg                           entry_btb_we,
+    output reg [                  128:0] entry_btb_wmask,
+    output reg [                    8:0] entry_btb_write_index,
+    output reg [                  128:0] entry_btb_din,
     /* ------------------------------- commit port ------------------------------ */
     input  wire               commit_vld,//commit
     /* ------------------------------- flush logic ------------------------------ */
@@ -110,6 +132,118 @@ module robentry
             entry_skip <= 'b0;
         end else if (wb_set_complete) begin
             entry_skip <= wb_set_skip;
+        end
+    end
+
+    /* ------------------------- write back bhtbtb info ------------------------- */
+    //bht info
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n | flush_vld) begin
+            entry_bht_write_enable <= 'b0;
+        end else if (~entry_complete & wb_set_complete & entry_valid) begin
+            entry_bht_write_enable <= wb_bht_write_enable;
+        end else if (commit_vld) begin
+            entry_bht_write_enable <= 'b0;
+        end
+    end
+
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n | flush_vld) begin
+            entry_bht_write_index <= 'b0;
+        end else if (~entry_complete & wb_set_complete & entry_valid) begin
+            entry_bht_write_index <= wb_bht_write_index;
+        end else if (commit_vld) begin
+            entry_bht_write_index <= 'b0;
+        end
+    end
+
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n | flush_vld) begin
+            entry_bht_write_counter_select <= 'b0;
+        end else if (~entry_complete & wb_set_complete & entry_valid) begin
+            entry_bht_write_counter_select <= wb_bht_write_counter_select;
+        end else if (commit_vld) begin
+            entry_bht_write_counter_select <= 'b0;
+        end
+    end
+
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n | flush_vld) begin
+            entry_bht_write_inc <= 'b0;
+        end else if (~entry_complete & wb_set_complete & entry_valid) begin
+            entry_bht_write_inc <= wb_bht_write_inc;
+        end else if (commit_vld) begin
+            entry_bht_write_inc <= 'b0;
+        end
+    end
+
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n | flush_vld) begin
+            entry_bht_write_dec <= 'b0;
+        end else if (~entry_complete & wb_set_complete & entry_valid) begin
+            entry_bht_write_dec <= wb_bht_write_dec;
+        end else if (commit_vld) begin
+            entry_bht_write_dec <= 'b0;
+        end
+    end
+
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n | flush_vld) begin
+            entry_bht_valid_in <= 'b0;
+        end else if (~entry_complete & wb_set_complete & entry_valid) begin
+            entry_bht_valid_in <= wb_bht_valid_in;
+        end else if (commit_vld) begin
+            entry_bht_valid_in <= 'b0;
+        end
+    end
+    //btb info
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n | flush_vld) begin
+            entry_btb_ce <= 'b0;
+        end else if (~entry_complete & wb_set_complete & entry_valid) begin
+            entry_btb_ce <= wb_btb_ce;
+        end else if (commit_vld) begin
+            entry_btb_ce <= 'b0;
+        end
+    end
+
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n | flush_vld) begin
+            entry_btb_we <= 'b0;
+        end else if (~entry_complete & wb_set_complete & entry_valid) begin
+            entry_btb_we <= wb_btb_we;
+        end else if (commit_vld) begin
+            entry_btb_we <= 'b0;
+        end
+    end
+
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n | flush_vld) begin
+            entry_btb_wmask <= 'b0;
+        end else if (~entry_complete & wb_set_complete & entry_valid) begin
+            entry_btb_wmask <= wb_btb_wmask;
+        end else if (commit_vld) begin
+            entry_btb_wmask <= 'b0;
+        end
+    end
+
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n | flush_vld) begin
+            entry_btb_write_index <= 'b0;
+        end else if (~entry_complete & wb_set_complete & entry_valid) begin
+            entry_btb_write_index <= wb_btb_write_index;
+        end else if (commit_vld) begin
+            entry_btb_write_index <= 'b0;
+        end
+    end
+
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n | flush_vld) begin
+            entry_btb_din <= 'b0;
+        end else if (~entry_complete & wb_set_complete & entry_valid) begin
+            entry_btb_din <= wb_btb_din;
+        end else if (commit_vld) begin
+            entry_btb_din <= 'b0;
         end
     end
 

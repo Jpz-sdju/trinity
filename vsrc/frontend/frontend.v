@@ -25,19 +25,19 @@ module frontend (
 
 
     // BHT Write Interface
-    input wire       intwb_bht_write_enable,
-    input wire [8:0] intwb_bht_write_index,
-    input wire [1:0] intwb_bht_write_counter_select,
-    input wire       intwb_bht_write_inc,
-    input wire       intwb_bht_write_dec,
-    input wire       intwb_bht_valid_in,
+    input wire       commit0_bht_write_enable,
+    input wire [8:0] commit0_bht_write_index,
+    input wire [1:0] commit0_bht_write_counter_select,
+    input wire       commit0_bht_write_inc,
+    input wire       commit0_bht_write_dec,
+    input wire       commit0_bht_valid_in,
 
     // BTB Write Interface
-    input wire         intwb_btb_ce,
-    input wire         intwb_btb_we,
-    input wire [128:0] intwb_btb_wmask,
-    input wire [  8:0] intwb_btb_write_index,
-    input wire [128:0] intwb_btb_din,
+    input wire         commit0_btb_ce,
+    input wire         commit0_btb_we,
+    input wire [128:0] commit0_btb_wmask,
+    input wire [  8:0] commit0_btb_write_index,
+    input wire [128:0] commit0_btb_din,
     input wire         end_of_program
 
 );
@@ -67,17 +67,17 @@ module frontend (
         .fifo_empty               (fifo_empty),
         .backend_stall            (backend_stall),
         //intwb bht btb signal
-        .bht_write_enable         (intwb_bht_write_enable),
-        .bht_write_index          (intwb_bht_write_index),
-        .bht_write_counter_select (intwb_bht_write_counter_select),
-        .bht_write_inc            (intwb_bht_write_inc),
-        .bht_write_dec            (intwb_bht_write_dec),
-        .bht_valid_in             (intwb_bht_valid_in),
-        .btb_ce                   (intwb_btb_ce),
-        .btb_we                   (intwb_btb_we),
-        .btb_wmask                (intwb_btb_wmask),
-        .btb_write_index          (intwb_btb_write_index),
-        .btb_din                  (intwb_btb_din),
+        .bht_write_enable         (commit0_bht_write_enable),
+        .bht_write_index          (commit0_bht_write_index),
+        .bht_write_counter_select (commit0_bht_write_counter_select),
+        .bht_write_inc            (commit0_bht_write_inc),
+        .bht_write_dec            (commit0_bht_write_dec),
+        .bht_valid_in             (commit0_bht_valid_in),
+        .btb_ce                   (commit0_btb_ce),
+        .btb_we                   (commit0_btb_we),
+        .btb_wmask                (commit0_btb_wmask),
+        .btb_write_index          (commit0_btb_write_index),
+        .btb_din                  (commit0_btb_din),
         .end_of_program           (end_of_program)
 
     );

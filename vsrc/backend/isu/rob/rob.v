@@ -10,32 +10,54 @@ module rob (
     input wire [`PREG_RANGE] instr0_old_prd,
     input wire               instr0_need_to_wb,
 
-    input wire                   instr1_enq_valid,
-    input wire [      `PC_RANGE] instr1_pc,
-    input wire [           31:0] instr1_instr,
-    input wire [    `LREG_RANGE] instr1_lrd,
-    input wire [    `PREG_RANGE] instr1_prd,
-    input wire [    `PREG_RANGE] instr1_old_prd,
-    input wire                   instr1_need_to_wb,
+    input wire                           instr1_enq_valid,
+    input wire [              `PC_RANGE] instr1_pc,
+    input wire [                   31:0] instr1_instr,
+    input wire [            `LREG_RANGE] instr1_lrd,
+    input wire [            `PREG_RANGE] instr1_prd,
+    input wire [            `PREG_RANGE] instr1_old_prd,
+    input wire                           instr1_need_to_wb,
     /* ---------------------------- write back logic from wb pipe---------------------------- */
     //write back port
-    input wire                   intwb0_instr_valid,
-    input wire [`ROB_SIZE_LOG:0] intwb0_robid,
-    input wire                   memwb_instr_valid,
-    input wire [`ROB_SIZE_LOG:0] memwb_robid,
-    input wire                   memwb_mmio_valid,
+    input wire                           intwb0_instr_valid,
+    input wire [        `ROB_SIZE_LOG:0] intwb0_robid,
+    input wire                           intwb0_bht_write_enable,
+    input wire [`BHTBTB_INDEX_WIDTH-1:0] intwb0_bht_write_index,
+    input wire [                    1:0] intwb0_bht_write_counter_select,
+    input wire                           intwb0_bht_write_inc,
+    input wire                           intwb0_bht_write_dec,
+    input wire                           intwb0_bht_valid_in,
+    input wire                           intwb0_btb_ce,
+    input wire                           intwb0_btb_we,
+    input wire [                  128:0] intwb0_btb_wmask,
+    input wire [                    8:0] intwb0_btb_write_index,
+    input wire [                  128:0] intwb0_btb_din,
+    input wire                           memwb_instr_valid,
+    input wire [        `ROB_SIZE_LOG:0] memwb_robid,
+    input wire                           memwb_mmio_valid,
 
     /* --------------------------- output commit port --------------------------- */
-    output wire                   commit0_valid,
-    output wire [      `PC_RANGE] commit0_pc,
-    output wire [           31:0] commit0_instr,
-    output wire [    `LREG_RANGE] commit0_lrd,
-    output wire [    `PREG_RANGE] commit0_prd,
-    output wire [    `PREG_RANGE] commit0_old_prd,
-    output wire                   commit0_need_to_wb,  //used to write arch rat
-    output wire [`ROB_SIZE_LOG:0] commit0_robid,       //used to wakeup storequeue
+    output wire                           commit0_valid,
+    output wire [              `PC_RANGE] commit0_pc,
+    output wire [                   31:0] commit0_instr,
+    output wire [            `LREG_RANGE] commit0_lrd,
+    output wire [            `PREG_RANGE] commit0_prd,
+    output wire [            `PREG_RANGE] commit0_old_prd,
+    output wire                           commit0_need_to_wb,                //used to write arch rat
+    output wire [        `ROB_SIZE_LOG:0] commit0_robid,                     //used to wakeup storequeue
+    output reg                            commit0_bht_write_enable,
+    output reg  [`BHTBTB_INDEX_WIDTH-1:0] commit0_bht_write_index,
+    output reg  [                    1:0] commit0_bht_write_counter_select,
+    output reg                            commit0_bht_write_inc,
+    output reg                            commit0_bht_write_dec,
+    output reg                            commit0_bht_valid_in,
+    output reg                            commit0_btb_ce,
+    output reg                            commit0_btb_we,
+    output reg  [                  128:0] commit0_btb_wmask,
+    output reg  [                    8:0] commit0_btb_write_index,
+    output reg  [                  128:0] commit0_btb_din,
     // debug
-    output wire                   commit0_skip,
+    output wire                           commit0_skip,
 
     output wire                   commit1_valid,
     output wire [      `PC_RANGE] commit1_pc,
@@ -66,47 +88,63 @@ module rob (
     /* ------------------------------ enq relevant ------------------------------ */
     output reg                    rob_can_enq,
     output reg  [`ROB_SIZE_LOG:0] rob2disp_instr_robid,
-    output wire end_of_program
+    output wire                   end_of_program
 
 );
+
+
+
     reg [6:0] rob_counter;
     assign rob_can_enq          = 1'b1;
-    assign rob2disp_instr_robid =   enqueue_ptr;
+    assign rob2disp_instr_robid = enqueue_ptr;
 
     /* ----------------------------- internal signal ---------------------------- */
     //robentry input
-    reg  [  `ROB_SIZE-1:0] enq_valid_dec;  //act as wren signal in robentry
-    reg  [      `PC_RANGE] enq_pc_dec                                      [0:`ROB_SIZE-1];
-    reg  [           31:0] enq_instr_dec                                   [0:`ROB_SIZE-1];
-    reg  [    `LREG_RANGE] enq_lrd_dec                                     [0:`ROB_SIZE-1];
-    reg  [    `PREG_RANGE] enq_prd_dec                                     [0:`ROB_SIZE-1];
-    reg  [    `PREG_RANGE] enq_old_prd_dec                                 [0:`ROB_SIZE-1];
-    reg  [  `ROB_SIZE-1:0] enq_need_to_wb_dec;
-    reg  [  `ROB_SIZE-1:0] wb_set_complete_dec;
-    reg  [  `ROB_SIZE-1:0] wb_set_skip_dec;
+    reg  [          `ROB_SIZE-1:0] enq_valid_dec;  //act as wren signal in robentry
+    reg  [              `PC_RANGE] enq_pc_dec                                      [0:`ROB_SIZE-1];
+    reg  [                   31:0] enq_instr_dec                                   [0:`ROB_SIZE-1];
+    reg  [            `LREG_RANGE] enq_lrd_dec                                     [0:`ROB_SIZE-1];
+    reg  [            `PREG_RANGE] enq_prd_dec                                     [0:`ROB_SIZE-1];
+    reg  [            `PREG_RANGE] enq_old_prd_dec                                 [0:`ROB_SIZE-1];
+    reg  [          `ROB_SIZE-1:0] enq_need_to_wb_dec;
+    reg  [          `ROB_SIZE-1:0] wb_set_complete_dec;
+    reg  [          `ROB_SIZE-1:0] wb_set_skip_dec;
     //robentry output
-    wire [  `ROB_SIZE-1:0] entry_ready_to_commit_dec;
-    wire [  `ROB_SIZE-1:0] entry_valid_dec;
-    wire [  `ROB_SIZE-1:0] entry_complete_dec;
-    wire [      `PC_RANGE] entry_pc_dec                                    [0:`ROB_SIZE-1];
-    wire [           31:0] entry_instr_dec                                 [0:`ROB_SIZE-1];
-    wire [    `LREG_RANGE] entry_lrd_dec                                   [0:`ROB_SIZE-1];
-    wire [    `PREG_RANGE] entry_prd_dec                                   [0:`ROB_SIZE-1];
-    wire [    `PREG_RANGE] entry_old_prd_dec                               [0:`ROB_SIZE-1];
-    wire [  `ROB_SIZE-1:0] entry_need_to_wb_dec;
-    wire [  `ROB_SIZE-1:0] entry_skip_dec;
-    reg  [  `ROB_SIZE-1:0] commit_vld_dec;
-    reg  [  `ROB_SIZE-1:0] flush_dec;
+    wire [          `ROB_SIZE-1:0] entry_ready_to_commit_dec;
+    wire [          `ROB_SIZE-1:0] entry_valid_dec;
+    wire [          `ROB_SIZE-1:0] entry_complete_dec;
+    wire [              `PC_RANGE] entry_pc_dec                                    [0:`ROB_SIZE-1];
+    wire [                   31:0] entry_instr_dec                                 [0:`ROB_SIZE-1];
+    wire [            `LREG_RANGE] entry_lrd_dec                                   [0:`ROB_SIZE-1];
+    wire [            `PREG_RANGE] entry_prd_dec                                   [0:`ROB_SIZE-1];
+    wire [            `PREG_RANGE] entry_old_prd_dec                               [0:`ROB_SIZE-1];
+    wire [          `ROB_SIZE-1:0] entry_need_to_wb_dec;
+    wire [          `ROB_SIZE-1:0] entry_skip_dec;
+    reg  [          `ROB_SIZE-1:0] commit_vld_dec;
+    reg  [          `ROB_SIZE-1:0] flush_dec;
+    reg  [          `ROB_SIZE-1:0] entry_bht_write_enable_dec;
+    reg  [`BHTBTB_INDEX_WIDTH-1:0] entry_bht_write_index_dec                       [0:`ROB_SIZE-1];
+    reg  [                    1:0] entry_bht_write_counter_select_dec              [0:`ROB_SIZE-1];
+    reg  [          `ROB_SIZE-1:0] entry_bht_write_inc_dec;
+    reg  [          `ROB_SIZE-1:0] entry_bht_write_dec_dec;
+    reg  [          `ROB_SIZE-1:0] entry_bht_valid_in_dec;
 
-    wire                   instr0_actually_enq;
-    wire                   instr1_actually_enq;
+    reg  [          `ROB_SIZE-1:0] entry_btb_ce_dec;
+    reg  [          `ROB_SIZE-1:0] entry_btb_we_dec;
+    reg  [                  128:0] entry_btb_wmask_dec                             [0:`ROB_SIZE-1];
+    reg  [                    8:0] entry_btb_write_index_dec                       [0:`ROB_SIZE-1];
+    reg  [                  128:0] entry_btb_din_dec                               [0:`ROB_SIZE-1];
 
-    reg  [`ROB_SIZE_LOG:0] enqueue_ptr;  // 7bit:contain flag
-    reg  [`ROB_SIZE_LOG:0] dequeue_ptr;  // 7bit:contain flag
-    reg  [`ROB_SIZE_LOG:0] walking_ptr;  // 7bit:contain flag
 
-    reg  [`ROB_SIZE_LOG:0] enq_num;
-    reg  [`ROB_SIZE_LOG:0] deq_num;
+    wire                           instr0_actually_enq;
+    wire                           instr1_actually_enq;
+
+    reg  [        `ROB_SIZE_LOG:0] enqueue_ptr;  // 7bit:contain flag
+    reg  [        `ROB_SIZE_LOG:0] dequeue_ptr;  // 7bit:contain flag
+    reg  [        `ROB_SIZE_LOG:0] walking_ptr;  // 7bit:contain flag
+
+    reg  [        `ROB_SIZE_LOG:0] enq_num;
+    reg  [        `ROB_SIZE_LOG:0] deq_num;
 
 
 
@@ -290,16 +328,28 @@ module rob (
     end
 
     /* -------------------------- output commit signal -------------------------- */
-    assign commit0_valid      = commit_vld_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
-    assign commit0_pc         = entry_pc_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
-    assign commit0_instr      = entry_instr_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
-    assign commit0_lrd        = entry_lrd_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
-    assign commit0_prd        = entry_prd_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
-    assign commit0_old_prd    = entry_old_prd_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
-    assign commit0_robid      = dequeue_ptr;
-    assign commit0_need_to_wb = entry_need_to_wb_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_valid                    = commit_vld_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_pc                       = entry_pc_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_instr                    = entry_instr_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_lrd                      = entry_lrd_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_prd                      = entry_prd_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_old_prd                  = entry_old_prd_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_robid                    = dequeue_ptr;
+    assign commit0_need_to_wb               = entry_need_to_wb_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    //bhtbtb info
+    assign commit0_bht_write_enable         = entry_bht_write_enable_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_bht_write_index          = entry_bht_write_index_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_bht_write_counter_select = entry_bht_write_counter_select_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_bht_write_inc            = entry_bht_write_inc_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_bht_write_dec            = entry_bht_write_dec_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_bht_valid_in             = entry_bht_valid_in_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_btb_ce                   = entry_btb_ce_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_btb_we                   = entry_btb_we_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_btb_wmask                = entry_btb_wmask_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_btb_write_index          = entry_btb_write_index_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_btb_din                  = entry_btb_din_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
     //debug
-    assign commit0_skip       = entry_skip_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
+    assign commit0_skip                     = entry_skip_dec[dequeue_ptr[`ROB_SIZE_LOG-1:0]];
 
 
 
@@ -425,36 +475,58 @@ module rob (
     generate
         for (i = 0; i < `ROB_SIZE; i = i + 1) begin : rob_entity
             robentry u_robentry (
-                .clock                (clock),                         //i
-                .reset_n              (reset_n),                       //i
-                .enq_valid            (enq_valid_dec[i]),              //i//wren signal to write in entry data
-                .enq_pc               (enq_pc_dec[i]),                 //i
-                .enq_instr            (enq_instr_dec[i]),              //i
-                .enq_lrd              (enq_lrd_dec[i]),                //i
-                .enq_prd              (enq_prd_dec[i]),                //i
-                .enq_old_prd          (enq_old_prd_dec[i]),            //i
-                .enq_need_to_wb       (enq_need_to_wb_dec[i]),         //i
+                .clock                         (clock),                                  //i
+                .reset_n                       (reset_n),                                //i
+                .enq_valid                     (enq_valid_dec[i]),                       //i//wren signal to write in entry data
+                .enq_pc                        (enq_pc_dec[i]),                          //i
+                .enq_instr                     (enq_instr_dec[i]),                       //i
+                .enq_lrd                       (enq_lrd_dec[i]),                         //i
+                .enq_prd                       (enq_prd_dec[i]),                         //i
+                .enq_old_prd                   (enq_old_prd_dec[i]),                     //i
+                .enq_need_to_wb                (enq_need_to_wb_dec[i]),                  //i
                 // .enq_skip         ('b0                    ),//i
-                .wb_set_complete      (wb_set_complete_dec[i]),        //i
-                .wb_set_skip          (wb_set_skip_dec[i]),            //i
-                .entry_ready_to_commit(entry_ready_to_commit_dec[i]),  //output//indicate entry ready to be commit, next cycle,commit_vld_dec=1,then invalid this entry
-                .entry_valid          (entry_valid_dec[i]),            //output
-                .entry_complete       (entry_complete_dec[i]),         //output
-                .entry_pc             (entry_pc_dec[i]),               //output
-                .entry_instr          (entry_instr_dec[i]),            //output
-                .entry_lrd            (entry_lrd_dec[i]),              //output
-                .entry_prd            (entry_prd_dec[i]),              //output
-                .entry_old_prd        (entry_old_prd_dec[i]),          //output
-                .entry_need_to_wb     (entry_need_to_wb_dec[i]),       //output
-                .entry_skip           (entry_skip_dec[i]),             //output
-                .commit_vld           (commit_vld_dec[i]),             //i
-                .flush_vld            (flush_dec[i])                   //i
+                .wb_set_complete               (wb_set_complete_dec[i]),                 //i
+                .wb_set_skip                   (wb_set_skip_dec[i]),                     //i
+                .wb_bht_write_enable           (intwb0_bht_write_enable),
+                .wb_bht_write_index            (intwb0_bht_write_index),
+                .wb_bht_write_counter_select   (intwb0_bht_write_counter_select),
+                .wb_bht_write_inc              (intwb0_bht_write_inc),
+                .wb_bht_write_dec              (intwb0_bht_write_dec),
+                .wb_bht_valid_in               (intwb0_bht_valid_in),
+                .wb_btb_ce                     (intwb0_btb_ce),
+                .wb_btb_we                     (intwb0_btb_we),
+                .wb_btb_wmask                  (intwb0_btb_wmask),
+                .wb_btb_write_index            (intwb0_btb_write_index),
+                .wb_btb_din                    (intwb0_btb_din),
+                .entry_ready_to_commit         (entry_ready_to_commit_dec[i]),           //output//indicate entry ready to be commit, next cycle,commit_vld_dec=1,then invalid this entry
+                .entry_valid                   (entry_valid_dec[i]),                     //output
+                .entry_complete                (entry_complete_dec[i]),                  //output
+                .entry_pc                      (entry_pc_dec[i]),                        //output
+                .entry_instr                   (entry_instr_dec[i]),                     //output
+                .entry_lrd                     (entry_lrd_dec[i]),                       //output
+                .entry_prd                     (entry_prd_dec[i]),                       //output
+                .entry_old_prd                 (entry_old_prd_dec[i]),                   //output
+                .entry_need_to_wb              (entry_need_to_wb_dec[i]),                //output
+                .entry_skip                    (entry_skip_dec[i]),                      //output
+                .entry_bht_write_enable        (entry_bht_write_enable_dec[i]),
+                .entry_bht_write_index         (entry_bht_write_index_dec[i]),
+                .entry_bht_write_counter_select(entry_bht_write_counter_select_dec[i]),
+                .entry_bht_write_inc           (entry_bht_write_inc_dec[i]),
+                .entry_bht_write_dec           (entry_bht_write_dec_dec[i]),
+                .entry_bht_valid_in            (entry_bht_valid_in_dec[i]),
+                .entry_btb_ce                  (entry_btb_ce_dec[i]),
+                .entry_btb_we                  (entry_btb_we_dec[i]),
+                .entry_btb_wmask               (entry_btb_wmask_dec[i]),
+                .entry_btb_write_index         (entry_btb_write_index_dec[i]),
+                .entry_btb_din                 (entry_btb_din_dec[i]),
+                .commit_vld                    (commit_vld_dec[i]),                      //i
+                .flush_vld                     (flush_dec[i])                            //i
             );
         end
     endgenerate
 
 
-/* -------------------------------- pmu logic ------------------------------- */
+    /* -------------------------------- pmu logic ------------------------------- */
     // wire test_begin_of_program;
     // assign test_begin_of_program = (commit0_instr == 32'h00000413) && commit0_valid;
     // always @(posedge clock) begin
@@ -463,15 +535,13 @@ module rob (
     //     end
     // end
 
-
-
     assign end_of_program = (commit0_instr == 32'h0005006b) && commit0_valid;
-    
+
     reg [31:0] rob_pmu_flush_times_cnt;
     always @(posedge clock or negedge reset_n) begin
-        if(~reset_n)begin
+        if (~reset_n) begin
             rob_pmu_flush_times_cnt <= 'b0;
-        end else if(flush_valid) begin
+        end else if (flush_valid) begin
             rob_pmu_flush_times_cnt <= rob_pmu_flush_times_cnt + 1;
         end
     end

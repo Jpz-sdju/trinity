@@ -24,17 +24,17 @@ module core_top #(
     wire                               ibuffer_predicttaken_out;
     wire [                       31:0] ibuffer_predicttarget_out;
     //bhtbtb write interface
-    wire                               intwb_bht_write_enable;
-    wire [     BHTBTB_INDEX_WIDTH-1:0] intwb_bht_write_index;
-    wire [                        1:0] intwb_bht_write_counter_select;
-    wire                               intwb_bht_write_inc;
-    wire                               intwb_bht_write_dec;
-    wire                               intwb_bht_valid_in;
-    wire                               intwb_btb_ce;  // Chip enable
-    wire                               intwb_btb_we;  // Write enable
-    wire [                      128:0] intwb_btb_wmask;
-    wire [                        8:0] intwb_btb_write_index;  // Write address (9 bits for 512 sets)
-    wire [                      128:0] intwb_btb_din;  // Data input (1 valid bit + 4 targets * 32 bits)
+    wire                               commit0_bht_write_enable;
+    wire [     BHTBTB_INDEX_WIDTH-1:0] commit0_bht_write_index;
+    wire [                        1:0] commit0_bht_write_counter_select;
+    wire                               commit0_bht_write_inc;
+    wire                               commit0_bht_write_dec;
+    wire                               commit0_bht_valid_in;
+    wire                               commit0_btb_ce;  // Chip enable
+    wire                               commit0_btb_we;  // Write enable
+    wire [                      128:0] commit0_btb_wmask;
+    wire [                        8:0] commit0_btb_write_index;  // Write address (9 bits for 512 sets)
+    wire [                      128:0] commit0_btb_din;  // Data input (1 valid bit + 4 targets * 32 bits)
 
     //redirect
     wire                               flush_valid;
@@ -78,7 +78,7 @@ module core_top #(
     wire [         `TBUS_OPTYPE_RANGE] icache2arb_dbus_operation_type;
     wire                               icache2arb_dbus_burst_mode;
 
-    wire end_of_program;
+    wire                               end_of_program;
 
     /* -------------------------------------------------------------------------- */
     /*                             channel_arb / icache / dcache                  */
@@ -163,37 +163,37 @@ module core_top #(
     /* -------------------------------------------------------------------------- */
 
     frontend u_frontend (
-        .clock                         (clock),
-        .reset_n                       (reset_n),
+        .clock                           (clock),
+        .reset_n                         (reset_n),
         //redirect
-        .redirect_valid                (flush_valid),
-        .redirect_target               (flush_target),
+        .redirect_valid                  (flush_valid),
+        .redirect_target                 (flush_target),
         //instr fetch from ddr
-        .pc_index_valid                (pc_index_valid),
-        .pc_index_ready                (pc_index_ready),
-        .pc_operation_done             (pc_operation_done),
-        .pc_read_inst                  (pc_read_inst),
-        .pc_index                      (pc_index),
+        .pc_index_valid                  (pc_index_valid),
+        .pc_index_ready                  (pc_index_ready),
+        .pc_operation_done               (pc_operation_done),
+        .pc_read_inst                    (pc_read_inst),
+        .pc_index                        (pc_index),
         //output to backend
-        .ibuffer_instr_ready           (ibuffer_instr_ready),
-        .ibuffer_instr_valid           (ibuffer_instr_valid),
-        .ibuffer_inst_out              (ibuffer_inst_out),
-        .ibuffer_pc_out                (ibuffer_pc_out),
-        .ibuffer_predicttaken_out      (ibuffer_predicttaken_out),
-        .ibuffer_predicttarget_out     (ibuffer_predicttarget_out),
+        .ibuffer_instr_ready             (ibuffer_instr_ready),
+        .ibuffer_instr_valid             (ibuffer_instr_valid),
+        .ibuffer_inst_out                (ibuffer_inst_out),
+        .ibuffer_pc_out                  (ibuffer_pc_out),
+        .ibuffer_predicttaken_out        (ibuffer_predicttaken_out),
+        .ibuffer_predicttarget_out       (ibuffer_predicttarget_out),
         //bht btb signals
-        .intwb_bht_write_enable        (intwb_bht_write_enable),
-        .intwb_bht_write_index         (intwb_bht_write_index),
-        .intwb_bht_write_counter_select(intwb_bht_write_counter_select),
-        .intwb_bht_write_inc           (intwb_bht_write_inc),
-        .intwb_bht_write_dec           (intwb_bht_write_dec),
-        .intwb_bht_valid_in            (intwb_bht_valid_in),
-        .intwb_btb_ce                  (intwb_btb_ce),
-        .intwb_btb_we                  (intwb_btb_we),
-        .intwb_btb_wmask               (intwb_btb_wmask),
-        .intwb_btb_write_index         (intwb_btb_write_index),
-        .intwb_btb_din                 (intwb_btb_din),
-        .end_of_program                (end_of_program)
+        .commit0_bht_write_enable        (commit0_bht_write_enable),
+        .commit0_bht_write_index         (commit0_bht_write_index),
+        .commit0_bht_write_counter_select(commit0_bht_write_counter_select),
+        .commit0_bht_write_inc           (commit0_bht_write_inc),
+        .commit0_bht_write_dec           (commit0_bht_write_dec),
+        .commit0_bht_valid_in            (commit0_bht_valid_in),
+        .commit0_btb_ce                  (commit0_btb_ce),
+        .commit0_btb_we                  (commit0_btb_we),
+        .commit0_btb_wmask               (commit0_btb_wmask),
+        .commit0_btb_write_index         (commit0_btb_write_index),
+        .commit0_btb_din                 (commit0_btb_din),
+        .end_of_program                  (end_of_program)
     );
 
 
@@ -222,18 +222,18 @@ module core_top #(
         .tbus_operation_type      (tbus_operation_type),
         .arb2dcache_flush_valid   (arb2dcache_flush_valid),
 
-        .intwb0_bht_write_enable        (intwb_bht_write_enable),
-        .intwb0_bht_write_index         (intwb_bht_write_index),
-        .intwb0_bht_write_counter_select(intwb_bht_write_counter_select),
-        .intwb0_bht_write_inc           (intwb_bht_write_inc),
-        .intwb0_bht_write_dec           (intwb_bht_write_dec),
-        .intwb0_bht_valid_in            (intwb_bht_valid_in),
-        .intwb0_btb_ce                  (intwb_btb_ce),
-        .intwb0_btb_we                  (intwb_btb_we),
-        .intwb0_btb_wmask               (intwb_btb_wmask),
-        .intwb0_btb_write_index         (intwb_btb_write_index),
-        .intwb0_btb_din                 (intwb_btb_din),
-        .end_of_program                (end_of_program)
+        .commit0_bht_write_enable        (commit0_bht_write_enable),
+        .commit0_bht_write_index         (commit0_bht_write_index),
+        .commit0_bht_write_counter_select(commit0_bht_write_counter_select),
+        .commit0_bht_write_inc           (commit0_bht_write_inc),
+        .commit0_bht_write_dec           (commit0_bht_write_dec),
+        .commit0_bht_valid_in            (commit0_bht_valid_in),
+        .commit0_btb_ce                  (commit0_btb_ce),
+        .commit0_btb_we                  (commit0_btb_we),
+        .commit0_btb_wmask               (commit0_btb_wmask),
+        .commit0_btb_write_index         (commit0_btb_write_index),
+        .commit0_btb_din                 (commit0_btb_din),
+        .end_of_program                  (end_of_program)
     );
 
 

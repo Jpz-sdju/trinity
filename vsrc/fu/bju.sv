@@ -211,9 +211,9 @@ module bju #(
         end else if (bjusb_bju_taken_bpu_nottaken_wrong)begin
             situation3_cnt <= situation3_cnt + 1;
         end else if (bjusb_bju_nottaken_bpu_taken_wrong) begin
-            situation4_cnt <= situation3_cnt + 1;
+            situation4_cnt <= situation4_cnt + 1;
         end else if (bjusb_bju_nottaken_bpu_nottaken_right)begin
-            situation5_cnt <= situation4_cnt + 1;            
+            situation5_cnt <= situation5_cnt + 1;            
         end
     end
 //250117 record: 

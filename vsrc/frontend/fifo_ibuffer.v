@@ -22,7 +22,7 @@ module fifo_ibuffer (
     reg [        FIFO_DEPTH_LOG-1 :0] write_ptr;  // Write pointer
 
     assign empty = (count == 6'd0);
-    assign full  = (count == 6'd63);
+    assign full  = (count == 6'd48);
 
     always @(posedge clock or negedge reset_n) begin
         if (!reset_n || redirect_valid) begin

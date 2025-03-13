@@ -12,8 +12,8 @@ module dcache #(
     output reg                       tbus_index_ready,
     input  reg                       tbus_index_valid,
     input  reg  [ `TBUS_INDEX_RANGE] tbus_index,
-    output wire [  `TBUS_DATA_RANGE] tbus_read_data,
-    output wire                      tbus_operation_done,
+    output reg  [  `TBUS_DATA_RANGE] tbus_read_data,
+    output reg                       tbus_operation_done,
     input  wire [`TBUS_OPTYPE_RANGE] tbus_operation_type,
     input  reg  [  `TBUS_DATA_RANGE] tbus_write_data,
     input  reg  [  `TBUS_DATA_RANGE] tbus_write_mask,
@@ -26,7 +26,7 @@ module dcache #(
     input  wire                       dcache2arb_dbus_operation_done,
     output reg  [  `DBUS_INDEX_RANGE] dcache2arb_dbus_index,
     output reg  [`CACHELINE512_RANGE] dcache2arb_dbus_write_data,
-    output wire [ `DBUS_OPTYPE_RANGE] dcache2arb_dbus_operation_type
+    output reg  [ `DBUS_OPTYPE_RANGE] dcache2arb_dbus_operation_type
 
 );
     wire                      tbus_fire;
@@ -149,7 +149,7 @@ module dcache #(
     /* -------------------------------------------------------------------------- */
     /* ----------------------------------- latch input ----------------------------------- */
     //latch 64bit tbus addr
-    always @(posedge clock or reset_n) begin
+    always @(posedge clock or negedge reset_n) begin
         if (~reset_n) begin
             ls_addr_latch <= 'b0;
         end else if (in_idle & tbus_index_valid) begin
@@ -167,7 +167,7 @@ module dcache #(
     end
 
     //latch 64bit tbus data
-    always @(posedge clock or reset_n) begin
+    always @(posedge clock or negedge reset_n) begin
         if (~reset_n) begin
             write_data_latch <= 'b0;
         end else if (in_idle & tbus_index_valid) begin
@@ -176,7 +176,7 @@ module dcache #(
     end
 
     //latch 64bit tbus wmask
-    always @(posedge clock or reset_n) begin
+    always @(posedge clock or negedge reset_n) begin
         if (~reset_n) begin
             write_mask_latch <= 'b0;
         end else if (in_idle & tbus_index_valid) begin
@@ -185,7 +185,7 @@ module dcache #(
     end
 
     //latch tbus operation_type
-    always @(posedge clock or reset_n) begin
+    always @(posedge clock or negedge reset_n) begin
         if (~reset_n) begin
             operation_type_latch <= 'b0;
         end else if (in_idle & tbus_index_valid) begin
@@ -251,7 +251,7 @@ module dcache #(
     always @(posedge clock or negedge reset_n) begin
         if (~reset_n) begin
             tagarray_dout_latch <= 0;
-        end else if (state == IDLE) begin
+        end else if (in_idle) begin
             tagarray_dout_latch <= 'b0;
         end else if ((state == LOOKUP) && (next_state != LOOKUP)) begin
             tagarray_dout_latch <= tagarray_dout;
@@ -283,7 +283,10 @@ module dcache #(
 
     //latch victimway_fulladdr in state lookup
     always @(posedge clock or negedge reset_n) begin
-        if (~reset_n | (state == IDLE)) begin
+        if (~reset_n) begin
+            lookup_hitway_oh_latch  <= 0;
+            lookup_hitway_dec_latch <= 0;
+        end else if (in_idle) begin
             lookup_hitway_oh_latch  <= 0;
             lookup_hitway_dec_latch <= 0;
         end else if ((state == LOOKUP) && (next_state != LOOKUP)) begin
@@ -333,7 +336,9 @@ module dcache #(
     assign victimway_fulladdr_s1 = {32'd0, victimway_pa_s1, ls_addr_latch[14:6], 6'd0};  //64=32+17+9+6
     //latch victimway_fulladdr in state lookup
     always @(posedge clock or negedge reset_n) begin
-        if (~reset_n | (state == IDLE)) begin
+        if (~reset_n) begin
+            victimway_fulladdr_latch <= 0;
+        end else if (in_idle) begin
             victimway_fulladdr_latch <= 0;
         end else if ((state == LOOKUP) && (next_state != LOOKUP)) begin
             victimway_fulladdr_latch <= victimway_fulladdr_s1;
@@ -438,8 +443,10 @@ module dcache #(
     end
 
     //latch 64bit tbus wmask
-    always @(posedge clock or reset_n) begin
-        if (~reset_n | (state == IDLE)) begin
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            masked_ddr_readdata_latch <= 0;
+        end else if (in_idle) begin
             masked_ddr_readdata_latch <= 0;
         end else begin
             masked_ddr_readdata_latch <= masked_ddr_readdata_sx;
@@ -533,7 +540,9 @@ module dcache #(
     // State transition logic
     always @(posedge clock or negedge reset_n) begin
         if (!reset_n | flush) state <= IDLE;  // Reset to IDLE state
-        else state <= next_state;
+        else if (flush) begin
+            state <= IDLE;
+        end else state <= next_state;
     end
     // Next state logic
     always @(*) begin
@@ -745,7 +754,12 @@ module dcache #(
 
 
     always @(posedge clock or negedge reset_n) begin
-        if (~reset_n || flush) begin
+        if (~reset_n) begin
+            dcache2arb_dbus_index_valid_internal <= 0;
+            dcache2arb_dbus_index                <= 0;
+            dcache2arb_dbus_write_data           <= 0;
+            dcache2arb_dbus_operation_type       <= 0;
+        end else if (flush) begin
             dcache2arb_dbus_index_valid_internal <= 0;
             dcache2arb_dbus_index                <= 0;
             dcache2arb_dbus_write_data           <= 0;

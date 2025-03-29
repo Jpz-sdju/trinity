@@ -111,11 +111,11 @@ module freelist #(
             deq_ptr <= 'h0;  // Reset deq on reset
             //when ovwr,taken deq_ptr = enq_ptr,then increase
         end else if (is_rollback) begin
-            if (deq_ptr[`FREELIST_SIZE_LOG:0] == enq_ptr[`FREELIST_SIZE_LOG:0]) begin
-                deq_ptr <= enq_ptr;
-            end else begin
+ //           if (deq_ptr[`FREELIST_SIZE_LOG:0] == enq_ptr[`FREELIST_SIZE_LOG:0]) begin
+ //               deq_ptr <= enq_ptr;
+ //           end else begin
                 deq_ptr <= {deq_ptr[`FREELIST_SIZE_LOG], enq_ptr[`FREELIST_SIZE_LOG-1:0]};
-            end
+ //           end
         end else if (is_walking) begin
             deq_ptr <= deq_ptr + walk_count;
         end else begin

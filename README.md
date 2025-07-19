@@ -1,4 +1,6 @@
 # trinity
 trinity : core / interlink / AI
 
-#not 
+# 2025/7/19 feature
+rename width = dec width = 1
+blocking l1D$

@@ -1,3 +1,4 @@
+`include "defines.sv"
 module exu_top (
     input wire clock,
     input wire reset_n,
@@ -8,7 +9,7 @@ module exu_top (
     input  wire [          `INSTR_RANGE] int_instr,
     input  wire [             `PC_RANGE] int_pc,
     input  wire [       `ROB_SIZE_LOG:0] int_robid,
-    input  wire [`STOREQUEUE_SIZE_LOG:0] int_sqid,
+    input  wire [`SQ_SIZE_LOG:0] int_sqid,
     input  wire [            `SRC_RANGE] int_src1,
     input  wire [            `SRC_RANGE] int_src2,
     input  wire [           `PREG_RANGE] int_prd,
@@ -29,7 +30,7 @@ module exu_top (
     input  wire [          `INSTR_RANGE] mem_instr,
     input  wire [             `PC_RANGE] mem_pc,
     input  wire [       `ROB_SIZE_LOG:0] mem_robid,
-    input  wire [`STOREQUEUE_SIZE_LOG:0] mem_sqid,
+    input  wire [`SQ_SIZE_LOG:0] mem_sqid,
     input  wire [            `SRC_RANGE] mem_src1,
     input  wire [            `SRC_RANGE] mem_src2,
     input  wire [           `PREG_RANGE] mem_prd,
@@ -57,7 +58,7 @@ module exu_top (
     output wire [            `PREG_RANGE] intwb0_prd,
     output wire [          `RESULT_RANGE] intwb0_result,
     output wire [        `ROB_SIZE_LOG:0] intwb0_robid,
-    output wire [ `STOREQUEUE_SIZE_LOG:0] intwb0_sqid,
+    output wire [ `SQ_SIZE_LOG:0] intwb0_sqid,
     // BHT/BTB Update
     output wire                           intwb0_bht_write_enable,
     output wire [`BHTBTB_INDEX_WIDTH-1:0] intwb0_bht_write_index,
@@ -91,7 +92,7 @@ module exu_top (
     output wire                            memwb_mmio_valid,
     output wire [           `RESULT_RANGE] memwb_result,
     /* --------------------------------- to disp -------------------------------- */
-    output wire [`STOREQUEUE_SIZE_LOG : 0] sq2disp_sqid,
+    output wire [`SQ_SIZE_LOG : 0] sq2disp_sqid,
     /* ------------------------------ from dispatch ----------------------------- */
     input  wire                            disp2sq_valid,
     output wire                            sq_can_alloc,
@@ -112,7 +113,7 @@ module exu_top (
     wire                           intblock_out_redirect_valid;
     wire [                   63:0] intblock_out_redirect_target;
     wire [        `ROB_SIZE_LOG:0] intblock_out_robid;
-    wire [ `STOREQUEUE_SIZE_LOG:0] intblock_out_sqid;
+    wire [ `SQ_SIZE_LOG:0] intblock_out_sqid;
     wire [           `INSTR_RANGE] intblock_out_instr;
     wire [              `PC_RANGE] intblock_out_pc;
 
@@ -157,7 +158,7 @@ module exu_top (
     wire [             `SRC_RANGE] memwb_store_mask;
     wire [                    3:0] memwb_store_ls_size;
 
-    wire [ `STOREQUEUE_SIZE_LOG:0] flush_sqid;
+    wire [ `SQ_SIZE_LOG:0] flush_sqid;
 
     /* ------------------------------- dcache_arb ------------------------------- */
     // LSU Channel Inputs and Outputs : from lsu
@@ -298,7 +299,7 @@ module exu_top (
 
     );
     wire load2arb_flush_valid;
-    memblock u_memblock (
+    mem_top u_memblock (
         .clock                       (clock),
         .reset_n                     (reset_n),
         .instr_valid                 (mem_instr_valid),
@@ -338,52 +339,6 @@ module exu_top (
         .flush_valid                 (flush_valid),
         .flush_robid                 (flush_robid),
         .load2arb_flush_valid        (load2arb_flush_valid),
-        .ldu2sq_forward_req_valid    (ldu2sq_forward_req_valid),
-        .ldu2sq_forward_req_sqid     (ldu2sq_forward_req_sqid),
-        .ldu2sq_forward_req_sqmask   (ldu2sq_forward_req_sqmask),
-        .ldu2sq_forward_req_load_addr(ldu2sq_forward_req_load_addr),
-        .ldu2sq_forward_req_load_size(ldu2sq_forward_req_load_size),
-        .ldu2sq_forward_resp_valid   (ldu2sq_forward_resp_valid),
-        .ldu2sq_forward_resp_data    (ldu2sq_forward_resp_data),
-        .ldu2sq_forward_resp_mask    (ldu2sq_forward_resp_mask)
-    );
-
-
-
-    /* -------------------------------------------------------------------------- */
-    /*                             store queue region                             */
-    /* -------------------------------------------------------------------------- */
-
-    storequeue u_storequeue (
-        .clock                       (clock),
-        .reset_n                     (reset_n),
-        .disp2sq_valid               (disp2sq_valid),
-        .sq_can_alloc                (sq_can_alloc),
-        .disp2sq_robid               (disp2sq_robid),
-        .disp2sq_pc                  (disp2sq_pc),
-        .memwb_instr_valid           (memwb_instr_valid),
-        .memwb_mmio_valid            (memwb_mmio_valid),
-        .memwb_robid                 (memwb_robid),
-        .memwb_store_addr            (memwb_store_addr),
-        .memwb_store_data            (memwb_store_data),
-        .memwb_store_mask            (memwb_store_mask),
-        .memwb_store_ls_size         (memwb_store_ls_size),
-        .commit0_valid               (commit0_valid),
-        .commit0_robid               (commit0_robid),
-        .commit1_valid               (commit1_valid),
-        .commit1_robid               (commit1_robid),
-        .flush_valid                 (flush_valid),
-        .flush_robid                 (flush_robid),
-        .flush_sqid                  (flush_sqid),
-        .sq2arb_tbus_index_valid     (sq2arb_tbus_index_valid),
-        .sq2arb_tbus_index_ready     (sq2arb_tbus_index_ready),
-        .sq2arb_tbus_index           (sq2arb_tbus_index),
-        .sq2arb_tbus_write_data      (sq2arb_tbus_write_data),
-        .sq2arb_tbus_write_mask      (sq2arb_tbus_write_mask),
-        .sq2arb_tbus_read_data       (sq2arb_tbus_read_data),
-        .sq2arb_tbus_operation_type  (sq2arb_tbus_operation_type),
-        .sq2arb_tbus_operation_done  (sq2arb_tbus_operation_done),
-        .sq2disp_sqid                (sq2disp_sqid),
         .ldu2sq_forward_req_valid    (ldu2sq_forward_req_valid),
         .ldu2sq_forward_req_sqid     (ldu2sq_forward_req_sqid),
         .ldu2sq_forward_req_sqmask   (ldu2sq_forward_req_sqmask),

@@ -1,3 +1,4 @@
+`include "defines.sv"
 module pipereg_autostall (
     input  wire               clock,
     input  wire               reset_n,

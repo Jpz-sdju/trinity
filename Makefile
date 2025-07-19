@@ -8,6 +8,7 @@ INCDIR = -I./tb/ \
 	-I./vsrc/backend/isu\
 	-I./vsrc/backend/fu\
 	-I./vsrc/backend/dispatch\
+	-I./vsrc/mem/\
 	-I./vsrc/frontend\
 	-I./vsrc/include/\
 	-I./build/rtl

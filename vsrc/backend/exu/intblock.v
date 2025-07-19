@@ -9,7 +9,7 @@ module intblock #(
     input  wire [          `INSTR_RANGE] instr,        //for debug
     input  wire [             `PC_RANGE] pc,
     input  wire [   `INSTR_ID_WIDTH-1:0] robid,
-    input  wire [`STOREQUEUE_SIZE_LOG:0] sqid,
+    input  wire [`SQ_SIZE_LOG:0] sqid,
 
 
     /* -------------------------- calculation meterial -------------------------- */
@@ -37,7 +37,7 @@ module intblock #(
     output wire                          intblock_out_redirect_valid,
     output wire [             `PC_RANGE] intblock_out_redirect_target,
     output wire [   `INSTR_ID_WIDTH-1:0] intblock_out_robid,
-    output wire [`STOREQUEUE_SIZE_LOG:0] intblock_out_sqid,
+    output wire [`SQ_SIZE_LOG:0] intblock_out_sqid,
 
     output wire [       `INSTR_RANGE] intblock_out_instr,  //for debug
     output wire [          `PC_RANGE] intblock_out_pc,     //for debug

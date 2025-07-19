@@ -110,7 +110,7 @@ module isu_top (
     output wire                          issue0_valid,
     input  wire                          issue0_ready,
     output wire [       `ROB_SIZE_LOG:0] issue0_robid,
-    output wire [`STOREQUEUE_SIZE_LOG:0] issue0_sqid,
+    output wire [`SQ_SIZE_LOG:0] issue0_sqid,
     output wire [                  63:0] issue0_pc,
     output wire [                  31:0] issue0_instr,
     output wire [           `LREG_RANGE] issue0_lrs1,
@@ -142,7 +142,7 @@ module isu_top (
     output wire                          issue1_valid,
     input  wire                          issue1_ready,
     output wire [       `ROB_SIZE_LOG:0] issue1_robid,
-    output wire [`STOREQUEUE_SIZE_LOG:0] issue1_sqid,
+    output wire [`SQ_SIZE_LOG:0] issue1_sqid,
     output wire [                  63:0] issue1_pc,
     output wire [                  31:0] issue1_instr,
     output wire [           `LREG_RANGE] issue1_lrs1,
@@ -182,7 +182,7 @@ module isu_top (
     output wire               rob_walk1_complete,
 
     /* ---------------------------- from store queue ---------------------------- */
-    input wire [`STOREQUEUE_SIZE_LOG : 0] sq2disp_sqid,
+    input wire [`SQ_SIZE_LOG : 0] sq2disp_sqid,
 
     //preg content from arch_rat
     input  wire [`PREG_RANGE] debug_preg0,
@@ -305,7 +305,7 @@ module isu_top (
     wire                          disp2intisq_instr0_is_store;
     wire [                   3:0] disp2intisq_instr0_ls_size;
     wire [       `ROB_SIZE_LOG:0] disp2intisq_instr0_robid;
-    wire [`STOREQUEUE_SIZE_LOG:0] disp2intisq_instr0_sqid;
+    wire [`SQ_SIZE_LOG:0] disp2intisq_instr0_sqid;
     wire                          disp2intisq_instr0_predicttaken;
     wire [             `PC_RANGE] disp2intisq_instr0_predicttarget;
     wire                          disp2intisq_instr0_src1_state;
@@ -335,7 +335,7 @@ module isu_top (
     wire                          disp2memisq_instr0_is_store;
     wire [                   3:0] disp2memisq_instr0_ls_size;
     wire [       `ROB_SIZE_LOG:0] disp2memisq_instr0_robid;
-    wire [`STOREQUEUE_SIZE_LOG:0] disp2memisq_instr0_sqid;
+    wire [`SQ_SIZE_LOG:0] disp2memisq_instr0_sqid;
     wire                          disp2memisq_instr0_predicttaken;
     wire [             `PC_RANGE] disp2memisq_instr0_predicttarget;
     wire                          disp2memisq_instr0_src1_state;
@@ -809,7 +809,7 @@ module isu_top (
         .wren0       (intwb0_instr_valid && intwb0_need_to_wb),
         .waddr0      (intwb0_prd),
         .wdata0      (intwb0_result),
-        //memblock writeback port
+        //mem_top writeback port
         .wren1       (memwb_instr_valid && memwb_need_to_wb),
         .waddr1      (memwb_prd),
         .wdata1      (memwb_result),

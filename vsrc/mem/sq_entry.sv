@@ -1,3 +1,4 @@
+`include "defines.sv"
 module sq_entry (
     input wire                   clock,
     input wire                   reset_n,
@@ -7,12 +8,14 @@ module sq_entry (
     input wire [      `PC_RANGE] enq_pc,
 
     /* -------------------------- writeback fill field -------------------------- */
-    input wire              writeback_valid,
-    input wire              writeback_mmio,
-    input wire [`SRC_RANGE] writeback_store_addr,
-    input wire [`SRC_RANGE] writeback_store_data,
-    input wire [`SRC_RANGE] writeback_store_mask,
-    input wire [       3:0] writeback_store_ls_size,
+    input wire              agu_cmpl_valid,
+    input wire              agu_cmpl_mmio,
+    input wire [`SRC_RANGE] agu_cmpl_addr,
+
+    input wire              dgu_cmpl_valid,
+    input wire [`SRC_RANGE] dgu_cmpl_data,
+    input wire [`SRC_RANGE] dgu_cmpl_mask,
+    input wire [       3:0] dgu_cmpl_size,
 
     /* ---------------------------- commit to wakeup ---------------------------- */
     input  wire                   commit,
@@ -66,7 +69,7 @@ module sq_entry (
             queue_mmio <= 'b0;
         end else if (enq_valid) begin
             queue_mmio <= 'b0;
-        end else if (writeback_valid & writeback_mmio) begin
+        end else if (agu_cmpl_valid & agu_cmpl_mmio) begin
             queue_mmio <= 'b1;
         end
     end
@@ -94,7 +97,7 @@ module sq_entry (
             queue_complete <= 'b0;
         end else if (enq_valid) begin
             queue_complete <= 'b0;
-        end else if (writeback_valid) begin
+        end else if (agu_cmpl_valid) begin
             queue_complete <= 1'b1;
         end
     end
@@ -104,29 +107,32 @@ module sq_entry (
     always @(posedge clock or negedge reset_n) begin
         if (~reset_n | flush) begin
             queue_store_addr <= 'b0;
-        end else if (writeback_valid & ~writeback_mmio) begin
-            queue_store_addr <= writeback_store_addr;
+        end else if (agu_cmpl_valid & ~agu_cmpl_mmio) begin
+            queue_store_addr <= agu_cmpl_addr;
         end
     end
+
+
+
     always @(posedge clock or negedge reset_n) begin
         if (~reset_n | flush) begin
             queue_store_data <= 'b0;
-        end else if (writeback_valid & ~writeback_mmio) begin
-            queue_store_data <= writeback_store_data;
+        end else if (dgu_cmpl_valid ) begin
+            queue_store_data <= dgu_cmpl_data;
         end
     end
     always @(posedge clock or negedge reset_n) begin
         if (~reset_n | flush) begin
             queue_store_mask <= 'b0;
-        end else if (writeback_valid & ~writeback_mmio) begin
-            queue_store_mask <= writeback_store_mask;
+        end else if (dgu_cmpl_valid ) begin
+            queue_store_mask <= dgu_cmpl_mask;
         end
     end
     always @(posedge clock or negedge reset_n) begin
         if (~reset_n | flush) begin
             queue_store_ls_size <= 'b0;
-        end else if (writeback_valid & ~writeback_mmio) begin
-            queue_store_ls_size <= writeback_store_ls_size;
+        end else if (dgu_cmpl_valid ) begin
+            queue_store_ls_size <= dgu_cmpl_size;
         end
     end
 

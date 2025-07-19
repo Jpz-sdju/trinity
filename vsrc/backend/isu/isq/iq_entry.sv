@@ -1,3 +1,4 @@
+`include "defines.sv"
 module iq_entry (
     input wire                      clock,
     input wire                      reset_n,
@@ -26,7 +27,7 @@ module iq_entry (
     input wire [  `PC_RANGE] enq_predicttarget,
 
     input wire [  `ROB_SIZE_LOG:0] enq_robid,
-    input wire [`STOREQUEUE_SIZE_LOG:0] enq_sqid,
+    input wire [`SQ_SIZE_LOG:0] enq_sqid,
 
     /* -------------------------------- src state ------------------------------- */
     input wire enq_src1_state,
@@ -71,7 +72,7 @@ module iq_entry (
     output wire [  `PC_RANGE] deq_predicttarget,
 
     output wire [  `ROB_SIZE_LOG:0] deq_robid,
-    output wire [`STOREQUEUE_SIZE_LOG:0] deq_sqid
+    output wire [`SQ_SIZE_LOG:0] deq_sqid
 );
     // Internal queue storage
     reg                      queue_valid;
@@ -99,7 +100,7 @@ module iq_entry (
     reg                      queue_predicttaken;
     reg [         `PC_RANGE] queue_predicttarget;
     reg [   `ROB_SIZE_LOG:0] queue_robid;
-    reg [ `STOREQUEUE_SIZE_LOG:0] queue_sqid;
+    reg [ `SQ_SIZE_LOG:0] queue_sqid;
 
     always @(posedge clock or negedge reset_n) begin
         if (!reset_n | flush) begin
@@ -154,7 +155,7 @@ module iq_entry (
     `MACRO_LATCH_NONEN(queue_predicttaken, enq_predicttaken, enq_valid, 1)
     `MACRO_LATCH_NONEN(queue_predicttarget, enq_predicttarget, enq_valid, `PC_LENGTH)
     `MACRO_LATCH_NONEN(queue_robid, enq_robid, enq_valid, `ROB_SIZE_LOG + 1)
-    `MACRO_LATCH_NONEN(queue_sqid, enq_sqid, enq_valid, `STOREQUEUE_SIZE_LOG + 1)
+    `MACRO_LATCH_NONEN(queue_sqid, enq_sqid, enq_valid, `SQ_SIZE_LOG + 1)
 
     assign valid             = queue_valid;
     assign deq_pc            = queue_pc;

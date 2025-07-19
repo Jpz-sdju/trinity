@@ -115,7 +115,7 @@ module dispatch (
     output wire                      disp2intisq_instr0_is_store,
     output wire [               3:0] disp2intisq_instr0_ls_size,
     output wire [   `ROB_SIZE_LOG:0] disp2intisq_instr0_robid,          //7 bit, robid send to isq
-    output wire [ `STOREQUEUE_SIZE_LOG:0] disp2intisq_instr0_sqid,           //7 bit, robid send to isq
+    output wire [ `SQ_SIZE_LOG:0] disp2intisq_instr0_sqid,           //7 bit, robid send to isq
     output wire                      disp2intisq_instr0_predicttaken,
     output wire [              31:0] disp2intisq_instr0_predicttarget,
     output wire                      disp2intisq_instr0_src1_state,
@@ -147,7 +147,7 @@ module dispatch (
     output wire                      disp2memisq_instr0_is_store,
     output wire [               3:0] disp2memisq_instr0_ls_size,
     output wire [   `ROB_SIZE_LOG:0] disp2memisq_instr0_robid,          //7 bit, robid send to isq
-    output wire [ `STOREQUEUE_SIZE_LOG:0] disp2memisq_instr0_sqid,           //7 bit, robid send to isq
+    output wire [ `SQ_SIZE_LOG:0] disp2memisq_instr0_sqid,           //7 bit, robid send to isq
     output wire                      disp2memisq_instr0_predicttaken,
     output wire [              31:0] disp2memisq_instr0_predicttarget,
     output wire                      disp2memisq_instr0_src1_state,
@@ -155,7 +155,7 @@ module dispatch (
 
 
     /* -------------------------- port with store queue ------------------------- */
-    input  wire [`STOREQUEUE_SIZE_LOG : 0] sq2disp_sqid,
+    input  wire [`SQ_SIZE_LOG : 0] sq2disp_sqid,
     output wire                       disp2sq_valid,
     output wire [    `ROB_SIZE_LOG:0] disp2sq_robid,
     output wire [          `PC_RANGE] disp2sq_pc,

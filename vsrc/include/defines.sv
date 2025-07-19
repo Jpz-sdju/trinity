@@ -6,6 +6,9 @@
 `define SRC_RANGE 63:0
 `define SRC_LENGTH 64
 
+`define VADDR_RANGE 38:0
+`define PADDR_RANGE 55:0
+
 `define RESULT_RANGE 63:0
 `define RESULT_WIDTH 64
 `define ALU_TYPE_RANGE 10:0
@@ -154,7 +157,7 @@
 `define COMMIT_SIZE 2
 
 `define STOREQUEUE_SIZE 4
-`define STOREQUEUE_SIZE_LOG 2
+`define SQ_SIZE_LOG 2
 
 `define MACRO_DFF_NONEN(dff_data_q, dff_data_in, dff_data_width) \
 always @(posedge clock or negedge reset_n) begin \

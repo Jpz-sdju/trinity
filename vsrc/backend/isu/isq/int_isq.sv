@@ -36,7 +36,7 @@ module int_isq #(
     input wire [  `PC_RANGE] enq_instr0_predicttarget,
 
     input wire [  `ROB_SIZE_LOG:0] enq_instr0_robid,
-    input wire [`STOREQUEUE_SIZE_LOG:0] enq_instr0_sqid,
+    input wire [`SQ_SIZE_LOG:0] enq_instr0_sqid,
     /* -------------------------------- src state ------------------------------- */
     input wire                     enq_instr0_src1_state,
     input wire                     enq_instr0_src2_state,
@@ -67,7 +67,7 @@ module int_isq #(
     output reg  [         `PC_RANGE] issue0_predicttarget,
 
     output reg [  `ROB_SIZE_LOG:0] issue0_robid,
-    output reg [`STOREQUEUE_SIZE_LOG:0] issue0_sqid,
+    output reg [`SQ_SIZE_LOG:0] issue0_sqid,
 
     //-----------------------------------------------------
     // writeback to set condition to 1
@@ -123,7 +123,7 @@ module int_isq #(
     reg  [   `ISSUE_QUEUE_DEPTH-1:0] iq_entries_enq_predicttaken_oh;
     reg  [                `PC_RANGE] iq_entries_enq_predicttarget_oh[`ISSUE_QUEUE_DEPTH-1:0];
     reg  [          `ROB_SIZE_LOG:0] iq_entries_enq_robid_oh        [`ISSUE_QUEUE_DEPTH-1:0];
-    reg  [        `STOREQUEUE_SIZE_LOG:0] iq_entries_enq_sqid_oh         [`ISSUE_QUEUE_DEPTH-1:0];
+    reg  [        `SQ_SIZE_LOG:0] iq_entries_enq_sqid_oh         [`ISSUE_QUEUE_DEPTH-1:0];
 
     /* -------------------------------------------------------------------------- */
     /*                                   deq dec                                  */
@@ -150,7 +150,7 @@ module int_isq #(
     wire [   `ISSUE_QUEUE_DEPTH-1:0] iq_entries_deq_predicttaken;
     wire [                `PC_RANGE] iq_entries_deq_predicttarget   [`ISSUE_QUEUE_DEPTH-1:0];
     wire [          `ROB_SIZE_LOG:0] iq_entries_deq_robid           [`ISSUE_QUEUE_DEPTH-1:0];
-    wire [        `STOREQUEUE_SIZE_LOG:0] iq_entries_deq_sqid            [`ISSUE_QUEUE_DEPTH-1:0];
+    wire [        `SQ_SIZE_LOG:0] iq_entries_deq_sqid            [`ISSUE_QUEUE_DEPTH-1:0];
 
     wire [   `ISSUE_QUEUE_DEPTH-1:0] iq_entries_ready_to_go;
     wire [   `ISSUE_QUEUE_DEPTH-1:0] iq_entries_valid;

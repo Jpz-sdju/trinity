@@ -138,7 +138,7 @@ module core_top #(
     dcache u_dcache (
         .clock                         (clock),
         .reset_n                       (reset_n),
-        .flush                         (arb2dcache_flush_valid),          //flush_valid was send to memblock to determine if dcache operation should be cancel or not
+        .flush                         (arb2dcache_flush_valid),          //flush_valid was send to mem_top to determine if dcache operation should be cancel or not
         //tbus channel from backend 
         .tbus_index_valid              (tbus_index_valid),
         .tbus_index_ready              (tbus_index_ready),

@@ -1,3 +1,4 @@
+`include "defines.sv"
 module loadunit (
     input  wire                     clock,
     input  wire                     reset_n,
@@ -13,7 +14,7 @@ module loadunit (
     input  wire [       `SRC_RANGE] src2,
     input  wire [   `LS_SIZE_RANGE] ls_size,
     input  wire [  `ROB_SIZE_LOG:0] robid,
-    input  wire [`STOREQUEUE_SIZE_LOG:0] sqid,
+    input  wire [`SQ_SIZE_LOG:0] sqid,
 
     //trinity bus channel
     output reg                  load2arb_tbus_index_valid,
@@ -29,7 +30,7 @@ module loadunit (
     /* -------------------------- redirect flush logic -------------------------- */
     input  wire                   flush_valid,
     input  wire [`ROB_SIZE_LOG:0] flush_robid,
-    /* --------------------------- memblock to dcache --------------------------- */
+    /* --------------------------- mem_top to dcache --------------------------- */
     //it can be used to flush dcache arb.
     output wire                   load2arb_flush_valid,
     /* --------------------------- output to writeback -------------------------- */
@@ -80,7 +81,7 @@ module loadunit (
     reg  [      `PREG_RANGE] prd_latch;
     reg  [        `PC_RANGE] pc_latch;
     reg  [  `ROB_SIZE_LOG:0] robid_latch;
-    reg  [`STOREQUEUE_SIZE_LOG:0] sqid_latch;
+    reg  [`SQ_SIZE_LOG:0] sqid_latch;
     reg  [   `LS_SIZE_RANGE] ls_size_latch;
     agu u_agu (
         .src1      (src1),
@@ -198,7 +199,7 @@ module loadunit (
 
     assign ldu2sq_forward_req_valid     = instr_valid_latch;
     assign ldu2sq_forward_req_sqid      = sqid_latch;
-    assign ldu2sq_forward_req_sqmask    = (1'b1 << sqid_latch[`STOREQUEUE_SIZE_LOG-1:0]) - 'b1;
+    assign ldu2sq_forward_req_sqmask    = (1'b1 << sqid_latch[`SQ_SIZE_LOG-1:0]) - 'b1;
     assign ldu2sq_forward_req_load_addr = ls_address_latch;
     assign ldu2sq_forward_req_load_size = ls_size_latch;
 

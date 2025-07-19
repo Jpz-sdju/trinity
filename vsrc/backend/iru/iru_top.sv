@@ -1,3 +1,4 @@
+`include "defines.sv"
 module iru_top (
     input wire clock,
     input wire reset_n,

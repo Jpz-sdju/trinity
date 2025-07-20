@@ -95,9 +95,6 @@ module dispatch (
     output wire                      disp2intisq_instr0_enq_valid,
     output wire [         `PC_RANGE] disp2intisq_instr0_pc,
     output wire [              31:0] disp2intisq_instr0_instr,
-    output wire [       `LREG_RANGE] disp2intisq_instr0_lrs1,
-    output wire [       `LREG_RANGE] disp2intisq_instr0_lrs2,
-    output wire [       `LREG_RANGE] disp2intisq_instr0_lrd,
     output wire [       `PREG_RANGE] disp2intisq_instr0_prd,
     output wire [       `PREG_RANGE] disp2intisq_instr0_old_prd,
     output wire                      disp2intisq_instr0_need_to_wb,
@@ -116,7 +113,7 @@ module dispatch (
     output wire                      disp2intisq_instr0_is_store,
     output wire [               3:0] disp2intisq_instr0_ls_size,
     output wire [   `ROB_SIZE_LOG:0] disp2intisq_instr0_robid,          //7 bit, robid send to isq
-    output wire [ `SQ_SIZE_LOG:0] disp2intisq_instr0_sqid,           //7 bit, robid send to isq
+    output wire [    `SQ_SIZE_LOG:0] disp2intisq_instr0_sqid,           //7 bit, robid send to isq
     output wire                      disp2intisq_instr0_predicttaken,
     output wire [              31:0] disp2intisq_instr0_predicttarget,
     output wire                      disp2intisq_instr0_src1_state,
@@ -124,42 +121,31 @@ module dispatch (
 
 
     /* ------------------------------ to mem isq ----------------------------- */
-    output wire                      disp2memisq_instr0_enq_valid,
-    output wire [         `PC_RANGE] disp2memisq_instr0_pc,
-    output wire [              31:0] disp2memisq_instr0_instr,
-    output wire [       `LREG_RANGE] disp2memisq_instr0_lrs1,
-    output wire [       `LREG_RANGE] disp2memisq_instr0_lrs2,
-    output wire [       `LREG_RANGE] disp2memisq_instr0_lrd,
-    output wire [       `PREG_RANGE] disp2memisq_instr0_prd,
-    output wire [       `PREG_RANGE] disp2memisq_instr0_old_prd,
-    output wire                      disp2memisq_instr0_need_to_wb,
-    output wire [       `PREG_RANGE] disp2memisq_instr0_prs1,
-    output wire [       `PREG_RANGE] disp2memisq_instr0_prs2,
-    output wire                      disp2memisq_instr0_src1_is_reg,
-    output wire                      disp2memisq_instr0_src2_is_reg,
-    output wire [              63:0] disp2memisq_instr0_imm,
-    output wire [    `CX_TYPE_RANGE] disp2memisq_instr0_cx_type,
-    output wire                      disp2memisq_instr0_is_unsigned,
-    output wire [   `ALU_TYPE_RANGE] disp2memisq_instr0_alu_type,
-    output wire [`MULDIV_TYPE_RANGE] disp2memisq_instr0_muldiv_type,
-    output wire                      disp2memisq_instr0_is_word,
-    output wire                      disp2memisq_instr0_is_imm,
-    output wire                      disp2memisq_instr0_is_load,
-    output wire                      disp2memisq_instr0_is_store,
-    output wire [               3:0] disp2memisq_instr0_ls_size,
-    output wire [   `ROB_SIZE_LOG:0] disp2memisq_instr0_robid,          //7 bit, robid send to isq
-    output wire [ `SQ_SIZE_LOG:0] disp2memisq_instr0_sqid,           //7 bit, robid send to isq
-    output wire                      disp2memisq_instr0_predicttaken,
-    output wire [              31:0] disp2memisq_instr0_predicttarget,
-    output wire                      disp2memisq_instr0_src1_state,
-    output wire                      disp2memisq_instr0_src2_state,
+    output wire                   disp2memisq_instr0_enq_valid,
+    output wire [      `PC_RANGE] disp2memisq_instr0_pc,
+    output wire [           31:0] disp2memisq_instr0_instr,
+    output wire [    `PREG_RANGE] disp2memisq_instr0_prd,
+    output wire [    `PREG_RANGE] disp2memisq_instr0_old_prd,
+    output wire [    `PREG_RANGE] disp2memisq_instr0_prs1,
+    output wire [    `PREG_RANGE] disp2memisq_instr0_prs2,
+    output wire [           63:0] disp2memisq_instr0_imm,
+    output wire                   disp2memisq_instr0_is_unsigned,
+    output wire                   disp2memisq_instr0_is_word,
+    output wire                   disp2memisq_instr0_is_imm,
+    output wire                   disp2memisq_instr0_is_load,
+    output wire                   disp2memisq_instr0_is_store,
+    output wire [            3:0] disp2memisq_instr0_ls_size,
+    output wire [`ROB_SIZE_LOG:0] disp2memisq_instr0_robid,        //7 bit, robid send to isq
+    output wire [ `SQ_SIZE_LOG:0] disp2memisq_instr0_sqid,         //7 bit, robid send to isq
+    output wire                   disp2memisq_instr0_src1_state,
+    output wire                   disp2memisq_instr0_src2_state,
 
 
     /* -------------------------- port with store queue ------------------------- */
     input  wire [`SQ_SIZE_LOG : 0] sq_enqptr,
-    output wire                       disp2sq_valid,
-    output wire [    `ROB_SIZE_LOG:0] disp2sq_robid,
-    output wire [          `PC_RANGE] disp2sq_pc,
+    output wire                    disp2sq_valid,
+    output wire [ `ROB_SIZE_LOG:0] disp2sq_robid,
+    output wire [       `PC_RANGE] disp2sq_pc,
 
     /* -------------------------- port with busy_table -------------------------- */
     // Read Port 0
@@ -242,9 +228,6 @@ module dispatch (
     assign disp2intisq_instr0_enq_valid     = is_int && ~flush_valid && sq_can_alloc && iq_can_alloc1;
     assign disp2intisq_instr0_pc            = instr0_pc;
     assign disp2intisq_instr0_instr         = instr0_instr;
-    assign disp2intisq_instr0_lrs1          = instr0_lrs1;
-    assign disp2intisq_instr0_lrs2          = instr0_lrs2;
-    assign disp2intisq_instr0_lrd           = instr0_lrd;
     assign disp2intisq_instr0_prd           = instr0_prd;
     assign disp2intisq_instr0_old_prd       = instr0_old_prd;
     assign disp2intisq_instr0_need_to_wb    = instr0_need_to_wb;
@@ -276,21 +259,12 @@ module dispatch (
     assign disp2memisq_instr0_enq_valid     = is_ls && ~flush_valid && sq_can_alloc && iq_can_alloc0;
     assign disp2memisq_instr0_pc            = instr0_pc;
     assign disp2memisq_instr0_instr         = instr0_instr;
-    assign disp2memisq_instr0_lrs1          = instr0_lrs1;
-    assign disp2memisq_instr0_lrs2          = instr0_lrs2;
-    assign disp2memisq_instr0_lrd           = instr0_lrd;
     assign disp2memisq_instr0_prd           = instr0_prd;
     assign disp2memisq_instr0_old_prd       = instr0_old_prd;
-    assign disp2memisq_instr0_need_to_wb    = instr0_need_to_wb;
     assign disp2memisq_instr0_prs1          = instr0_prs1;
     assign disp2memisq_instr0_prs2          = instr0_prs2;
-    assign disp2memisq_instr0_src1_is_reg   = instr0_src1_is_reg;
-    assign disp2memisq_instr0_src2_is_reg   = instr0_src2_is_reg;
     assign disp2memisq_instr0_imm           = instr0_imm;
-    assign disp2memisq_instr0_cx_type       = instr0_cx_type;
     assign disp2memisq_instr0_is_unsigned   = instr0_is_unsigned;
-    assign disp2memisq_instr0_alu_type      = instr0_alu_type;
-    assign disp2memisq_instr0_muldiv_type   = instr0_muldiv_type;
     assign disp2memisq_instr0_is_word       = instr0_is_word;
     assign disp2memisq_instr0_is_imm        = instr0_is_imm;
     assign disp2memisq_instr0_is_load       = instr0_is_load;
@@ -298,8 +272,6 @@ module dispatch (
     assign disp2memisq_instr0_ls_size       = instr0_ls_size;
     assign disp2memisq_instr0_robid         = rob2disp_instr_robid;
     assign disp2memisq_instr0_sqid          = sq_enqptr;
-    assign disp2memisq_instr0_predicttaken  = iru2isu_instr0_predicttaken;
-    assign disp2memisq_instr0_predicttarget = iru2isu_instr0_predicttarget;
     assign disp2memisq_instr0_src1_state    = bt2disp_instr0_src1_busy;
     assign disp2memisq_instr0_src2_state    = bt2disp_instr0_src2_busy;
 
@@ -311,4 +283,8 @@ module dispatch (
     assign disp2sq_valid                    = iru2isu_instr0_valid & instr0_is_store & ~flush_valid && iq_can_alloc0 && iq_can_alloc1;
     assign disp2sq_robid                    = rob2disp_instr_robid;
     assign disp2sq_pc                       = instr0_pc;
+
+
 endmodule
+
+

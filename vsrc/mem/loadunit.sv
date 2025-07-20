@@ -29,9 +29,7 @@ module loadunit (
     /* -------------------------- redirect flush logic -------------------------- */
     input  wire                   flush_valid,
     input  wire [`ROB_SIZE_LOG:0] flush_robid,
-    /* --------------------------- mem_top to dcache --------------------------- */
-    //it can be used to flush dcache arb.
-    output wire                   load2arb_flush_valid,
+
     /* --------------------------- output to writeback -------------------------- */
     output wire                   ldu_out_instr_valid,
     output wire [    `PREG_RANGE] ldu_out_prd,
@@ -327,6 +325,6 @@ module loadunit (
     assign need_flush           = flush_outstanding;
 
     //ONLY WHEN IS OUTSTANDING, LOAD COULD FLUSH DCACHE AND ARB
-    assign load2arb_flush_valid = need_flush;
+    // assign load2arb_flush_valid = need_flush;
 
 endmodule

@@ -1,3 +1,4 @@
+`include "defines.sv"
 module rob (
     input wire               clock,
     input wire               reset_n,
@@ -21,9 +22,10 @@ module rob (
     //write back port
     input wire                   intwb0_instr_valid,
     input wire [`ROB_SIZE_LOG:0] intwb0_robid,
-    input wire                   memwb_instr_valid,
-    input wire [`ROB_SIZE_LOG:0] memwb_robid,
-    input wire                   memwb_mmio_valid,
+    /* --------------------------- mem_top to complete -------------------------- */
+    input wire                   sq2rob_cmpl_valid,
+    input wire [`ROB_SIZE_LOG:0] sq2rob_cmpl_robid,
+    input wire                   sq2rob_cmpl_mmio,
 
     /* --------------------------- output commit port --------------------------- */
     output wire                   commit0_valid,
@@ -66,12 +68,12 @@ module rob (
     /* ------------------------------ enq relevant ------------------------------ */
     output reg                    rob_can_enq,
     output reg  [`ROB_SIZE_LOG:0] rob2disp_instr_robid,
-    output wire end_of_program
+    output wire                   end_of_program
 
 );
     reg [6:0] rob_counter;
     assign rob_can_enq          = 1'b1;
-    assign rob2disp_instr_robid =   enqueue_ptr;
+    assign rob2disp_instr_robid = enqueue_ptr;
 
     /* ----------------------------- internal signal ---------------------------- */
     //robentry input
@@ -236,7 +238,7 @@ module rob (
             if (intwb0_instr_valid & (intwb0_robid[`ROB_SIZE_LOG-1:0] == i[`ROB_SIZE_LOG-1:0])) begin
                 wb_set_complete_dec[i] = 1'b1;
             end
-            if (memwb_instr_valid & (memwb_robid[`ROB_SIZE_LOG-1:0] == i[`ROB_SIZE_LOG-1:0])) begin
+            if (sq2rob_cmpl_valid & (sq2rob_cmpl_robid[`ROB_SIZE_LOG-1:0] == i[`ROB_SIZE_LOG-1:0])) begin
                 wb_set_complete_dec[i] = 1'b1;
             end
             // if (intb_writeback1_valid & (intb_writeback1_robid[`ROB_SIZE_LOG-1:0] == i[`ROB_SIZE_LOG-1:0])) begin
@@ -250,7 +252,7 @@ module rob (
         integer i;
         for (i = 0; i < `ROB_SIZE; i = i + 1) begin
             wb_set_skip_dec[i] = 'b0;
-            if (memwb_instr_valid & memwb_mmio_valid & (memwb_robid[`ROB_SIZE_LOG-1:0] == i[`ROB_SIZE_LOG-1:0])) begin
+            if (sq2rob_cmpl_valid & sq2rob_cmpl_mmio & (sq2rob_cmpl_robid[`ROB_SIZE_LOG-1:0] == i[`ROB_SIZE_LOG-1:0])) begin
                 wb_set_skip_dec[i] = 1'b1;
             end
         end
@@ -454,7 +456,7 @@ module rob (
     endgenerate
 
 
-/* -------------------------------- pmu logic ------------------------------- */
+    /* -------------------------------- pmu logic ------------------------------- */
     // wire test_begin_of_program;
     // assign test_begin_of_program = (commit0_instr == 32'h00000413) && commit0_valid;
     // always @(posedge clock) begin
@@ -466,12 +468,12 @@ module rob (
 
 
     assign end_of_program = (commit0_instr == 32'h0005006b) && commit0_valid;
-    
+
     reg [31:0] rob_pmu_flush_times_cnt;
     always @(posedge clock or negedge reset_n) begin
-        if(~reset_n)begin
+        if (~reset_n) begin
             rob_pmu_flush_times_cnt <= 'b0;
-        end else if(flush_valid) begin
+        end else if (flush_valid) begin
             rob_pmu_flush_times_cnt <= rob_pmu_flush_times_cnt + 1;
         end
     end

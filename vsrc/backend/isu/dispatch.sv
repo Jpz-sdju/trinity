@@ -4,7 +4,8 @@ module dispatch (
     input wire reset_n,
 
     input wire iq_can_alloc0,
-    input wire iq_can_alloc1,
+    input wire iq_load0_can_alloc,
+    input wire iq_st0_can_alloc,
     input wire sq_can_alloc,
 
     /* ---------------------------instr0 from rename  --------------------------- */
@@ -121,24 +122,24 @@ module dispatch (
 
 
     /* ------------------------------ to mem isq ----------------------------- */
-    output wire                   disp2memisq_instr0_enq_valid,
-    output wire [      `PC_RANGE] disp2memisq_instr0_pc,
-    output wire [           31:0] disp2memisq_instr0_instr,
-    output wire [    `PREG_RANGE] disp2memisq_instr0_prd,
-    output wire [    `PREG_RANGE] disp2memisq_instr0_old_prd,
-    output wire [    `PREG_RANGE] disp2memisq_instr0_prs1,
-    output wire [    `PREG_RANGE] disp2memisq_instr0_prs2,
-    output wire [           63:0] disp2memisq_instr0_imm,
-    output wire                   disp2memisq_instr0_is_unsigned,
-    output wire                   disp2memisq_instr0_is_word,
-    output wire                   disp2memisq_instr0_is_imm,
-    output wire                   disp2memisq_instr0_is_load,
-    output wire                   disp2memisq_instr0_is_store,
-    output wire [            3:0] disp2memisq_instr0_ls_size,
-    output wire [`ROB_SIZE_LOG:0] disp2memisq_instr0_robid,        //7 bit, robid send to isq
-    output wire [ `SQ_SIZE_LOG:0] disp2memisq_instr0_sqid,         //7 bit, robid send to isq
-    output wire                   disp2memisq_instr0_src1_state,
-    output wire                   disp2memisq_instr0_src2_state,
+    output wire                   disp2memisg_instr0_valid,
+    output wire [      `PC_RANGE] disp2memisg_instr0_pc,
+    output wire [           31:0] disp2memisg_instr0,
+    output wire [    `PREG_RANGE] disp2memisg_instr0_prd,
+    output wire [    `PREG_RANGE] disp2memisg_instr0_old_prd,
+    output wire [    `PREG_RANGE] disp2memisg_instr0_prs1,
+    output wire [    `PREG_RANGE] disp2memisg_instr0_prs2,
+    output wire [           63:0] disp2memisg_instr0_imm,
+    output wire                   disp2memisg_instr0_is_unsigned,
+    output wire                   disp2memisg_instr0_is_word,
+    output wire                   disp2memisg_instr0_is_imm,
+    output wire                   disp2memisg_instr0_is_load,
+    output wire                   disp2memisg_instr0_is_store,
+    output wire [            3:0] disp2memisg_instr0_ls_size,
+    output wire [`ROB_SIZE_LOG:0] disp2memisg_instr0_robid,        //7 bit, robid send to isq
+    output wire [ `SQ_SIZE_LOG:0] disp2memisg_instr0_sqid,
+    output wire                   disp2memisg_instr0_src1_state,
+    output wire                   disp2memisg_instr0_src2_state,
 
 
     /* -------------------------- port with store queue ------------------------- */
@@ -177,14 +178,27 @@ module dispatch (
 
 );
 
+    wire instr0_exceptrob_rdy;
+    wire instr1_exceptrob_rdy;
+    wire instr2_exceptrob_rdy;
+    wire instr3_exceptrob_rdy;
+    wire instr0_is_ls;
+    wire instr1_is_ls;
+    wire instr2_is_ls;
+    wire instr3_is_ls;
 
+    assign instr0_is_ls               = instr0_is_store || instr0_is_load;
+    assign instr1_is_ls               = instr1_is_store || instr1_is_load;
+    //For a specific resource , applcation valid sigs should be HIGH when other resources is ready except this specific resource.
+    assign instr0_exceptrob_rdy      = instr0_is_store && sq_can_alloc && iq_st0_can_alloc || instr0_is_load && iq_load0_can_alloc || !instr0_is_ls && iq_can_alloc0;
+    assign instr1_exceptrob_rdy      = instr1_is_store && sq_can_alloc && iq_st0_can_alloc || instr1_is_load && iq_load0_can_alloc || !instr1_is_ls && iq_can_alloc0;
 
     //disp2pipe ready
-    assign iru2isu_instr0_ready       = rob_can_enq && iq_can_alloc0 && iq_can_alloc1 && sq_can_alloc && ~flush_valid && (rob_state == `ROB_STATE_IDLE);
+    assign iru2isu_instr0_ready       = rob_can_enq && instr0_exceptrob_rdy && ~flush_valid && (rob_state == `ROB_STATE_IDLE);
     assign iru2isu_instr1_ready       = 1'b0;
 
     /* --------------------- write instr0 and instr1 to rob --------------------- */
-    assign disp2rob_instr0_enq_valid  = iru2isu_instr0_valid && ~flush_valid && iq_can_alloc0 && iq_can_alloc1 && sq_can_alloc;
+    assign disp2rob_instr0_enq_valid  = iru2isu_instr0_valid && ~flush_valid && instr0_exceptrob_rdy;
     assign disp2rob_instr0_pc         = instr0_pc;
     assign disp2rob_instr0_instr      = instr0_instr;
     assign disp2rob_instr0_lrd        = instr0_lrd;
@@ -202,9 +216,9 @@ module dispatch (
     assign disp2rob_instr1_need_to_wb = instr1_need_to_wb;
 
     /* ------------ write prd0 and prd1 busy bit to 1 in busy_vector ------------ */
-    assign disp2bt_alloc_instr0_rd_en = instr0_need_to_wb && iru2isu_instr0_valid && ~flush_valid && sq_can_alloc && iq_can_alloc0 && iq_can_alloc1 & rob_can_enq;
+    assign disp2bt_alloc_instr0_rd_en = instr0_need_to_wb && iru2isu_instr0_valid && ~flush_valid && instr0_exceptrob_rdy & rob_can_enq;
     assign disp2bt_alloc_instr0_rd    = instr0_prd;
-    assign disp2bt_alloc_instr1_rd_en = instr1_need_to_wb && iru2isu_instr0_valid && ~flush_valid && sq_can_alloc && iq_can_alloc0 && iq_can_alloc1 & rob_can_enq;
+    assign disp2bt_alloc_instr1_rd_en = instr1_need_to_wb && iru2isu_instr0_valid && ~flush_valid && instr1_exceptrob_rdy & rob_can_enq;
     assign disp2bt_alloc_instr1_rd    = instr1_prd;
 
     /* ------- read instr0 and instr1 rs1 rs2 busy status from busy_vector ------ */
@@ -225,7 +239,7 @@ module dispatch (
     /* -------------------------------------------------------------------------- */
     /*                              to int issuequeue                             */
     /* -------------------------------------------------------------------------- */
-    assign disp2intisq_instr0_enq_valid     = is_int && ~flush_valid && sq_can_alloc && iq_can_alloc1;
+    assign disp2intisq_instr0_enq_valid     = is_int && ~flush_valid && rob_can_enq && instr0_exceptrob_rdy;
     assign disp2intisq_instr0_pc            = instr0_pc;
     assign disp2intisq_instr0_instr         = instr0_instr;
     assign disp2intisq_instr0_prd           = instr0_prd;
@@ -256,31 +270,31 @@ module dispatch (
     /* -------------------------------------------------------------------------- */
     /*                              to mem issuequeue                             */
     /* -------------------------------------------------------------------------- */
-    assign disp2memisq_instr0_enq_valid     = is_ls && ~flush_valid && sq_can_alloc && iq_can_alloc0;
-    assign disp2memisq_instr0_pc            = instr0_pc;
-    assign disp2memisq_instr0_instr         = instr0_instr;
-    assign disp2memisq_instr0_prd           = instr0_prd;
-    assign disp2memisq_instr0_old_prd       = instr0_old_prd;
-    assign disp2memisq_instr0_prs1          = instr0_prs1;
-    assign disp2memisq_instr0_prs2          = instr0_prs2;
-    assign disp2memisq_instr0_imm           = instr0_imm;
-    assign disp2memisq_instr0_is_unsigned   = instr0_is_unsigned;
-    assign disp2memisq_instr0_is_word       = instr0_is_word;
-    assign disp2memisq_instr0_is_imm        = instr0_is_imm;
-    assign disp2memisq_instr0_is_load       = instr0_is_load;
-    assign disp2memisq_instr0_is_store      = instr0_is_store;
-    assign disp2memisq_instr0_ls_size       = instr0_ls_size;
-    assign disp2memisq_instr0_robid         = rob2disp_instr_robid;
-    assign disp2memisq_instr0_sqid          = sq_enqptr;
-    assign disp2memisq_instr0_src1_state    = bt2disp_instr0_src1_busy;
-    assign disp2memisq_instr0_src2_state    = bt2disp_instr0_src2_busy;
+    assign disp2memisg_instr0_valid         = is_ls && ~flush_valid && rob_can_enq && sq_can_alloc;
+    assign disp2memisg_instr0_pc            = instr0_pc;
+    assign disp2memisg_instr0               = instr0_instr;
+    assign disp2memisg_instr0_prd           = instr0_prd;
+    assign disp2memisg_instr0_old_prd       = instr0_old_prd;
+    assign disp2memisg_instr0_prs1          = instr0_prs1;
+    assign disp2memisg_instr0_prs2          = instr0_prs2;
+    assign disp2memisg_instr0_imm           = instr0_imm;
+    assign disp2memisg_instr0_is_unsigned   = instr0_is_unsigned;
+    assign disp2memisg_instr0_is_word       = instr0_is_word;
+    assign disp2memisg_instr0_is_imm        = instr0_is_imm;
+    assign disp2memisg_instr0_is_load       = instr0_is_load;
+    assign disp2memisg_instr0_is_store      = instr0_is_store;
+    assign disp2memisg_instr0_ls_size       = instr0_ls_size;
+    assign disp2memisg_instr0_robid         = rob2disp_instr_robid;
+    assign disp2memisg_instr0_sqid          = sq_enqptr;
+    assign disp2memisg_instr0_src1_state    = bt2disp_instr0_src1_busy;
+    assign disp2memisg_instr0_src2_state    = bt2disp_instr0_src2_busy;
 
 
 
     /* -------------------------------------------------------------------------- */
     /*                               to store queue                               */
     /* -------------------------------------------------------------------------- */
-    assign disp2sq_valid                    = iru2isu_instr0_valid & instr0_is_store & ~flush_valid && iq_can_alloc0 && iq_can_alloc1;
+    assign disp2sq_valid                    = iru2isu_instr0_valid & instr0_is_store & ~flush_valid && rob_can_enq && iq_st0_can_alloc;
     assign disp2sq_robid                    = rob2disp_instr_robid;
     assign disp2sq_pc                       = instr0_pc;
 

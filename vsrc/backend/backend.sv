@@ -238,6 +238,19 @@ module backend #(
     wire                       memwb_mmio_valid;
     wire [      `RESULT_RANGE] memwb_result;
 
+    /* --------------------------- mem_top to rob complete -------------------------- */
+    wire                       sq2rob_cmpl_valid;
+    wire [    `ROB_SIZE_LOG:0] sq2rob_cmpl_robid;
+    wire                       sq2rob_cmpl_mmio;
+    wire                       ldu0_cmpl_valid;
+    wire [    `ROB_SIZE_LOG:0] ldu0_cmpl_robid;
+    wire                       ldu0_cmpl_mmio;
+    wire [       `INSTR_RANGE] ldu0_cmpl_instr;  //for debug
+    wire [          `PC_RANGE] ldu0_cmpl_pc;  //for debug
+    wire [      `RESULT_RANGE] ldu0_cmpl_load_data;
+    wire [        `PREG_RANGE] ldu0_cmpl_prd;
+
+
     wire                       issue0_valid;
     wire                       issue1_valid;
 
@@ -500,6 +513,9 @@ module backend #(
         .memwb_need_to_wb            (memwb_need_to_wb),                   //input
         .memwb_mmio_valid            (memwb_mmio_valid),                   //input
         .memwb_result                (memwb_result),
+        .sq2rob_cmpl_valid           (sq2rob_cmpl_valid),
+        .sq2rob_cmpl_robid           (sq2rob_cmpl_robid),
+        .sq2rob_cmpl_mmio            (sq2rob_cmpl_mmio),
         .flush_valid                 (flush_valid),                        //input
         .flush_robid                 (flush_robid),                        //input
         .commit0_valid               (commit0_valid),                      //OUTUPT
@@ -553,34 +569,34 @@ module backend #(
         .issue0_src2                 (isu2intblock_instr0_src2),
 
         /* ----------------------------------mem issue --------------------------------- */
-        .issue_st0_valid               (issue_st0_valid),
-        .issue_st0_ready               (issue_st0_ready),
-        .issue_st0_src1                (issue_st0_src1),
-        .issue_st0_src2                (issue_st0_src2),
-        .issue_st0_prd                 (issue_st0_prd),
-        .issue_st0_pc                  (issue_st0_pc),
-        .issue_st0_instr               (),
-        .issue_st0_imm                 (issue_st0_imm),
-        .issue_st0_is_unsigned         (issue_st0_is_unsigned),
-        .issue_st0_is_load             (issue_st0_is_load),
-        .issue_st0_is_store            (issue_st0_is_store),
-        .issue_st0_ls_size             (issue_st0_ls_size),
-        .issue_st0_robid               (issue_st0_robid),
-        .issue_st0_sqid                (issue_st0_sqid),
-        .issue_load0_valid             (issue_load0_valid),
-        .issue_load0_ready             (issue_load0_ready),
-        .issue_load0_src1              (issue_load0_src1),
-        .issue_load0_src2              (),
-        .issue_load0_prd               (issue_load0_prd),
-        .issue_load0_pc                (issue_load0_pc),
-        .issue_load0_instr             (),
-        .issue_load0_imm               (issue_load0_imm),
-        .issue_load0_is_unsigned       (issue_load0_is_unsigned),
-        .issue_load0_is_load           (issue_load0_is_load),
-        .issue_load0_is_store          (issue_load0_is_store),
-        .issue_load0_ls_size           (issue_load0_ls_size),
-        .issue_load0_robid             (issue_load0_robid),
-        .issue_load0_sqid              (issue_load0_sqid),
+        .issue_st0_valid        (issue_st0_valid),
+        .issue_st0_ready        (issue_st0_ready),
+        .issue_st0_src1         (issue_st0_src1),
+        .issue_st0_src2         (issue_st0_src2),
+        .issue_st0_prd          (issue_st0_prd),
+        .issue_st0_pc           (issue_st0_pc),
+        .issue_st0_instr        (),
+        .issue_st0_imm          (issue_st0_imm),
+        .issue_st0_is_unsigned  (issue_st0_is_unsigned),
+        .issue_st0_is_load      (issue_st0_is_load),
+        .issue_st0_is_store     (issue_st0_is_store),
+        .issue_st0_ls_size      (issue_st0_ls_size),
+        .issue_st0_robid        (issue_st0_robid),
+        .issue_st0_sqid         (issue_st0_sqid),
+        .issue_load0_valid      (issue_load0_valid),
+        .issue_load0_ready      (issue_load0_ready),
+        .issue_load0_src1       (issue_load0_src1),
+        .issue_load0_src2       (),
+        .issue_load0_prd        (issue_load0_prd),
+        .issue_load0_pc         (issue_load0_pc),
+        .issue_load0_instr      (),
+        .issue_load0_imm        (issue_load0_imm),
+        .issue_load0_is_unsigned(issue_load0_is_unsigned),
+        .issue_load0_is_load    (issue_load0_is_load),
+        .issue_load0_is_store   (issue_load0_is_store),
+        .issue_load0_ls_size    (issue_load0_ls_size),
+        .issue_load0_robid      (issue_load0_robid),
+        .issue_load0_sqid       (issue_load0_sqid),
 
         .rob_state         (rob_state),           //OUTPUT
         .rob_walk0_valid   (rob_walk0_valid),     //OUTPUT
@@ -700,40 +716,39 @@ module backend #(
 
 
     mem_top u_mem_top (
-        .clock                  (clock),
-        .reset_n                (reset_n),
-        .disp2sq_valid          (disp2sq_valid),
-        .disp2sq_robid          (disp2sq_robid),
-        .disp2sq_pc             (disp2sq_pc),
-        .sq_can_alloc           (sq_can_alloc),
-        .sq_enqptr              (sq_enqptr),
-        .issue_st0_valid        (issue_st0_valid),
-        .issue_st0_ready        (issue_st0_ready),
-        .issue_st0_pc           (issue_st0_pc),             //for debug
-        .issue_st0_robid        (issue_st0_robid),
-        .issue_st0_sqid         (issue_st0_sqid),
-        .issue_st0_src1         (issue_st0_src1),
-        .issue_st0_src2         (issue_st0_src2),
-        .issue_st0_prd          (issue_st0_prd),
-        .issue_st0_imm          (issue_st0_imm),
-        .issue_st0_is_load      (issue_st0_is_load),
-        .issue_st0_is_store     (issue_st0_is_store),
-        .issue_st0_is_unsigned  (issue_st0_is_unsigned),
-        .issue_st0_ls_size      (issue_st0_ls_size),
-        .issue_load0_valid      (issue_load0_valid),
-        .issue_load0_ready      (issue_load0_ready),
-        .issue_load0_pc         (issue_load0_pc),           //for debug
-        .issue_load0_robid      (issue_load0_robid),
-        .issue_load0_sqid       (issue_load0_sqid),
-        .issue_load0_src1       (issue_load0_src1),
-        .issue_load0_src2       (issue_load0_src2),
-        .issue_load0_prd        (issue_load0_prd),
-        .issue_load0_imm        (issue_load0_imm),
-        .issue_load0_is_load    (issue_load0_is_load),
-        .issue_load0_is_store   (issue_load0_is_store),
-        .issue_load0_is_unsigned(issue_load0_is_unsigned),
-        .issue_load0_ls_size    (issue_load0_ls_size),
-
+        .clock                         (clock),
+        .reset_n                       (reset_n),
+        .disp2sq_valid                 (disp2sq_valid),
+        .disp2sq_robid                 (disp2sq_robid),
+        .disp2sq_pc                    (disp2sq_pc),
+        .sq_can_alloc                  (sq_can_alloc),
+        .sq_enqptr                     (sq_enqptr),
+        .issue_st0_valid               (issue_st0_valid),
+        .issue_st0_ready               (issue_st0_ready),
+        .issue_st0_pc                  (issue_st0_pc),                    //for debug
+        .issue_st0_robid               (issue_st0_robid),
+        .issue_st0_sqid                (issue_st0_sqid),
+        .issue_st0_src1                (issue_st0_src1),
+        .issue_st0_src2                (issue_st0_src2),
+        .issue_st0_prd                 (issue_st0_prd),
+        .issue_st0_imm                 (issue_st0_imm),
+        .issue_st0_is_load             (issue_st0_is_load),
+        .issue_st0_is_store            (issue_st0_is_store),
+        .issue_st0_is_unsigned         (issue_st0_is_unsigned),
+        .issue_st0_ls_size             (issue_st0_ls_size),
+        .issue_load0_valid             (issue_load0_valid),
+        .issue_load0_ready             (issue_load0_ready),
+        .issue_load0_pc                (issue_load0_pc),                  //for debug
+        .issue_load0_robid             (issue_load0_robid),
+        .issue_load0_sqid              (issue_load0_sqid),
+        .issue_load0_src1              (issue_load0_src1),
+        .issue_load0_src2              (issue_load0_src2),
+        .issue_load0_prd               (issue_load0_prd),
+        .issue_load0_imm               (issue_load0_imm),
+        .issue_load0_is_load           (issue_load0_is_load),
+        .issue_load0_is_store          (issue_load0_is_store),
+        .issue_load0_is_unsigned       (issue_load0_is_unsigned),
+        .issue_load0_ls_size           (issue_load0_ls_size),
         .sq2rob_cmpl_valid             (sq2rob_cmpl_valid),
         .sq2rob_cmpl_robid             (sq2rob_cmpl_robid),
         .sq2rob_cmpl_mmio              (sq2rob_cmpl_mmio),
@@ -742,9 +757,8 @@ module backend #(
         .ldu0_cmpl_mmio                (ldu0_cmpl_mmio),
         .ldu0_cmpl_instr               (ldu0_cmpl_instr),
         .ldu0_cmpl_pc                  (ldu0_cmpl_pc),
-        .ldu0_wb_valid                 (ldu0_wb_valid),
-        .ldu0_wb_load_data             (ldu0_wb_load_data),
-        .ldu0_wb_prd                   (ldu0_wb_prd),
+        .ldu0_cmpl_load_data           (ldu0_cmpl_load_data),
+        .ldu0_cmpl_prd                 (ldu0_cmpl_prd),
         .flush_valid                   (flush_valid),
         .flush_robid                   (flush_robid),
         .load2arb_flush_valid          (load2arb_flush_valid),

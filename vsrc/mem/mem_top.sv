@@ -52,22 +52,16 @@ module mem_top (
     output wire                   ldu0_cmpl_valid,
     output wire [`ROB_SIZE_LOG:0] ldu0_cmpl_robid,
     output wire                   ldu0_cmpl_mmio,
-    output wire [   `INSTR_RANGE] ldu0_cmpl_instr,  //for debug
-    output wire [      `PC_RANGE] ldu0_cmpl_pc,     //for debug
-
-
-    output wire                 ldu0_wb_valid,
-    output wire [`RESULT_RANGE] ldu0_wb_load_data,
-    output wire [  `PREG_RANGE] ldu0_wb_prd,
+    output wire [   `INSTR_RANGE] ldu0_cmpl_instr,    //for debug
+    output wire [      `PC_RANGE] ldu0_cmpl_pc,       //for debug
+    output wire [  `RESULT_RANGE] ldu0_cmpl_load_data,
+    output wire [    `PREG_RANGE] ldu0_cmpl_prd,
 
 
 
     /* -------------------------- redirect flush logic -------------------------- */
     input wire                   flush_valid,
     input wire [`ROB_SIZE_LOG:0] flush_robid,
-
-    /* --------------------------- mem_top to dcache --------------------------- */
-    output wire load2arb_flush_valid,  // use to flush dcache process
 
     /* --------------------------------- commit --------------------------------- */
     input wire                   commit0_valid,
@@ -187,14 +181,11 @@ module mem_top (
 
     /* ------------------------------ output logic ------------------------------ */
 
-    assign ldu0_cmpl_valid   = ldu_out_instr_valid;
-    assign ldu0_cmpl_mmio    = ldu_out_mmio;
-    assign ldu0_cmpl_robid   = ldu_out_robid;
-
-
-    assign ldu0_wb_valid     = ldu_out_instr_valid;
-    assign ldu0_wb_load_data = ldu_out_load_data;
-    assign ldu0_wb_prd       = ldu_out_prd;
+    assign ldu0_cmpl_valid     = ldu_out_instr_valid;
+    assign ldu0_cmpl_mmio      = ldu_out_mmio;
+    assign ldu0_cmpl_robid     = ldu_out_robid;
+    assign ldu0_cmpl_load_data = ldu_out_load_data;
+    assign ldu0_cmpl_prd       = ldu_out_prd;
 
 
 
@@ -227,7 +218,6 @@ module mem_top (
         .load2arb_tbus_operation_type(load2arb_tbus_operation_type),
         .flush_valid                 (flush_valid),
         .flush_robid                 (flush_robid),
-        .load2arb_flush_valid        (load2arb_flush_valid),
         .ldu_out_instr_valid         (ldu_out_instr_valid),
         .ldu_out_prd                 (ldu_out_prd),
         .ldu_out_robid               (ldu_out_robid),
@@ -304,7 +294,6 @@ module mem_top (
         .load2arb_tbus_index_ready   (load2arb_tbus_index_ready),
         .load2arb_tbus_read_data     (load2arb_tbus_read_data),
         .load2arb_tbus_operation_done(load2arb_tbus_operation_done),
-        .load2arb_flush_valid        (load2arb_flush_valid),
         .sq2arb_tbus_index_valid     (sq2arb_tbus_index_valid),
         .sq2arb_tbus_index_ready     (sq2arb_tbus_index_ready),
         .sq2arb_tbus_index           (sq2arb_tbus_index),

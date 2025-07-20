@@ -15,7 +15,7 @@ module core_top #(
     input  wire         ddr_operation_done,
     input  wire         ddr_ready
 );
-    wire                               arb2dcache_flush_valid;
+
     // ibuffer outputs
     wire                               ibuffer_instr_valid;
     wire                               ibuffer_instr_ready;
@@ -47,26 +47,18 @@ module core_top #(
     wire [`ICACHE_FETCHWIDTH128_RANGE] pc_read_inst;  // Output burst read data for pc channel
     wire                               pc_operation_done;
 
-    //trinity bus channel:lsu to dcache
-    wire                               tbus_index_valid;
-    wire                               tbus_index_ready;
-    wire [              `RESULT_RANGE] tbus_index;
-    wire [                 `SRC_RANGE] tbus_write_data;
-    wire [                       63:0] tbus_write_mask;
-    wire [              `RESULT_RANGE] tbus_read_data;
-    wire [         `TBUS_OPTYPE_RANGE] tbus_operation_type;
-    wire                               tbus_operation_done;
 
 
-    reg                                dcache2arb_dbus_index_valid;
+    /* ---------------------- dcache to arb to memory or l2 --------------------- */
+
+    wire                               dcache2arb_dbus_index_valid;
     wire                               dcache2arb_dbus_index_ready;
-    reg  [              `RESULT_RANGE] dcache2arb_dbus_index;
-    reg  [        `CACHELINE512_RANGE] dcache2arb_dbus_write_data;
+    wire [              `RESULT_RANGE] dcache2arb_dbus_index;
+    wire [        `CACHELINE512_RANGE] dcache2arb_dbus_write_data;
     wire [        `CACHELINE512_RANGE] dcache2arb_dbus_read_data;
     wire                               dcache2arb_dbus_operation_done;
     wire [         `TBUS_OPTYPE_RANGE] dcache2arb_dbus_operation_type;
     wire                               dcache2arb_dbus_burst_mode;
-
 
     reg                                icache2arb_dbus_index_valid;
     wire                               icache2arb_dbus_index_ready;
@@ -78,7 +70,7 @@ module core_top #(
     wire [         `TBUS_OPTYPE_RANGE] icache2arb_dbus_operation_type;
     wire                               icache2arb_dbus_burst_mode;
 
-    wire end_of_program;
+    wire                               end_of_program;
 
     /* -------------------------------------------------------------------------- */
     /*                             channel_arb / icache / dcache                  */
@@ -134,28 +126,6 @@ module core_top #(
         .icache2arb_dbus_read_data     (icache2arb_dbus_read_data),
         .icache2arb_dbus_operation_done(icache2arb_dbus_operation_done),
         .icache2arb_dbus_operation_type()
-    );
-    dcache u_dcache (
-        .clock                         (clock),
-        .reset_n                       (reset_n),
-        .flush                         (arb2dcache_flush_valid),          //flush_valid was send to mem_top to determine if dcache operation should be cancel or not
-        //tbus channel from backend 
-        .tbus_index_valid              (tbus_index_valid),
-        .tbus_index_ready              (tbus_index_ready),
-        .tbus_index                    (tbus_index),
-        .tbus_write_data               (tbus_write_data),
-        .tbus_write_mask               (tbus_write_mask),
-        .tbus_read_data                (tbus_read_data),
-        .tbus_operation_done           (tbus_operation_done),
-        .tbus_operation_type           (tbus_operation_type),
-        // dcache channel for lsu operation
-        .dcache2arb_dbus_index_valid   (dcache2arb_dbus_index_valid),
-        .dcache2arb_dbus_index_ready   (dcache2arb_dbus_index_ready),
-        .dcache2arb_dbus_index         (dcache2arb_dbus_index),
-        .dcache2arb_dbus_write_data    (dcache2arb_dbus_write_data),
-        .dcache2arb_dbus_read_data     (dcache2arb_dbus_read_data),
-        .dcache2arb_dbus_operation_done(dcache2arb_dbus_operation_done),
-        .dcache2arb_dbus_operation_type(dcache2arb_dbus_operation_type)
     );
 
     /* -------------------------------------------------------------------------- */
@@ -233,7 +203,16 @@ module core_top #(
         .intwb0_btb_wmask               (intwb_btb_wmask),
         .intwb0_btb_write_index         (intwb_btb_write_index),
         .intwb0_btb_din                 (intwb_btb_din),
-        .end_of_program                (end_of_program)
+        .end_of_program                 (end_of_program),
+
+        .dcache2arb_dbus_index_valid   (dcache2arb_dbus_index_valid),
+        .dcache2arb_dbus_index_ready   (dcache2arb_dbus_index_ready),
+        .dcache2arb_dbus_index         (dcache2arb_dbus_index),
+        .dcache2arb_dbus_write_data    (dcache2arb_dbus_write_data),
+        .dcache2arb_dbus_read_data     (dcache2arb_dbus_read_data),
+        .dcache2arb_dbus_operation_done(dcache2arb_dbus_operation_done),
+        .dcache2arb_dbus_operation_type(dcache2arb_dbus_operation_type),
+        .dcache2arb_dbus_burst_mode    (dcache2arb_dbus_burst_mode)
     );
 
 

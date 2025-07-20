@@ -1,6 +1,7 @@
+`include "defines.sv"
 module isu_top (
     input wire clock,
-    input wire reset_n,
+    input wire  reset_n,
 
     // Dispatch inputs from rename stage
     input  wire                      iru2isu_instr0_valid,
@@ -165,8 +166,6 @@ module isu_top (
     output wire                          issue1_is_load,
     output wire                          issue1_is_store,
     output wire [                   3:0] issue1_ls_size,
-    output wire                          issue1_predicttaken,
-    output wire [             `PC_RANGE] issue1_predicttarget,
     output wire [            `SRC_RANGE] issue1_src1,
     output wire [            `SRC_RANGE] issue1_src2,
 
@@ -182,7 +181,7 @@ module isu_top (
     output wire               rob_walk1_complete,
 
     /* ---------------------------- from store queue ---------------------------- */
-    input wire [`SQ_SIZE_LOG : 0] sq2disp_sqid,
+    input wire [`SQ_SIZE_LOG : 0] sq_enqptr,
 
     //preg content from arch_rat
     input  wire [`PREG_RANGE] debug_preg0,
@@ -359,7 +358,7 @@ module isu_top (
         .iq_can_alloc1                   (iq_can_alloc1),
         .rob_state                       (rob_state),
         .rob2disp_instr_robid            (rob2disp_instr_robid),
-        .sq2disp_sqid                    (sq2disp_sqid),
+          .sq_enqptr                      (sq_enqptr), 
         /* ----------------------------------- iru ---------------------------------- */
         //iru input 
         .iru2isu_instr0_valid            (iru2isu_instr0_valid),
@@ -718,8 +717,8 @@ module isu_top (
         .issue0_is_load                (issue1_is_load),
         .issue0_is_store               (issue1_is_store),
         .issue0_ls_size                (issue1_ls_size),
-        .issue0_predicttaken           (issue1_predicttaken),
-        .issue0_predicttarget          (issue1_predicttarget),
+        .issue0_predicttaken           (),
+        .issue0_predicttarget          (),
         .issue0_robid                  (issue1_robid),
         .issue0_sqid                   (issue1_sqid),
         .writeback0_valid              (intwb0_instr_valid),
@@ -888,7 +887,7 @@ module isu_top (
     `MACRO_DFF_NONEN(flop_commit0_instr, commit0_instr, 32)
     `MACRO_DFF_NONEN(flop_commit0_robid, commit0_robid, `ROB_SIZE_LOG + 1)
 
-
+  
     DifftestInstrCommit u_DifftestInstrCommit (
         .clock     (clock),
         .enable    (flop_commit0_valid),

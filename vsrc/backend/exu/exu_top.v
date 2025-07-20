@@ -24,32 +24,7 @@ module exu_top (
     input  wire                          int_predict_taken,
     input  wire [                  31:0] int_predict_target,
 
-    // Memblock Inputs
-    input  wire                          mem_instr_valid,
-    output wire                          mem_instr_ready,
-    input  wire [          `INSTR_RANGE] mem_instr,
-    input  wire [             `PC_RANGE] mem_pc,
-    input  wire [       `ROB_SIZE_LOG:0] mem_robid,
-    input  wire [`SQ_SIZE_LOG:0] mem_sqid,
-    input  wire [            `SRC_RANGE] mem_src1,
-    input  wire [            `SRC_RANGE] mem_src2,
-    input  wire [           `PREG_RANGE] mem_prd,
-    input  wire [            `SRC_RANGE] mem_imm,
-    input  wire                          mem_is_load,
-    input  wire                          mem_is_store,
-    input  wire                          mem_is_unsigned,
-    input  wire [        `LS_SIZE_RANGE] mem_ls_size,
 
-    // Trinity Bus Interface
-    output wire                           tbus_index_valid,
-    input  wire                           tbus_index_ready,
-    output wire [          `RESULT_RANGE] tbus_index,
-    output wire [             `SRC_RANGE] tbus_write_data,
-    output wire [                   63:0] tbus_write_mask,
-    input  wire [          `RESULT_RANGE] tbus_read_data,
-    input  wire                           tbus_operation_done,
-    output wire [     `TBUS_OPTYPE_RANGE] tbus_operation_type,
-    output wire                           arb2dcache_flush_valid,
     // Intblock Outputs
     output wire                           intwb0_instr_valid,
     output wire [           `INSTR_RANGE] intwb0_instr,
@@ -82,23 +57,6 @@ module exu_top (
     output wire [           63:0] flush_target,
     output wire [`ROB_SIZE_LOG:0] flush_robid,
 
-    // Memblock Outputs
-    output wire                            memwb_instr_valid,
-    output wire [            `INSTR_RANGE] memwb_instr,
-    output wire [               `PC_RANGE] memwb_pc,
-    output wire [         `ROB_SIZE_LOG:0] memwb_robid,
-    output wire [             `PREG_RANGE] memwb_prd,
-    output wire                            memwb_need_to_wb,
-    output wire                            memwb_mmio_valid,
-    output wire [           `RESULT_RANGE] memwb_result,
-    /* --------------------------------- to disp -------------------------------- */
-    output wire [`SQ_SIZE_LOG : 0] sq2disp_sqid,
-    /* ------------------------------ from dispatch ----------------------------- */
-    input  wire                            disp2sq_valid,
-    output wire                            sq_can_alloc,
-    input  wire [         `ROB_SIZE_LOG:0] disp2sq_robid,
-    //debug
-    input  wire [               `PC_RANGE] disp2sq_pc,
     input  wire                            end_of_program
 
 );
@@ -144,15 +102,6 @@ module exu_top (
     wire [                    3:0] memblock_out_store_ls_size;
 
 
-    wire                           ldu2sq_forward_req_valid;
-    wire [        `ROB_SIZE_LOG:0] ldu2sq_forward_req_sqid;
-    wire [   `STOREQUEUE_SIZE-1:0] ldu2sq_forward_req_sqmask;
-    wire [             `SRC_RANGE] ldu2sq_forward_req_load_addr;
-    wire [         `LS_SIZE_RANGE] ldu2sq_forward_req_load_size;
-    wire                           ldu2sq_forward_resp_valid;
-    wire [             `SRC_RANGE] ldu2sq_forward_resp_data;
-    wire [             `SRC_RANGE] ldu2sq_forward_resp_mask;
-
     wire [             `SRC_RANGE] memwb_store_addr;
     wire [             `SRC_RANGE] memwb_store_data;
     wire [             `SRC_RANGE] memwb_store_mask;
@@ -160,23 +109,8 @@ module exu_top (
 
     wire [ `SQ_SIZE_LOG:0] flush_sqid;
 
-    /* ------------------------------- dcache_arb ------------------------------- */
-    // LSU Channel Inputs and Outputs : from lsu
-    wire                           load2arb_tbus_index_valid;  // Valid signal for load2arb_tbus_index
-    wire [                   63:0] load2arb_tbus_index;  // 64-bit input for load2arb_tbus_index (Channel 1)
-    wire                           load2arb_tbus_index_ready;  // Ready signal for LSU channel
-    wire [                   63:0] load2arb_tbus_read_data;  // Output burst read data for LSU channel
-    wire                           load2arb_tbus_operation_done;
 
-    //SQ bus channel : from SQ
-    wire                           sq2arb_tbus_index_valid;
-    wire                           sq2arb_tbus_index_ready;
-    wire [          `RESULT_RANGE] sq2arb_tbus_index;
-    wire [                   63:0] sq2arb_tbus_write_data;
-    wire [                   63:0] sq2arb_tbus_write_mask;
-    wire [                   63:0] sq2arb_tbus_read_data;
-    wire                           sq2arb_tbus_operation_done;
-    wire [     `TBUS_OPTYPE_RANGE] sq2arb_tbus_operation_type;
+
 
     wire [                   31:0] bju_pmu_situation1_cnt_btype;
     wire [                   31:0] bju_pmu_situation2_cnt_btype;
@@ -299,121 +233,8 @@ module exu_top (
 
     );
     wire load2arb_flush_valid;
-    mem_top u_memblock (
-        .clock                       (clock),
-        .reset_n                     (reset_n),
-        .instr_valid                 (mem_instr_valid),
-        .instr_ready                 (mem_instr_ready),
-        .instr                       (mem_instr),
-        .pc                          (mem_pc),
-        .robid                       (mem_robid),
-        .sqid                        (mem_sqid),
-        .src1                        (mem_src1),
-        .src2                        (mem_src2),
-        .prd                         (mem_prd),
-        .imm                         (mem_imm),
-        .is_load                     (mem_is_load),
-        .is_store                    (mem_is_store),
-        .is_unsigned                 (mem_is_unsigned),
-        .ls_size                     (mem_ls_size),
-        .load2arb_tbus_index_valid   (load2arb_tbus_index_valid),
-        .load2arb_tbus_index_ready   (load2arb_tbus_index_ready),
-        .load2arb_tbus_index         (load2arb_tbus_index),
-        .load2arb_tbus_write_data    (),
-        .load2arb_tbus_write_mask    (),
-        .load2arb_tbus_read_data     (load2arb_tbus_read_data),
-        .load2arb_tbus_operation_done(load2arb_tbus_operation_done),
-        .load2arb_tbus_operation_type(),
-        .memblock_out_instr_valid    (memblock_out_instr_valid),
-        .memblock_out_robid          (memblock_out_robid),
-        .memblock_out_prd            (memblock_out_prd),
-        .memblock_out_need_to_wb     (memblock_out_need_to_wb),
-        .memblock_out_mmio_valid     (memblock_out_mmio_valid),
-        .memblock_out_load_data      (memblock_out_load_data),
-        .memblock_out_instr          (memblock_out_instr),
-        .memblock_out_pc             (memblock_out_pc),
-        .memblock_out_store_addr     (memblock_out_store_addr),
-        .memblock_out_store_data     (memblock_out_store_data),
-        .memblock_out_store_mask     (memblock_out_store_mask),
-        .memblock_out_store_ls_size  (memblock_out_store_ls_size),
-        .flush_valid                 (flush_valid),
-        .flush_robid                 (flush_robid),
-        .load2arb_flush_valid        (load2arb_flush_valid),
-        .ldu2sq_forward_req_valid    (ldu2sq_forward_req_valid),
-        .ldu2sq_forward_req_sqid     (ldu2sq_forward_req_sqid),
-        .ldu2sq_forward_req_sqmask   (ldu2sq_forward_req_sqmask),
-        .ldu2sq_forward_req_load_addr(ldu2sq_forward_req_load_addr),
-        .ldu2sq_forward_req_load_size(ldu2sq_forward_req_load_size),
-        .ldu2sq_forward_resp_valid   (ldu2sq_forward_resp_valid),
-        .ldu2sq_forward_resp_data    (ldu2sq_forward_resp_data),
-        .ldu2sq_forward_resp_mask    (ldu2sq_forward_resp_mask)
-    );
+   
 
-
-
-
-
-    // Instantiate pipereg_memwb
-    pipereg_memwb pipereg_memwb_inst (
-        .clock                     (clock),
-        .reset_n                   (reset_n),
-        .memblock_out_instr_valid  (memblock_out_instr_valid),
-        .memblock_out_robid        (memblock_out_robid),
-        .memblock_out_prd          (memblock_out_prd),
-        .memblock_out_need_to_wb   (memblock_out_need_to_wb),
-        .memblock_out_mmio_valid   (memblock_out_mmio_valid),
-        .memblock_out_load_data    (memblock_out_load_data),
-        .memblock_out_instr        (memblock_out_instr),
-        .memblock_out_pc           (memblock_out_pc),
-        //other info to store queue
-        .memblock_out_store_addr   (memblock_out_store_addr),
-        .memblock_out_store_data   (memblock_out_store_data),
-        .memblock_out_store_mask   (memblock_out_store_mask),
-        .memblock_out_store_ls_size(memblock_out_store_ls_size),
-        .memwb_instr_valid         (memwb_instr_valid),
-        .memwb_instr               (memwb_instr),
-        .memwb_pc                  (memwb_pc),
-        .memwb_robid               (memwb_robid),
-        .memwb_prd                 (memwb_prd),
-        .memwb_need_to_wb          (memwb_need_to_wb),
-        .memwb_mmio_valid          (memwb_mmio_valid),
-        .memwb_load_data           (memwb_result),
-        //other info to store queue
-        .memwb_store_addr          (memwb_store_addr),
-        .memwb_store_data          (memwb_store_data),
-        .memwb_store_mask          (memwb_store_mask),
-        .memwb_store_ls_size       (memwb_store_ls_size)
-    );
-
-
-
-    dcache_arb u_dcache_arb (
-        .clock                       (clock),
-        .reset_n                     (reset_n),
-        .load2arb_tbus_index_valid   (load2arb_tbus_index_valid),
-        .load2arb_tbus_index         (load2arb_tbus_index),
-        .load2arb_tbus_index_ready   (load2arb_tbus_index_ready),
-        .load2arb_tbus_read_data     (load2arb_tbus_read_data),
-        .load2arb_tbus_operation_done(load2arb_tbus_operation_done),
-        .load2arb_flush_valid        (load2arb_flush_valid),
-        .sq2arb_tbus_index_valid     (sq2arb_tbus_index_valid),
-        .sq2arb_tbus_index_ready     (sq2arb_tbus_index_ready),
-        .sq2arb_tbus_index           (sq2arb_tbus_index),
-        .sq2arb_tbus_write_data      (sq2arb_tbus_write_data),
-        .sq2arb_tbus_write_mask      (sq2arb_tbus_write_mask),
-        .sq2arb_tbus_read_data       (sq2arb_tbus_read_data),
-        .sq2arb_tbus_operation_done  (sq2arb_tbus_operation_done),
-        .sq2arb_tbus_operation_type  (sq2arb_tbus_operation_type),
-        .tbus_index_valid            (tbus_index_valid),
-        .tbus_index_ready            (tbus_index_ready),
-        .tbus_index                  (tbus_index),
-        .tbus_write_mask             (tbus_write_mask),
-        .tbus_write_data             (tbus_write_data),
-        .tbus_read_data              (tbus_read_data),
-        .tbus_operation_type         (tbus_operation_type),
-        .tbus_operation_done         (tbus_operation_done),
-        .arb2dcache_flush_valid      (arb2dcache_flush_valid)
-    );
 
 
     exu_pmu u_exu_pmu (

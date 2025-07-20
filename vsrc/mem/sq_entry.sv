@@ -25,7 +25,7 @@ module sq_entry (
     input  wire                   flush,
     /* ---------------------------- output deq region --------------------------- */
     output wire [`ROB_SIZE_LOG:0] robid,
-    output wire                   ready_to_go,
+    output wire                   ready_to_deq,
     output wire                   valid,
     output wire                   complete,
     output wire                   mmio,
@@ -145,5 +145,5 @@ module sq_entry (
     assign deq_store_mask    = queue_store_mask;
     assign deq_store_ls_size = queue_store_ls_size;
 
-    assign ready_to_go       = queue_valid & queue_commited;
+    assign ready_to_deq       = queue_valid & queue_commited;
 endmodule

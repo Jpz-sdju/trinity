@@ -1,3 +1,4 @@
+`include "defines.sv"
 module dispatch (
     input wire clock,
     input wire reset_n,
@@ -155,7 +156,7 @@ module dispatch (
 
 
     /* -------------------------- port with store queue ------------------------- */
-    input  wire [`SQ_SIZE_LOG : 0] sq2disp_sqid,
+    input  wire [`SQ_SIZE_LOG : 0] sq_enqptr,
     output wire                       disp2sq_valid,
     output wire [    `ROB_SIZE_LOG:0] disp2sq_robid,
     output wire [          `PC_RANGE] disp2sq_pc,
@@ -262,7 +263,7 @@ module dispatch (
     assign disp2intisq_instr0_is_store      = instr0_is_store;
     assign disp2intisq_instr0_ls_size       = instr0_ls_size;
     assign disp2intisq_instr0_robid         = rob2disp_instr_robid;
-    assign disp2intisq_instr0_sqid          = sq2disp_sqid;
+    assign disp2intisq_instr0_sqid          = sq_enqptr;
     assign disp2intisq_instr0_predicttaken  = iru2isu_instr0_predicttaken;
     assign disp2intisq_instr0_predicttarget = iru2isu_instr0_predicttarget;
     assign disp2intisq_instr0_src1_state    = bt2disp_instr0_src1_busy;
@@ -296,7 +297,7 @@ module dispatch (
     assign disp2memisq_instr0_is_store      = instr0_is_store;
     assign disp2memisq_instr0_ls_size       = instr0_ls_size;
     assign disp2memisq_instr0_robid         = rob2disp_instr_robid;
-    assign disp2memisq_instr0_sqid          = sq2disp_sqid;
+    assign disp2memisq_instr0_sqid          = sq_enqptr;
     assign disp2memisq_instr0_predicttaken  = iru2isu_instr0_predicttaken;
     assign disp2memisq_instr0_predicttarget = iru2isu_instr0_predicttarget;
     assign disp2memisq_instr0_src1_state    = bt2disp_instr0_src1_busy;

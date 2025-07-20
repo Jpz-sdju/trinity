@@ -1,20 +1,19 @@
 `include "defines.sv"
 module loadunit (
-    input  wire                     clock,
-    input  wire                     reset_n,
-    input  wire                     flush_this_beat,
-    input  wire                     instr_valid,
-    input  wire [        `PC_RANGE] pc,
-    output wire                     instr_ready,
-    input  wire [      `PREG_RANGE] prd,
-    input  wire                     is_load,
-    input  wire                     is_unsigned,
-    input  wire [       `SRC_RANGE] imm,
-    input  wire [       `SRC_RANGE] src1,
-    input  wire [       `SRC_RANGE] src2,
-    input  wire [   `LS_SIZE_RANGE] ls_size,
-    input  wire [  `ROB_SIZE_LOG:0] robid,
-    input  wire [`SQ_SIZE_LOG:0] sqid,
+    input  wire                   clock,
+    input  wire                   reset_n,
+    input  wire                   instr_valid,
+    input  wire [      `PC_RANGE] pc,
+    output wire                   instr_ready,
+    input  wire [    `PREG_RANGE] prd,
+    input  wire                   is_load,
+    input  wire                   is_unsigned,
+    input  wire [     `SRC_RANGE] imm,
+    input  wire [     `SRC_RANGE] src1,
+    input  wire [     `SRC_RANGE] src2,
+    input  wire [ `LS_SIZE_RANGE] ls_size,
+    input  wire [`ROB_SIZE_LOG:0] robid,
+    input  wire [ `SQ_SIZE_LOG:0] sqid,
 
     //trinity bus channel
     output reg                  load2arb_tbus_index_valid,
@@ -35,21 +34,19 @@ module loadunit (
     output wire                   load2arb_flush_valid,
     /* --------------------------- output to writeback -------------------------- */
     output wire                   ldu_out_instr_valid,
-    output wire                   ldu_out_need_to_wb,
     output wire [    `PREG_RANGE] ldu_out_prd,
     output wire [`ROB_SIZE_LOG:0] ldu_out_robid,
     output wire [  `RESULT_RANGE] ldu_out_load_data,
     output wire [      `PC_RANGE] ldu_out_pc,
 
     /* --------------------------- SQ forwarding query -------------------------- */
-    output wire                         ldu2sq_forward_req_valid,
-    output wire [      `ROB_SIZE_LOG:0] ldu2sq_forward_req_sqid,
-    output wire [`STOREQUEUE_SIZE-1:0] ldu2sq_forward_req_sqmask,
-    output wire [           `SRC_RANGE] ldu2sq_forward_req_load_addr,
-    output wire [       `LS_SIZE_RANGE] ldu2sq_forward_req_load_size,
-    input  wire                         ldu2sq_forward_resp_valid,
-    input  wire [           `SRC_RANGE] ldu2sq_forward_resp_data,
-    input  wire [           `SRC_RANGE] ldu2sq_forward_resp_mask
+    output wire                        ldu2sq_forward_req_valid,
+    output wire [     `ROB_SIZE_LOG:0] ldu2sq_forward_req_sqid,
+    output wire [          `SRC_RANGE] ldu2sq_forward_req_load_addr,
+    output wire [      `LS_SIZE_RANGE] ldu2sq_forward_req_load_size,
+    input  wire                        ldu2sq_forward_resp_valid,
+    input  wire [          `SRC_RANGE] ldu2sq_forward_resp_data,
+    input  wire [          `SRC_RANGE] ldu2sq_forward_resp_mask
 
 );
     localparam IDLE = 2'b00;
@@ -72,17 +69,17 @@ module loadunit (
     /*                            stage : info generate                           */
     /* -------------------------------------------------------------------------- */
 
-    wire [    `RESULT_RANGE] ls_address;
-    reg  [    `RESULT_RANGE] ls_address_latch;
+    wire [  `RESULT_RANGE] ls_address;
+    reg  [  `RESULT_RANGE] ls_address_latch;
 
 
-    reg                      instr_valid_latch;
-    reg                      need_to_wb_latch;
-    reg  [      `PREG_RANGE] prd_latch;
-    reg  [        `PC_RANGE] pc_latch;
-    reg  [  `ROB_SIZE_LOG:0] robid_latch;
-    reg  [`SQ_SIZE_LOG:0] sqid_latch;
-    reg  [   `LS_SIZE_RANGE] ls_size_latch;
+    reg                    instr_valid_latch;
+    reg                    need_to_wb_latch;
+    reg  [    `PREG_RANGE] prd_latch;
+    reg  [      `PC_RANGE] pc_latch;
+    reg  [`ROB_SIZE_LOG:0] robid_latch;
+    reg  [ `SQ_SIZE_LOG:0] sqid_latch;
+    reg  [ `LS_SIZE_RANGE] ls_size_latch;
     agu u_agu (
         .src1      (src1),
         .imm       (imm),
@@ -104,7 +101,7 @@ module loadunit (
     always @(posedge clock or negedge reset_n) begin
         if (~reset_n | need_flush) begin
             instr_valid_latch <= 'b0;
-        end else if (req_fire & ~flush_this_beat) begin
+        end else if (req_fire ) begin
             instr_valid_latch <= 1'b1;
         end else if (load2arb_tbus_operation_done) begin
             instr_valid_latch <= 1'b0;
@@ -199,7 +196,6 @@ module loadunit (
 
     assign ldu2sq_forward_req_valid     = instr_valid_latch;
     assign ldu2sq_forward_req_sqid      = sqid_latch;
-    assign ldu2sq_forward_req_sqmask    = (1'b1 << sqid_latch[`SQ_SIZE_LOG-1:0]) - 'b1;
     assign ldu2sq_forward_req_load_addr = ls_address_latch;
     assign ldu2sq_forward_req_load_size = ls_size_latch;
 
@@ -242,7 +238,7 @@ module loadunit (
         end else begin
             case (ls_state)
                 IDLE: begin
-                    if (req_fire & ~flush_this_beat) begin
+                    if (req_fire ) begin
                         ls_state <= TAKEIN;
                     end
                 end
@@ -317,7 +313,6 @@ module loadunit (
     /*                                output logic                                */
     /* -------------------------------------------------------------------------- */
     assign ldu_out_instr_valid = load2arb_tbus_operation_done & instr_valid_latch | ldu2sq_forward_resp_valid;
-    assign ldu_out_need_to_wb  = ldu2sq_forward_resp_valid ? 1'b1 : load2arb_tbus_operation_done & instr_valid_latch;
     assign ldu_out_prd         = prd_latch;
     assign ldu_out_robid       = robid_latch;
     assign ldu_out_load_data   = ldu2sq_forward_resp_valid ? ldu2sq_forward_resp_data : opload_read_data_wb;
@@ -327,7 +322,6 @@ module loadunit (
     /*                                 flush logic                                */
     /* -------------------------------------------------------------------------- */
     wire need_flush;
-    // wire flush_this_beat;
     wire flush_outstanding;
     assign flush_outstanding    = (~is_idle) & flush_valid & ((flush_robid[`ROB_SIZE_LOG] ^ ldu_out_robid[`ROB_SIZE_LOG]) ^ (flush_robid[`ROB_SIZE_LOG-1:0] < ldu_out_robid[`ROB_SIZE_LOG-1:0]));
     assign need_flush           = flush_outstanding;

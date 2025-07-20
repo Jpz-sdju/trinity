@@ -2,8 +2,8 @@
 module storeunit (
     input  wire                   clock,
     input  wire                   reset_n,
-    input  wire                   instr_valid,
-    output wire                   instr_ready,
+    input  wire                   issue_valid,
+    output wire                   issue_ready,
     input  wire [`ROB_SIZE_LOG:0] robid,
     input  wire [ `SQ_SIZE_LOG:0] sqid,
 
@@ -62,24 +62,24 @@ module storeunit (
 
     assign shift_size = ls_address[2:0];
     assign st_mask    = size_1b ? write_1b_mask << (shift_size) : size_1h ? write_1h_mask << (shift_size) : size_1w ? write_1w_mask << (shift_size) : write_2w_mask;
-    assign mmio_valid = instr_valid & ('h30000000 <= ls_address) & (ls_address <= 'h40700000);
+    assign mmio_valid = issue_valid & ('h30000000 <= ls_address) & (ls_address <= 'h40700000);
 
 
     wire [`RESULT_RANGE] st_data;
     assign st_data           = src2 << {shift_size, 3'b0};
 
     /* ----------------------------- to store queue ----------------------------- */
-    assign st_agu_cmpl_valid = instr_valid;
+    assign st_agu_cmpl_valid = issue_valid;
     assign st_agu_cmpl_mmio  = mmio_valid;
     assign st_agu_cmpl_sqid  = sqid;
     assign st_agu_cmpl_mask  = st_mask;
     assign st_agu_cmpl_size  = ls_size;
 
 
-    assign st_dgu_cmpl_valid = instr_valid;
+    assign st_dgu_cmpl_valid = issue_valid;
     assign st_dgu_cmpl_data  = st_data;
 
 
-    assign instr_ready       = 1'b1;
+    assign issue_ready       = 1'b1;
 
 endmodule

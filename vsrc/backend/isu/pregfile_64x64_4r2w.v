@@ -1,3 +1,4 @@
+`include "defines.sv"
 module pregfile_64x64_4r2w (
     input  wire         clock,
     input  wire         reset_n,    // Active-low reset

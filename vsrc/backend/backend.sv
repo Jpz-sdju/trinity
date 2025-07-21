@@ -231,12 +231,6 @@ module backend #(
     wire                       intwb0_need_to_wb;
     wire [      `RESULT_RANGE] intwb0_result;
 
-    wire                       memwb_instr_valid;
-    wire [    `ROB_SIZE_LOG:0] memwb_robid;
-    wire [        `PREG_RANGE] memwb_prd;
-    wire                       memwb_need_to_wb;
-    wire                       memwb_mmio_valid;
-    wire [      `RESULT_RANGE] memwb_result;
 
     /* --------------------------- mem_top to rob complete -------------------------- */
     wire                       sq2rob_cmpl_valid;
@@ -507,12 +501,11 @@ module backend #(
         .intwb0_prd                  (intwb0_prd),                         //input
         .intwb0_need_to_wb           (intwb0_need_to_wb),                  //input
         .intwb0_result               (intwb0_result),
-        .memwb_instr_valid           (memwb_instr_valid),                  //input
-        .memwb_robid                 (memwb_robid),                        //input
-        .memwb_prd                   (memwb_prd),                          //input
-        .memwb_need_to_wb            (memwb_need_to_wb),                   //input
-        .memwb_mmio_valid            (memwb_mmio_valid),                   //input
-        .memwb_result                (memwb_result),
+        .ldu0_cmpl_valid           (ldu0_cmpl_valid),                  //input
+        .ldu0_cmpl_robid                 (ldu0_cmpl_robid),                  //input
+        .ldu0_cmpl_prd                   (ldu0_cmpl_prd),                    //input
+        .ldu0_cmpl_mmio_valid            (ldu0_cmpl_mmio),                   //input
+        .ldu0_cmpl_result                (ldu0_cmpl_load_data),
         .sq2rob_cmpl_valid           (sq2rob_cmpl_valid),
         .sq2rob_cmpl_robid           (sq2rob_cmpl_robid),
         .sq2rob_cmpl_mmio            (sq2rob_cmpl_mmio),
@@ -779,37 +772,37 @@ module backend #(
 
 
 
-    // Instantiate pipereg_memwb
-    pipereg_memwb pipereg_memwb_inst (
-        .clock                     (clock),
-        .reset_n                   (reset_n),
-        .memblock_out_instr_valid  (memblock_out_instr_valid),
-        .memblock_out_robid        (memblock_out_robid),
-        .memblock_out_prd          (memblock_out_prd),
-        .memblock_out_need_to_wb   (memblock_out_need_to_wb),
-        .memblock_out_mmio_valid   (memblock_out_mmio_valid),
-        .memblock_out_load_data    (memblock_out_load_data),
-        .memblock_out_instr        (memblock_out_instr),
-        .memblock_out_pc           (memblock_out_pc),
-        //other info to store queue
-        .memblock_out_store_addr   (memblock_out_store_addr),
-        .memblock_out_store_data   (memblock_out_store_data),
-        .memblock_out_store_mask   (memblock_out_store_mask),
-        .memblock_out_store_ls_size(memblock_out_store_ls_size),
-        .memwb_instr_valid         (memwb_instr_valid),
-        .memwb_instr               (memwb_instr),
-        .memwb_pc                  (memwb_pc),
-        .memwb_robid               (memwb_robid),
-        .memwb_prd                 (memwb_prd),
-        .memwb_need_to_wb          (memwb_need_to_wb),
-        .memwb_mmio_valid          (memwb_mmio_valid),
-        .memwb_load_data           (memwb_result),
-        //other info to store queue
-        .memwb_store_addr          (memwb_store_addr),
-        .memwb_store_data          (memwb_store_data),
-        .memwb_store_mask          (memwb_store_mask),
-        .memwb_store_ls_size       (memwb_store_ls_size)
-    );
+    // // Instantiate pipereg_loadwb
+    // pipereg_loadwb pipereg_loadwb_inst (
+    //     .clock                     (clock),
+    //     .reset_n                   (reset_n),
+    //     .memblock_out_instr_valid  (memblock_out_instr_valid),
+    //     .memblock_out_robid        (memblock_out_robid),
+    //     .memblock_out_prd          (memblock_out_prd),
+    //     .memblock_out_need_to_wb   (memblock_out_need_to_wb),
+    //     .memblock_out_mmio_valid   (memblock_out_mmio_valid),
+    //     .memblock_out_load_data    (memblock_out_load_data),
+    //     .memblock_out_instr        (memblock_out_instr),
+    //     .memblock_out_pc           (memblock_out_pc),
+    //     //other info to store queue
+    //     .memblock_out_store_addr   (memblock_out_store_addr),
+    //     .memblock_out_store_data   (memblock_out_store_data),
+    //     .memblock_out_store_mask   (memblock_out_store_mask),
+    //     .memblock_out_store_ls_size(memblock_out_store_ls_size),
+    //     .memwb_instr_valid         (memwb_instr_valid),
+    //     .memwb_instr               (memwb_instr),
+    //     .memwb_pc                  (memwb_pc),
+    //     .memwb_robid               (memwb_robid),
+    //     .memwb_prd                 (memwb_prd),
+    //     .memwb_need_to_wb          (memwb_need_to_wb),
+    //     .memwb_mmio_valid          (memwb_mmio_valid),
+    //     .memwb_load_data           (memwb_result),
+    //     //other info to store queue
+    //     .memwb_store_addr          (memwb_store_addr),
+    //     .memwb_store_data          (memwb_store_data),
+    //     .memwb_store_mask          (memwb_store_mask),
+    //     .memwb_store_ls_size       (memwb_store_ls_size)
+    // );
 
 
 endmodule

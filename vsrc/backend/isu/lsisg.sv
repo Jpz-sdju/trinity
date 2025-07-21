@@ -66,7 +66,6 @@ module lsisg (
     input wire [`PREG_RANGE] writeback0_prd,
 
     input wire                    writeback1_valid,
-    input wire                    writeback1_need_to_wb,
     input wire  [    `PREG_RANGE] writeback1_prd,
     //-----------------------------------------------------
     // Flush interface

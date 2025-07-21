@@ -75,12 +75,11 @@ module isu_top (
     input wire [  `RESULT_RANGE] intwb0_result,
 
 
-    input wire                   memwb_instr_valid,
-    input wire [`ROB_SIZE_LOG:0] memwb_robid,
-    input wire [    `PREG_RANGE] memwb_prd,
-    input wire                   memwb_need_to_wb,
-    input wire                   memwb_mmio_valid,
-    input wire [  `RESULT_RANGE] memwb_result,
+    input wire                   ldu0_cmpl_valid,
+    input wire [`ROB_SIZE_LOG:0] ldu0_cmpl_robid,
+    input wire [    `PREG_RANGE] ldu0_cmpl_prd,
+    input wire                   ldu0_cmpl_mmio_valid,
+    input wire [  `RESULT_RANGE] ldu0_cmpl_result,
 
     /* --------------------------- mem_top to complete -------------------------- */
     input wire                   sq2rob_cmpl_valid,
@@ -228,13 +227,13 @@ module isu_top (
     //wb free busy_table
     wire               intwb02bt_free_instr0rd_en;
     wire [`PREG_RANGE] intwb02bt_free_instr0rd_addr;
-    wire               memwb2bt_free_instr0rd_en;
-    wire [`PREG_RANGE] memwb2bt_free_instr0rd_addr;
+    wire               ldu0_cmpl2bt_free_instr0rd_en;
+    wire [`PREG_RANGE] ldu0_cmpl2bt_free_instr0rd_addr;
 
     assign intwb02bt_free_instr0rd_en   = intwb0_instr_valid && intwb0_need_to_wb;
     assign intwb02bt_free_instr0rd_addr = intwb0_prd;
-    assign memwb2bt_free_instr0rd_en    = memwb_instr_valid && memwb_need_to_wb;
-    assign memwb2bt_free_instr0rd_addr  = memwb_prd;
+    assign ldu0_cmpl2bt_free_instr0rd_en    = ldu0_cmpl_valid ;
+    assign ldu0_cmpl2bt_free_instr0rd_addr  = ldu0_cmpl_prd;
 
     /* -------------------------------------------------------------------------- */
     /*                               dispatch to rob                              */
@@ -630,9 +629,8 @@ module isu_top (
         .writeback0_valid              (intwb0_instr_valid),
         .writeback0_need_to_wb         (intwb0_need_to_wb),
         .writeback0_prd                (intwb0_prd),
-        .writeback1_valid              (memwb_instr_valid),
-        .writeback1_need_to_wb         (memwb_need_to_wb),
-        .writeback1_prd                (memwb_prd),
+        .writeback1_valid              (ldu0_cmpl_valid),
+        .writeback1_prd                (ldu0_cmpl_prd),
         .rob_state                     (rob_state),
         .flush_valid                   (flush_valid),
         .flush_robid                   (flush_robid),
@@ -697,9 +695,8 @@ module isu_top (
         .writeback0_valid              (intwb0_instr_valid),
         .writeback0_need_to_wb         (intwb0_need_to_wb),
         .writeback0_prd                (intwb0_prd),
-        .writeback1_valid              (memwb_instr_valid),
-        .writeback1_need_to_wb         (memwb_need_to_wb),
-        .writeback1_prd                (memwb_prd),
+        .writeback1_valid              (ldu0_cmpl_valid),
+        .writeback1_prd                (ldu0_cmpl_prd),
         .rob_state                     (rob_state),
         .flush_valid                   (flush_valid),
         .flush_robid                   (flush_robid),
@@ -764,8 +761,8 @@ module isu_top (
         //writeback free busy_table
         .intwb02bt_free_instr0_rd_en(intwb0_instr_valid & intwb0_need_to_wb),
         .intwb02bt_free_instr0_rd   (intwb0_prd),
-        .memwb2bt_free_instr0_rd_en (memwb_instr_valid & memwb_need_to_wb),
-        .memwb2bt_free_instr0_rd    (memwb_prd),
+        .ldu0_cmpl_free_en (ldu0_cmpl_valid ),
+        .ldu0_cmpl_free_rd    (ldu0_cmpl_prd),
         //walking logic
         .flush_valid                (flush_valid),
         .flush_robid                (flush_robid),
@@ -788,9 +785,9 @@ module isu_top (
         .waddr0      (intwb0_prd),
         .wdata0      (intwb0_result),
         //mem_top writeback port
-        .wren1       (memwb_instr_valid && memwb_need_to_wb),
-        .waddr1      (memwb_prd),
-        .wdata1      (memwb_result),
+        .wren1       (ldu0_cmpl_valid ),
+        .waddr1      (ldu0_cmpl_prd),
+        .wdata1      (ldu0_cmpl_result),
         //intisq read then send result to exu
         .rden0       (intisq2prf_instr0_src1_is_reg),
         .raddr0      (intisq2prf_inst0_prs1),

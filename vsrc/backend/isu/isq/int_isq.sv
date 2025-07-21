@@ -75,7 +75,6 @@ module int_isq #(
     input wire [`PREG_RANGE] writeback0_prd,
 
     input wire                    writeback1_valid,
-    input wire                    writeback1_need_to_wb,
     input wire  [    `PREG_RANGE] writeback1_prd,
     //-----------------------------------------------------
     // Flush interface
@@ -228,7 +227,7 @@ module int_isq #(
         integer i;
         writeback_wakeup_src1 = 'b0;
         for (i = 0; i < `ISSUE_QUEUE_DEPTH; i = i + 1) begin
-            if (iq_entries_deq_src1_is_reg[i] & (writeback0_valid & writeback0_need_to_wb & (writeback0_prd == iq_entries_deq_prs1[i]) | writeback1_valid & writeback1_need_to_wb & (writeback1_prd == iq_entries_deq_prs1[i]))) begin
+            if (iq_entries_deq_src1_is_reg[i] & (writeback0_valid & writeback0_need_to_wb & (writeback0_prd == iq_entries_deq_prs1[i]) | writeback1_valid & (writeback1_prd == iq_entries_deq_prs1[i]))) begin
                 writeback_wakeup_src1[i] = 1'b1;
             end
         end
@@ -238,7 +237,7 @@ module int_isq #(
         integer i;
         writeback_wakeup_src2 = 'b0;
         for (i = 0; i < `ISSUE_QUEUE_DEPTH; i = i + 1) begin
-            if (iq_entries_deq_src2_is_reg[i] & (writeback0_valid & writeback0_need_to_wb & (writeback0_prd == iq_entries_deq_prs2[i]) | writeback1_valid & writeback1_need_to_wb & (writeback1_prd == iq_entries_deq_prs2[i]))) begin
+            if (iq_entries_deq_src2_is_reg[i] & (writeback0_valid & writeback0_need_to_wb & (writeback0_prd == iq_entries_deq_prs2[i]) | writeback1_valid & (writeback1_prd == iq_entries_deq_prs2[i]))) begin
                 writeback_wakeup_src2[i] = 1'b1;
             end
         end

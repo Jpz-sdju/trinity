@@ -36,8 +36,8 @@ module busy_table (
     input wire [`PREG_RANGE] intwb02bt_free_instr0_rd,     // Address for intwb02bt_free_instr0_rd
 
     // Write Port 3 - Free Instruction 1
-    input wire               memwb2bt_free_instr0_rd_en,  // Enable for memwb2bt_free_instr0_rd
-    input wire [`PREG_RANGE] memwb2bt_free_instr0_rd,     // Address for memwb2bt_free_instr0_rd
+    input wire               ldu0_cmpl_free_en,  // Enable for ldu0_cmpl_free_rd
+    input wire [`PREG_RANGE] ldu0_cmpl_free_rd,     // Address for ldu0_cmpl_free_rd
 
     /* ------------------------------- walk logic ------------------------------- */
     input                            flush_valid,
@@ -154,8 +154,8 @@ module busy_table (
             if (intwb02bt_free_instr0_rd_en) begin
                 busy_table[intwb02bt_free_instr0_rd] <= 1'b0;
             end
-            if (memwb2bt_free_instr0_rd_en) begin
-                busy_table[memwb2bt_free_instr0_rd] <= 1'b0;
+            if (ldu0_cmpl_free_en) begin
+                busy_table[ldu0_cmpl_free_rd] <= 1'b0;
             end
         end
     end
@@ -164,7 +164,7 @@ module busy_table (
     always @(*) begin
         if (intwb02bt_free_instr0_rd_en & (intwb02bt_free_instr0_rd == disp2bt_instr0_rs1)) begin
             bt2disp_instr0_src1_busy = 'b0;  //bypass logic
-        end else if (memwb2bt_free_instr0_rd_en & (memwb2bt_free_instr0_rd == disp2bt_instr0_rs1)) begin
+        end else if (ldu0_cmpl_free_en & (ldu0_cmpl_free_rd == disp2bt_instr0_rs1)) begin
             bt2disp_instr0_src1_busy = 'b0;  //bypass logic
         end else begin
             bt2disp_instr0_src1_busy = busy_table[disp2bt_instr0_rs1] & disp2bt_instr0_src1_is_reg;
@@ -173,7 +173,7 @@ module busy_table (
     always @(*) begin
         if (intwb02bt_free_instr0_rd_en & (intwb02bt_free_instr0_rd == disp2bt_instr0_rs2)) begin
             bt2disp_instr0_src2_busy = 'b0;  //bypass logic
-        end else if (memwb2bt_free_instr0_rd_en & (memwb2bt_free_instr0_rd == disp2bt_instr0_rs2)) begin
+        end else if (ldu0_cmpl_free_en & (ldu0_cmpl_free_rd == disp2bt_instr0_rs2)) begin
             bt2disp_instr0_src2_busy = 'b0;  //bypass logic
         end else begin
             bt2disp_instr0_src2_busy = busy_table[disp2bt_instr0_rs2] & disp2bt_instr0_src2_is_reg;
@@ -182,7 +182,7 @@ module busy_table (
     always @(*) begin
         if (intwb02bt_free_instr0_rd_en & (intwb02bt_free_instr0_rd == disp2bt_instr1_rs1)) begin
             bt2disp_instr1_src1_busy = 'b0;  //bypass logic
-        end else if (memwb2bt_free_instr0_rd_en & (memwb2bt_free_instr0_rd == disp2bt_instr1_rs1)) begin
+        end else if (ldu0_cmpl_free_en & (ldu0_cmpl_free_rd == disp2bt_instr1_rs1)) begin
             bt2disp_instr1_src1_busy = 'b0;  //bypass logic
         end else begin
             bt2disp_instr1_src1_busy = busy_table[disp2bt_instr1_rs1] & disp2bt_instr1_src1_is_reg;
@@ -191,7 +191,7 @@ module busy_table (
     always @(*) begin
         if (intwb02bt_free_instr0_rd_en & (intwb02bt_free_instr0_rd == disp2bt_instr1_rs2)) begin
             bt2disp_instr1_src2_busy = 'b0;  //bypass logic
-        end else if (memwb2bt_free_instr0_rd_en & (memwb2bt_free_instr0_rd == disp2bt_instr1_rs2)) begin
+        end else if (ldu0_cmpl_free_en & (ldu0_cmpl_free_rd == disp2bt_instr1_rs2)) begin
             bt2disp_instr1_src2_busy = 'b0;  //bypass logic
         end else begin
             bt2disp_instr1_src2_busy = busy_table[disp2bt_instr1_rs2] & disp2bt_instr1_src2_is_reg;

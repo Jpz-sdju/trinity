@@ -754,7 +754,6 @@ module backend #(
         .ldu0_cmpl_prd                 (ldu0_cmpl_prd),
         .flush_valid                   (flush_valid),
         .flush_robid                   (flush_robid),
-        .load2arb_flush_valid          (load2arb_flush_valid),
         .commit0_valid                 (commit0_valid),
         .commit0_robid                 (commit0_robid),
         .commit1_valid                 (commit1_valid),

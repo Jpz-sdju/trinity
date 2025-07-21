@@ -131,6 +131,10 @@
 `define TAGRAM_WAYNUM 2
 `define DATARAM_BANKNUM 8
 
+
+
+
+
 `define BHTBTB_INDEX_WIDTH 9
 
 `define ADDR_RANGE 63:0
@@ -197,4 +201,5 @@ end
         end\
     end
 
-`define CACHE_WAY_NUM 2
+`define DCACHE_WAY_NUM 4
+`define DCACHE_TAGARRAY_READPORT 3

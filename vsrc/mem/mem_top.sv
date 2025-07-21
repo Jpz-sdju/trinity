@@ -286,32 +286,32 @@ module mem_top (
 
 
 
-    dcache_arb u_dcache_arb (
-        .clock                       (clock),
-        .reset_n                     (reset_n),
-        .load2arb_tbus_index_valid   (load2arb_tbus_index_valid),
-        .load2arb_tbus_index         (load2arb_tbus_index),
-        .load2arb_tbus_index_ready   (load2arb_tbus_index_ready),
-        .load2arb_tbus_read_data     (load2arb_tbus_read_data),
-        .load2arb_tbus_operation_done(load2arb_tbus_operation_done),
-        .sq2arb_tbus_index_valid     (sq2arb_tbus_index_valid),
-        .sq2arb_tbus_index_ready     (sq2arb_tbus_index_ready),
-        .sq2arb_tbus_index           (sq2arb_tbus_index),
-        .sq2arb_tbus_write_data      (sq2arb_tbus_write_data),
-        .sq2arb_tbus_write_mask      (sq2arb_tbus_write_mask),
-        .sq2arb_tbus_read_data       (sq2arb_tbus_read_data),
-        .sq2arb_tbus_operation_done  (sq2arb_tbus_operation_done),
-        .sq2arb_tbus_operation_type  (sq2arb_tbus_operation_type),
-        .tbus_index_valid            (tbus_index_valid),
-        .tbus_index_ready            (tbus_index_ready),
-        .tbus_index                  (tbus_index),
-        .tbus_write_mask             (tbus_write_mask),
-        .tbus_write_data             (tbus_write_data),
-        .tbus_read_data              (tbus_read_data),
-        .tbus_operation_type         (tbus_operation_type),
-        .tbus_operation_done         (tbus_operation_done),
-        .arb2dcache_flush_valid      (arb2dcache_flush_valid)
-    );
+    // dcache_arb u_dcache_arb (
+    //     .clock                       (clock),
+    //     .reset_n                     (reset_n),
+    //     .load2arb_tbus_index_valid   (load2arb_tbus_index_valid),
+    //     .load2arb_tbus_index         (load2arb_tbus_index),
+    //     .load2arb_tbus_index_ready   (load2arb_tbus_index_ready),
+    //     .load2arb_tbus_read_data     (load2arb_tbus_read_data),
+    //     .load2arb_tbus_operation_done(load2arb_tbus_operation_done),
+    //     .sq2arb_tbus_index_valid     (sq2arb_tbus_index_valid),
+    //     .sq2arb_tbus_index_ready     (sq2arb_tbus_index_ready),
+    //     .sq2arb_tbus_index           (sq2arb_tbus_index),
+    //     .sq2arb_tbus_write_data      (sq2arb_tbus_write_data),
+    //     .sq2arb_tbus_write_mask      (sq2arb_tbus_write_mask),
+    //     .sq2arb_tbus_read_data       (sq2arb_tbus_read_data),
+    //     .sq2arb_tbus_operation_done  (sq2arb_tbus_operation_done),
+    //     .sq2arb_tbus_operation_type  (sq2arb_tbus_operation_type),
+    //     .tbus_index_valid            (tbus_index_valid),
+    //     .tbus_index_ready            (tbus_index_ready),
+    //     .tbus_index                  (tbus_index),
+    //     .tbus_write_mask             (tbus_write_mask),
+    //     .tbus_write_data             (tbus_write_data),
+    //     .tbus_read_data              (tbus_read_data),
+    //     .tbus_operation_type         (tbus_operation_type),
+    //     .tbus_operation_done         (tbus_operation_done),
+    //     .arb2dcache_flush_valid      (arb2dcache_flush_valid)
+    // );
 
 
 

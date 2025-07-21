@@ -1,12 +1,35 @@
+`include "defines.sv"
 module dcache #(
     parameter DATA_WIDTH = 64,  // Width of DATARAM
-    parameter TAG_WIDTH  = 38,  // Width of TAGRAM
-    parameter ADDR_WIDTH = 9    // Width of address bus
+    parameter TAGARRAY_DATA_WIDTH = 44,  // Width of TAGRAM
+    parameter TAGARRAY_ADDR_WIDTH = 6,  // Width of TAGRAM
+    parameter ADDR_WIDTH = 9,  // Width of address bus
+    parameter TAG_ARRAY_IDX_HIGH = 11,
+    parameter TAG_ARRAY_IDX_LOW = 6
 ) (
     /* verilator lint_off UNOPTFLAT */
     input wire clock,    // Clock signal
     input wire reset_n,  // Active low reset
     input wire flush,
+
+
+    input  wire                ldu0_l1_req_valid,
+    output wire                ldu0_l1_req_ready,
+    input  wire [`VADDR_RANGE] ldu0_l1_req_vaddr,
+
+    input  wire                ldu1_l1_req_valid,
+    output wire                ldu1_l1_req_ready,
+    input  wire [`VADDR_RANGE] ldu1_l1_req_vaddr,
+
+    input wire                     ldu0_l2_tlbresp_valid,
+    input wire [`TBUS_INDEX_RANGE] ldu0_l2_tlbresp_paddr,
+
+    input wire                     ldu1_l2_tlbresp_valid,
+    input wire [`TBUS_INDEX_RANGE] ldu1_l2_tlbresp_paddr,
+
+
+
+
 
     //trinity bus channel as input
     output reg                       tbus_index_ready,
@@ -132,6 +155,66 @@ module dcache #(
     localparam READ_DDR = 3'b101;
     localparam REFILL_READ = 3'b110;
     localparam REFILL_WRITE = 3'b111;
+
+
+
+
+    wire                           tagarray_rd_en_port0;
+    wire [TAGARRAY_ADDR_WIDTH-1:0] tagarray_rd_idx_port0;
+    wire [    `DCACHE_WAY_NUM-1:0] tagarray_rd_way_port0;
+    wire [TAGARRAY_DATA_WIDTH-1:0] tagarray_rd_data_port0;
+
+    wire                           tagarray_rd_en_port1;
+    wire [TAGARRAY_ADDR_WIDTH-1:0] tagarray_rd_idx_port1;
+    wire [    `DCACHE_WAY_NUM-1:0] tagarray_rd_way_port1;
+    wire [TAGARRAY_DATA_WIDTH-1:0] tagarray_rd_data_port1;
+
+    wire                           tagarray_rd_en_port2;
+    wire [TAGARRAY_ADDR_WIDTH-1:0] tagarray_rd_idx_port2;
+    wire [    `DCACHE_WAY_NUM-1:0] tagarray_rd_way_port2;
+    wire [TAGARRAY_DATA_WIDTH-1:0] tagarray_rd_data_port2;
+
+
+    wire                           tagarray_wr_en;
+    wire [TAGARRAY_ADDR_WIDTH-1:0] tagarray_wr_idx;
+    wire [    `DCACHE_WAY_NUM-1:0] tagarray_wr_way;
+    wire [TAGARRAY_DATA_WIDTH-1:0] tagarray_wr_data;
+
+    dcache_loadpipe_l1 #(
+        .TAG_ARRAY_IDX_HIGH(TAG_ARRAY_IDX_HIGH),
+        .TAG_ARRAY_IDX_LOW (TAG_ARRAY_IDX_LOW)
+    ) u_dcache_loadpipe0_l1 (
+        .clock            (clock),
+        .reset_n          (reset_n),
+        .flush            (flush),
+        .ldu0_l1_req_valid(ldu0_l1_req_valid),
+        .ldu0_l1_req_ready(ldu0_l1_req_ready),
+        .ldu0_l1_req_vaddr(ldu0_l1_req_vaddr),
+        .tagarray_rd_en   (tagarray_rd_en_port0),
+        .tagarray_rd_idx  (tagarray_rd_idx_port0)
+    );
+
+
+    dcache_loadpipe_l1 #(
+        .TAG_ARRAY_IDX_HIGH(TAG_ARRAY_IDX_HIGH),
+        .TAG_ARRAY_IDX_LOW (TAG_ARRAY_IDX_LOW)
+    ) u_dcache_loadpipe1_l1 (
+        .clock            (clock),
+        .reset_n          (reset_n),
+        .flush            (flush),
+        .ldu0_l1_req_valid(ldu1_l1_req_valid),
+        .ldu0_l1_req_ready(ldu1_l1_req_ready),
+        .ldu0_l1_req_vaddr(ldu1_l1_req_vaddr),
+        .tagarray_rd_en   (tagarray_rd_en_port1),
+        .tagarray_rd_idx  (tagarray_rd_idx_port1)
+    );
+
+
+
+
+
+
+
 
 
 
@@ -507,17 +590,31 @@ module dcache #(
     /* -------------------------------------------------------------------------- */
 
 
-    cache_tagarray u_dcache_tagarray (
-        .clock  (clock),
-        .reset_n(reset_n),
-        .we     (tagarray_we),
-        .ce     (tagarray_ce),
-        .raddr  (tagarray_raddr),
-        .waddr  (tagarray_waddr),
-        .din    (tagarray_din),
-        .wmask  (tagarray_wmask),
-        .dout   (tagarray_dout)    //output
+
+    dcache_tagarray #(
+        .DATA_WIDTH(TAGARRAY_DATA_WIDTH),
+        .ADDR_WIDTH(TAGARRAY_ADDR_WIDTH)
+    ) u_dcache_tagarray (
+        .clock            (clock),
+        .reset_n          (reset_n),
+        .readport0_rd_en  (tagarray_rd_en_port0),
+        .readport0_rd_way (tagarray_rd_way_port0),
+        .readport0_rd_idx (tagarray_rd_idx_port0),
+        .readport0_rd_data(readport0_rd_data),
+        .readport1_rd_en  (tagarray_rd_en_port0),
+        .readport1_rd_way (tagarray_rd_way_port0),
+        .readport1_rd_idx (tagarray_rd_idx_port0),
+        .readport1_rd_data(readport1_rd_data),
+        .readport2_rd_en  (tagarray_rd_en_port0),
+        .readport2_rd_way (tagarray_rd_way_port0),
+        .readport2_rd_idx (tagarray_rd_idx_port0),
+        .readport2_rd_data(readport2_rd_data),
+        .writeport_wr_en  (tagarray_wr_en),
+        .writeport_wr_way (tagarray_wr_way),
+        .writeport_wr_idx (tagarray_wr_idx),
+        .writeport_wr_data(tagarray_wr_data)
     );
+
 
     cache_dataarray u_dcache_dataarray (
         .clock       (clock),

@@ -180,6 +180,11 @@ module dcache #(
     wire [    `DCACHE_WAY_NUM-1:0] tagarray_wr_way;
     wire [TAGARRAY_DATA_WIDTH-1:0] tagarray_wr_data;
 
+
+    /* -------------------------------------------------------------------------- */
+    /*                                   Stage1                                   */
+    /* -------------------------------------------------------------------------- */
+
     dcache_loadpipe_l1 #(
         .TAG_ARRAY_IDX_HIGH(TAG_ARRAY_IDX_HIGH),
         .TAG_ARRAY_IDX_LOW (TAG_ARRAY_IDX_LOW)
@@ -187,9 +192,9 @@ module dcache #(
         .clock            (clock),
         .reset_n          (reset_n),
         .flush            (flush),
-        .ldu0_l1_req_valid(ldu0_l1_req_valid),
-        .ldu0_l1_req_ready(ldu0_l1_req_ready),
-        .ldu0_l1_req_vaddr(ldu0_l1_req_vaddr),
+        .fromldu_req_valid(ldu0_l1_req_valid),
+        .fromldu_req_ready(ldu0_l1_req_ready),
+        .fromldu_req_vaddr(ldu0_l1_req_vaddr),
         .tagarray_rd_en   (tagarray_rd_en_port0),
         .tagarray_rd_idx  (tagarray_rd_idx_port0)
     );
@@ -202,15 +207,19 @@ module dcache #(
         .clock            (clock),
         .reset_n          (reset_n),
         .flush            (flush),
-        .ldu0_l1_req_valid(ldu1_l1_req_valid),
-        .ldu0_l1_req_ready(ldu1_l1_req_ready),
-        .ldu0_l1_req_vaddr(ldu1_l1_req_vaddr),
+        .fromldu_req_valid(ldu1_l1_req_valid),
+        .fromldu_req_ready(ldu1_l1_req_ready),
+        .fromldu_req_vaddr(ldu1_l1_req_vaddr),
         .tagarray_rd_en   (tagarray_rd_en_port1),
         .tagarray_rd_idx  (tagarray_rd_idx_port1)
     );
 
 
 
+
+    /* -------------------------------------------------------------------------- */
+    /*                               STAGE 2:look up                              */
+    /* -------------------------------------------------------------------------- */
 
 
 

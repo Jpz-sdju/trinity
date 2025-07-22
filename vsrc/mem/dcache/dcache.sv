@@ -1,7 +1,7 @@
 `include "defines.sv"
 module dcache #(
     parameter DATA_WIDTH = 64,  // Width of DATARAM
-    parameter TAGARRAY_DATA_WIDTH = 44,  // Width of TAGRAM
+    parameter TAGARRAY_DATA_WIDTH = 27,  // Width of TAGRAM
     parameter TAGARRAY_ADDR_WIDTH = 6,  // Width of TAGRAM
     parameter ADDR_WIDTH = 9,  // Width of address bus
     parameter TAG_ARRAY_IDX_HIGH = 11,
@@ -186,8 +186,9 @@ module dcache #(
     /* -------------------------------------------------------------------------- */
 
     dcache_loadpipe_l1 #(
-        .TAG_ARRAY_IDX_HIGH(TAG_ARRAY_IDX_HIGH),
-        .TAG_ARRAY_IDX_LOW (TAG_ARRAY_IDX_LOW)
+        .TAG_ARRAY_IDX_HIGH (TAG_ARRAY_IDX_HIGH),
+        .TAG_ARRAY_IDX_LOW  (TAG_ARRAY_IDX_LOW),
+        .TAGARRAY_ADDR_WIDTH(TAGARRAY_ADDR_WIDTH)
     ) u_dcache_loadpipe0_l1 (
         .clock            (clock),
         .reset_n          (reset_n),
@@ -201,8 +202,9 @@ module dcache #(
 
 
     dcache_loadpipe_l1 #(
-        .TAG_ARRAY_IDX_HIGH(TAG_ARRAY_IDX_HIGH),
-        .TAG_ARRAY_IDX_LOW (TAG_ARRAY_IDX_LOW)
+        .TAG_ARRAY_IDX_HIGH (TAG_ARRAY_IDX_HIGH),
+        .TAG_ARRAY_IDX_LOW  (TAG_ARRAY_IDX_LOW),
+        .TAGARRAY_ADDR_WIDTH(TAGARRAY_ADDR_WIDTH)
     ) u_dcache_loadpipe1_l1 (
         .clock            (clock),
         .reset_n          (reset_n),

@@ -7,7 +7,8 @@
 `define SRC_LENGTH 64
 
 `define VADDR_RANGE 38:0
-`define PADDR_RANGE 55:0
+`define PADDR_RANGE 38:0
+`define PADDR_LENGTH 39
 
 `define RESULT_RANGE 63:0
 `define RESULT_WIDTH 64

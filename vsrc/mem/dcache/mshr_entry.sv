@@ -5,8 +5,8 @@ module mshr_entry #(
     input wire                   clock,          // Clock signal
     input wire                   reset_n,        // Active low reset
     input wire                   install_valid,
-    input wire [`ROB_SIZE_LOG:0] install_robid,
     input wire [   `PADDR_RANGE] install_paddr,
+    input wire [`ROB_SIZE_LOG:0] install_robid,
 
 
     input wire                   merge_valid,
@@ -17,8 +17,9 @@ module mshr_entry #(
     output wire                     rpt_entry_valid,
     output wire [  `ROB_SIZE_LOG:0] rpt_entry_robid,
     output wire [     `PADDR_RANGE] rpt_entry_paddr,
-    output wire                     rpt_entry_rdy2refill,
+    output wire [            511:0] rpt_entry_refilldata,
     output wire [`MSHR_NUM_LOG-1:0] rpt_entry_mshrid,
+    output wire                     rpt_entry_rdy2refill,
 
     // win arb to L2/MEM
     input wire         win_chi_arb,
@@ -39,6 +40,7 @@ module mshr_entry #(
     reg                    entry_valid;
     reg  [   `PADDR_RANGE] entry_paddr;
     reg  [`ROB_SIZE_LOG:0] entry_robid;
+    reg  [          511:0] entry_refilldata;
     reg                    rdy2refill;
     reg  [            2:0] state;
     reg  [            2:0] nxt_state;
@@ -86,11 +88,22 @@ module mshr_entry #(
     end
 
 
+    always @(posedge clock or negedge reset_n) begin
+        if (~reset_n) begin
+            entry_refilldata <= 'b0;
+        end else begin
+            if (chi_arb_resp_valid) begin
+                entry_refilldata <= chi_arb_resp_data;
+            end
+        end
+    end
 
 
-    assign rpt_entry_valid = entry_valid;
-    assign rpt_entry_paddr = entry_paddr;
-    assign rpt_entry_robid = entry_robid;
+
+    assign rpt_entry_valid      = entry_valid;
+    assign rpt_entry_paddr      = entry_paddr;
+    assign rpt_entry_robid      = entry_robid;
+    assign rpt_entry_refilldata = entry_refilldata;
 
 
 

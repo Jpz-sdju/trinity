@@ -13,13 +13,16 @@ module dcache #(
     input wire flush,
 
 
-    input  wire                ldu0_l1_req_valid,
-    output wire                ldu0_l1_req_ready,
-    input  wire [`VADDR_RANGE] ldu0_l1_req_vaddr,
+    input  wire                   ldu0_l1_req_valid,
+    output wire                   ldu0_l1_req_ready,
+    input  wire [`ROB_SIZE_LOG:0] ldu0_l1_req_robid,
+    input  wire [   `VADDR_RANGE] ldu0_l1_req_vaddr,
 
-    input  wire                ldu1_l1_req_valid,
-    output wire                ldu1_l1_req_ready,
-    input  wire [`VADDR_RANGE] ldu1_l1_req_vaddr,
+
+    input  wire                   ldu1_l1_req_valid,
+    output wire                   ldu1_l1_req_ready,
+    input  wire [`ROB_SIZE_LOG:0] ldu1_l1_req_robid,
+    input  wire [   `VADDR_RANGE] ldu1_l1_req_vaddr,
 
     input wire                     ldu0_l2_tlbresp_valid,
     input wire [`TBUS_INDEX_RANGE] ldu0_l2_tlbresp_paddr,
@@ -216,15 +219,101 @@ module dcache #(
         .tagarray_rd_idx  (tagarray_rd_idx_port1)
     );
 
+    reg                   ldu0_l2_req_valid;
+    reg                   ldu1_l2_req_valid;
+
+    reg [   `VADDR_RANGE] ldu0_l2_req_vaddr;
+    reg [   `VADDR_RANGE] ldu1_l2_req_vaddr;
+
+    reg [`ROB_SIZE_LOG:0] ldu0_l2_req_robid;
+    reg [`ROB_SIZE_LOG:0] ldu1_l2_req_robid;
+
+    `MACRO_DFF_NONEN(ldu0_l2_req_valid, ldu0_l1_req_valid, 1)
+    `MACRO_DFF_NONEN(ldu1_l2_req_valid, ldu1_l1_req_valid, 1)
+
+    `MACRO_DFF_NONEN(ldu0_l2_req_vaddr, ldu0_l1_req_vaddr, `VADDR_LENGTH)
+    `MACRO_DFF_NONEN(ldu1_l2_req_vaddr, ldu1_l1_req_vaddr, `VADDR_LENGTH)
+
+    `MACRO_DFF_NONEN(ldu0_l2_req_robid, ldu0_l1_req_robid, `ROB_SIZE_LOG + 1)
+    `MACRO_DFF_NONEN(ldu1_l2_req_robid, ldu1_l1_req_robid, `ROB_SIZE_LOG + 1)
+
+
+    /* -------------------------------------------------------------------------- */
+    /*                         STAGE 2:look up TAG and TLB                        */
+    /* -------------------------------------------------------------------------- */
+    dcache_loadpipe_l2 #(
+        .TAG_ARRAY_IDX_HIGH (TAG_ARRAY_IDX_HIGH),
+        .TAG_ARRAY_IDX_LOW  (TAG_ARRAY_IDX_LOW),
+        .TAGARRAY_ADDR_WIDTH(TAGARRAY_ADDR_WIDTH),
+        .TAGARRAY_DATA_WIDTH(TAGARRAY_DATA_WIDTH)
+    ) u_dcache_loadpipe0_l2 (
+        .clock              (clock),
+        .reset_n            (reset_n),
+        .flush              (flush),
+        .froml1_req_valid   (ldu0_l2_req_valid),
+        .froml1_req_ready   (),
+        .froml1_req_vaddr   (ldu0_l2_req_vaddr),
+        .froml1_req_robid   (ldu0_l2_req_robid),
+        .fromtlb_valid      (ldu0_l2_tlbresp_valid),
+        .fromtlb_hit        (),
+        .fromtlb_paddr      (ldu0_l2_tlbresp_paddr),
+        .tagarray_rd_data   (tagarray_rd_data),
+        .mshr_allocate_valid(mshr_allocate_valid),
+        .mshr_allocate_ready(mshr_allocate_ready),
+        .mshr_allocate_paddr(mshr_allocate_paddr),
+        .mshr_allocate_robid(mshr_allocate_robid)
+    );
+
+
+
+    dcache_loadpipe_l2 #(
+        .TAG_ARRAY_IDX_HIGH (TAG_ARRAY_IDX_HIGH),
+        .TAG_ARRAY_IDX_LOW  (TAG_ARRAY_IDX_LOW),
+        .TAGARRAY_ADDR_WIDTH(TAGARRAY_ADDR_WIDTH),
+        .TAGARRAY_DATA_WIDTH(TAGARRAY_DATA_WIDTH)
+    ) u_dcache_loadpipe1_l2 (
+        .clock              (clock),
+        .reset_n            (reset_n),
+        .flush              (flush),
+        .froml1_req_valid   (ldu1_l2_req_valid),
+        .froml1_req_ready   (),
+        .froml1_req_vaddr   (ldu1_l2_req_vaddr),
+        .froml1_req_robid   (ldu1_l2_req_robid),
+        .fromtlb_valid      (ldu1_l2_tlbresp_valid),
+        .fromtlb_hit        (),
+        .fromtlb_paddr      (ldu1_l2_tlbresp_paddr),
+        .tagarray_rd_data   (tagarray_rd_data),
+        .mshr_allocate_valid(mshr_allocate_valid),
+        .mshr_allocate_ready(mshr_allocate_ready),
+        .mshr_allocate_paddr(mshr_allocate_paddr),
+        .mshr_allocate_robid(mshr_allocate_robid)
+    );
+
 
 
 
     /* -------------------------------------------------------------------------- */
-    /*                               STAGE 2:look up                              */
+    /*                   MSHR REGION                                            */
     /* -------------------------------------------------------------------------- */
 
 
-
+    mshr u_mshr (
+        .clock           (clock),
+        .reset_n         (reset_n),
+        .allocate0_valid (allocate0_valid),
+        .allocate0_paddr (allocate0_paddr),
+        .allocate0_robid (allocate0_robid),
+        .allocate1_valid (allocate1_valid),
+        .allocate1_paddr (allocate1_paddr),
+        .allocate1_robid (allocate1_robid),
+        .dmshr2arb_valid (dmshr2arb_valid),
+        .dmshr2arb_ready (dmshr2arb_ready),
+        .dmshr2arb_paddr (dmshr2arb_paddr),
+        .dmshr2arb_mshrid(dmshr2arb_mshrid),
+        .arb2dmshr_valid (arb2dmshr_valid),
+        .arb2dmshr_mshrid(arb2dmshr_mshrid),
+        .arb2dmshr_data  (arb2dmshr_data)
+    );
 
 
 

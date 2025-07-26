@@ -21,10 +21,11 @@ module mshr_entry #(
     output wire [`MSHR_NUM_LOG-1:0] rpt_entry_mshrid,
     output wire                     rpt_entry_rdy2refill,
 
-    // win arb to L2/MEM
-    input wire         win_chi_arb,
-    input wire         chi_arb_resp_valid,
-    input wire [511:0] chi_arb_resp_data,
+    // arb to L2/MEM
+    output wire         chi_arb_req_valid,
+    input  wire         chi_arb_req_ready,
+    input  wire         chi_arb_resp_valid,
+    input  wire [511:0] chi_arb_resp_data,
 
     //win arb to refill
     input wire win_refill_arb
@@ -120,7 +121,7 @@ module mshr_entry #(
     always @(*) begin
         if (install_valid && is_idle) begin
             nxt_state = S_CHIREQ;
-        end else if (win_chi_arb) begin
+        end else if (chi_arb_req_valid & chi_arb_req_ready) begin
             nxt_state = W_CHIRESP;
         end else if (chi_arb_resp_valid) begin
             nxt_state = S_REFILL;
@@ -132,7 +133,7 @@ module mshr_entry #(
 
     assign rpt_entry_rdy2refill = is_s_refill;
     assign rpt_entry_mshrid     = MSHR_ID;
-
+    assign chi_arb_req_valid = is_s_chireq;
 
 
 endmodule

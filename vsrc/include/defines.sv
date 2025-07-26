@@ -7,6 +7,7 @@
 `define SRC_LENGTH 64
 
 `define VADDR_RANGE 38:0
+`define VADDR_LENGTH 39
 `define PADDR_RANGE 38:0
 `define PADDR_LENGTH 39
 
@@ -180,7 +181,7 @@ always @(posedge clock or negedge reset_n) begin \
         dff_data_q <= dff_data_in; \
 end
 
-`define MACRO_ENQ_DEC(enq_ptr_oh, enq_dec_reg, enq_entity,length) \
+`define MACRO_ENQ_DEC(enq_ptr_oh, enq_dec_reg, enq_entity, length) \
     always @(*) begin\
         integer i;\
         for (i = 0; i < length; i = i + 1) begin\
@@ -191,7 +192,7 @@ end
         end\
     end
 
-`define MACRO_DEQ_DEC(deq_ptr_oh, deq_entity,  deq_dec_reg, length) \
+`define MACRO_DEQ_DEC(deq_ptr_oh, deq_entity, deq_dec_reg, length) \
     always @(*) begin\
         integer i;\
         deq_entity = 'b0;\
@@ -201,6 +202,10 @@ end
             end\
         end\
     end
+
+
+`define CACHE_WAY_NUM 2
+
 
 `define DCACHE_WAY_NUM 4
 `define DCACHE_TAGARRAY_READPORT 3

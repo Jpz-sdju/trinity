@@ -213,3 +213,4 @@ end
 
 
 `define MSHR_NUM 8
+`define MSHR_NUM_LOG 3

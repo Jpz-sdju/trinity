@@ -12,7 +12,7 @@ module mshr (
 
     output wire dmshr2arb_valid,
     input wire dmshr2arb_ready,
-    output wire [`PADDR_RANGE] dmshr2arb_paddr,
+    output wire [`PADDR_RANGE] dmshr2arb_paddr
 
 );
 
@@ -24,24 +24,27 @@ module mshr (
     genvar i;
     generate
         for(i = 0; i < `MSHR_NUM; i = i + 1) begin : 
-            mshr_entry #(
-                .MSHR_ID(i)
-            )mshr_entry_inst (
-                .clock(clock),
-                .reset_n(reset_n),
-                .allocate0_valid(allocate0_valid && (i == 0)),
-                .allocate0_paddr(allocate0_paddr),
-                .allocate1_valid(allocate1_valid && (i == 1)),
-                .allocate1_paddr(allocate1_paddr),
-                .allocate2_valid(allocate2_valid && (i == 2)),
-                .allocate2_paddr(allocate2_paddr),
-                .dmshr2arb_valid(dmshr2arb_valid && (i == 0)),
-                .dmshr2arb_ready(dmshr2arb_ready),
-                .dmshr2arb_paddr(dmshr2arb_paddr)
+            mshr_entry 
+            #(
+                .MSHR_ID (i )
+            )
+            u_mshr_entry(
+                .clock                (clock                ),
+                .reset_n              (reset_n              ),
+                .install_valid        (install_valid        ),
+                .install_robid        (install_robid        ),
+                .install_paddr        (install_paddr        ),
+                .merge_valid          (merge_valid          ),
+                .merge_robid          (merge_robid          ),
+                .rpt_entry_valid      (rpt_entry_valid      ),
+                .rpt_entry_robid      (rpt_entry_robid      ),
+                .rpt_entry_paddr      (rpt_entry_paddr      ),
+                .rpt_entry_rdy2refill (rpt_entry_rdy2refill ),
+                .win_chi_arb          (win_chi_arb          ),
+                .chi_arb_resp_valid   (chi_arb_resp_valid   ),
+                .chi_arb_resp_data    (chi_arb_resp_data    ),
+                .win_refill_arb       (win_refill_arb       )
             );
-
-
-
             
         end
     endgenerate

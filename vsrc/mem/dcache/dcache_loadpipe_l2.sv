@@ -3,7 +3,7 @@ module dcache_loadpipe_l2 #(
     parameter TAG_ARRAY_IDX_HIGH  = 11,
     parameter TAG_ARRAY_IDX_LOW   = 6,
     parameter TAGARRAY_ADDR_WIDTH = 6,
-    parameter TAGARRAY_DATA_WIDTH = 27
+    parameter TAGARRAY_DATA_WIDTH = 29
 ) (
     input wire clock,    // Clock signal
     input wire reset_n,  // Active low reset

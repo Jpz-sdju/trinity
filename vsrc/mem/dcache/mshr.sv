@@ -21,9 +21,9 @@ module mshr (
     output wire [`MSHR_NUM_LOG-1:0] dmshr2arb_mshrid,
 
 
-    input wire                     arb2dmshr_valid,
-    input wire [`MSHR_NUM_LOG-1:0] arb2dmshr_mshrid,
-    input wire [            511:0] arb2dmshr_data
+    input wire                     dmshr2arb_operation_done,
+    input wire [`MSHR_NUM_LOG-1:0] dmshr2arb_mshrid,
+    input wire [            511:0] dmshr2arb_read_data
 
 );
 
@@ -116,9 +116,9 @@ module mshr (
         arb_resp_valid_vec = 'b0;
         arb_resp_data_vec  = 'b0;
         for (i = 0; i < `MSHR_NUM; i = i + 1) begin
-            if (i == arb2dmshr_mshrid && arb2dmshr_valid) begin
+            if (i == dmshr2arb_mshrid && dmshr2arb_operation_done) begin
                 arb_resp_valid_vec[i] = 'b1;
-                arb_resp_data_vec[i]  = arb2dmshr_data;
+                arb_resp_data_vec[i]  = dmshr2arb_read_data;
             end
         end
     end

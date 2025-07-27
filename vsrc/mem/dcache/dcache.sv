@@ -1,7 +1,7 @@
 `include "defines.sv"
 module dcache #(
     parameter DATA_WIDTH = 64,  // Width of DATARAM
-    parameter TAGARRAY_DATA_WIDTH = 27,  // Width of TAGRAM
+    parameter TAGARRAY_DATA_WIDTH = 29,  // Width of TAGRAM
     parameter TAGARRAY_ADDR_WIDTH = 6,  // Width of TAGRAM
     parameter ADDR_WIDTH = 9,  // Width of address bus
     parameter TAG_ARRAY_IDX_HIGH = 11,
@@ -46,13 +46,13 @@ module dcache #(
 
 
     //trinity bus channel as output
-    output wire                       dcache2arb_dbus_index_valid,
-    input  wire                       dcache2arb_dbus_index_ready,
-    input  wire [`CACHELINE512_RANGE] dcache2arb_dbus_read_data,
-    input  wire                       dcache2arb_dbus_operation_done,
-    output reg  [  `DBUS_INDEX_RANGE] dcache2arb_dbus_index,
-    output reg  [`CACHELINE512_RANGE] dcache2arb_dbus_write_data,
-    output reg  [ `DBUS_OPTYPE_RANGE] dcache2arb_dbus_operation_type
+    output wire                       dcache2arb_valid,
+    input  wire                       dcache2arb_ready,
+    output reg  [  `DBUS_INDEX_RANGE] dcache2arb_addr,
+    input  wire [`CACHELINE512_RANGE] dcache2arb_read_data,
+    input  wire                       dcache2arb_operation_done,
+    output reg  [`CACHELINE512_RANGE] dcache2arb_write_data,
+    output reg  [ `DBUS_OPTYPE_RANGE] dcache2arb_operation_type
 
 );
     wire                      tbus_fire;
@@ -167,6 +167,7 @@ module dcache #(
     wire [    `DCACHE_WAY_NUM-1:0] tagarray_rd_way_port0;
     wire [TAGARRAY_DATA_WIDTH-1:0] tagarray_rd_data_port0;
 
+
     wire                           tagarray_rd_en_port1;
     wire [TAGARRAY_ADDR_WIDTH-1:0] tagarray_rd_idx_port1;
     wire [    `DCACHE_WAY_NUM-1:0] tagarray_rd_way_port1;
@@ -237,10 +238,20 @@ module dcache #(
     `MACRO_DFF_NONEN(ldu0_l2_req_robid, ldu0_l1_req_robid, `ROB_SIZE_LOG + 1)
     `MACRO_DFF_NONEN(ldu1_l2_req_robid, ldu1_l1_req_robid, `ROB_SIZE_LOG + 1)
 
+    /* -------------------------------------------------------------------------- */
+    /*                STAGE 2:look up TAG and TLB ,Allote catemshr                */
+    /* -------------------------------------------------------------------------- */
 
-    /* -------------------------------------------------------------------------- */
-    /*                         STAGE 2:look up TAG and TLB                        */
-    /* -------------------------------------------------------------------------- */
+    wire                   ldu0_l2_allocate_mshr_valid;
+    wire                   ldu0_l2_allocate_mshr_ready;
+    wire [   `PADDR_RANGE] ldu0_l2_allocate_mshr_paddr;
+    wire [`ROB_SIZE_LOG:0] ldu0_l2_allocate_mshr_robid;
+    wire                   ldu1_l2_allocate_mshr_valid;
+    wire                   ldu1_l2_allocate_mshr_ready;
+    wire [   `PADDR_RANGE] ldu1_l2_allocate_mshr_paddr;
+    wire [`ROB_SIZE_LOG:0] ldu1_l2_allocate_mshr_robid;
+
+    
     dcache_loadpipe_l2 #(
         .TAG_ARRAY_IDX_HIGH (TAG_ARRAY_IDX_HIGH),
         .TAG_ARRAY_IDX_LOW  (TAG_ARRAY_IDX_LOW),
@@ -257,11 +268,11 @@ module dcache #(
         .fromtlb_valid      (ldu0_l2_tlbresp_valid),
         .fromtlb_hit        (),
         .fromtlb_paddr      (ldu0_l2_tlbresp_paddr),
-        .tagarray_rd_data   (tagarray_rd_data),
-        .mshr_allocate_valid(mshr_allocate_valid),
-        .mshr_allocate_ready(mshr_allocate_ready),
-        .mshr_allocate_paddr(mshr_allocate_paddr),
-        .mshr_allocate_robid(mshr_allocate_robid)
+        .tagarray_rd_data   (tagarray_rd_data_port0),
+        .mshr_allocate_valid(ldu0_l2_allocate_mshr_valid),
+        .mshr_allocate_ready(ldu0_l2_allocate_mshr_ready),
+        .mshr_allocate_paddr(ldu0_l2_allocate_mshr_paddr),
+        .mshr_allocate_robid(ldu0_l2_allocate_mshr_robid)
     );
 
 
@@ -282,11 +293,11 @@ module dcache #(
         .fromtlb_valid      (ldu1_l2_tlbresp_valid),
         .fromtlb_hit        (),
         .fromtlb_paddr      (ldu1_l2_tlbresp_paddr),
-        .tagarray_rd_data   (tagarray_rd_data),
-        .mshr_allocate_valid(mshr_allocate_valid),
-        .mshr_allocate_ready(mshr_allocate_ready),
-        .mshr_allocate_paddr(mshr_allocate_paddr),
-        .mshr_allocate_robid(mshr_allocate_robid)
+        .tagarray_rd_data   (tagarray_rd_data_port1),
+        .mshr_allocate_valid(ldu1_l2_allocate_mshr_valid),
+        .mshr_allocate_ready(ldu1_l2_allocate_mshr_ready),
+        .mshr_allocate_paddr(ldu1_l2_allocate_mshr_paddr),
+        .mshr_allocate_robid(ldu1_l2_allocate_mshr_robid)
     );
 
 
@@ -300,12 +311,12 @@ module dcache #(
     mshr u_mshr (
         .clock           (clock),
         .reset_n         (reset_n),
-        .allocate0_valid (allocate0_valid),
-        .allocate0_paddr (allocate0_paddr),
-        .allocate0_robid (allocate0_robid),
-        .allocate1_valid (allocate1_valid),
-        .allocate1_paddr (allocate1_paddr),
-        .allocate1_robid (allocate1_robid),
+        .allocate0_valid (ldu0_l2_allocate_mshr_valid),
+        .allocate0_paddr (ldu0_l2_allocate_mshr_paddr),
+        .allocate0_robid (ldu0_l2_allocate_mshr_robid),
+        .allocate1_valid (ldu1_l2_allocate_mshr_valid),
+        .allocate1_paddr (ldu1_l2_allocate_mshr_paddr),
+        .allocate1_robid (ldu1_l2_allocate_mshr_robid),
         .dmshr2arb_valid (dmshr2arb_valid),
         .dmshr2arb_ready (dmshr2arb_ready),
         .dmshr2arb_paddr (dmshr2arb_paddr),
@@ -314,6 +325,15 @@ module dcache #(
         .arb2dmshr_mshrid(arb2dmshr_mshrid),
         .arb2dmshr_data  (arb2dmshr_data)
     );
+
+
+
+    /* -------------------------------------------------------------------------- */
+    /*                           WRITE BACK QUEUE REGION                          */
+    /* -------------------------------------------------------------------------- */
+
+    
+
 
 
 
@@ -330,18 +350,9 @@ module dcache #(
     /* -------------------------------------------------------------------------- */
     /*                   IDLE : Stage0                                            */
     /* -------------------------------------------------------------------------- */
-    /* ----------------------------------- latch input ----------------------------------- */
-    //latch 64bit tbus addr
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            ls_addr_latch <= 'b0;
-        end else if (in_idle & tbus_index_valid) begin
-            ls_addr_latch <= tbus_index;
-        end
-    end
 
     //decode bankaddr base on latched tbus addr
-    assign bankaddr_latch = ls_addr_latch[5:3];
+    assign bankaddr_latch              = ls_addr_latch[5:3];
     always @(*) begin
         integer i;
         for (i = 0; i < `DATARAM_BANKNUM; i = i + 1) begin
@@ -440,45 +451,12 @@ module dcache #(
             tagarray_dout_latch <= tagarray_dout;
         end
     end
-    assign tagarray_dout_or = tagarray_dout_latch | tagarray_dout;
+    assign tagarray_dout_or        = tagarray_dout_latch | tagarray_dout;
 
 
 
     /* ------------------------- lookup logic (s1)------------------------- */
 
-    always @(*) begin
-        integer i;
-        lookup_hit_s1           = 0;
-        lookup_hitway_onehot_s1 = 0;
-        for (i = 0; i < `TAGRAM_WAYNUM; i = i + 1) begin
-            if ((tagarray_dout_waycontent_s1[i][`TAGRAM_TAG_RANGE] == ls_addr_latch[31:15]) && tagarray_dout_waycontent_s1[i][`TAGRAM_VALID_RANGE]) begin
-                lookup_hit_s1              = 1'b1;
-                lookup_hitway_onehot_s1[i] = 1'b1;
-                lookup_hitway_dec_s1       = i;
-                break;
-            end else begin
-                lookup_hit_s1              = 1'b0;
-                lookup_hitway_onehot_s1[i] = 1'b0;
-                lookup_hitway_dec_s1       = 0;
-            end
-        end
-    end
-
-    //latch victimway_fulladdr in state lookup
-    always @(posedge clock or negedge reset_n) begin
-        if (~reset_n) begin
-            lookup_hitway_oh_latch  <= 0;
-            lookup_hitway_dec_latch <= 0;
-        end else if (in_idle) begin
-            lookup_hitway_oh_latch  <= 0;
-            lookup_hitway_dec_latch <= 0;
-        end else if ((state == LOOKUP) && (next_state != LOOKUP)) begin
-            lookup_hitway_oh_latch  <= lookup_hitway_onehot_s1;
-            lookup_hitway_dec_latch <= lookup_hitway_dec_s1;
-        end
-    end
-    assign lookup_hitway_oh_or     = lookup_hitway_oh_latch | lookup_hitway_onehot_s1;
-    assign lookup_hitway_dec_or    = lookup_hitway_dec_latch | lookup_hitway_dec_s1;
 
 
 

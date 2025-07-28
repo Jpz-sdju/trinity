@@ -19,11 +19,9 @@ module mshr (
     input  wire                     dmshr2arb_ready,
     output wire [     `PADDR_RANGE] dmshr2arb_paddr,
     output wire [`MSHR_NUM_LOG-1:0] dmshr2arb_mshrid,
-
-
-    input wire                     dmshr2arb_operation_done,
-    input wire [`MSHR_NUM_LOG-1:0] dmshr2arb_mshrid,
-    input wire [            511:0] dmshr2arb_read_data
+    input  wire                     dmshr2arb_operation_done,
+    input  wire [`MSHR_NUM_LOG-1:0] dmshr2arb_operation_done_mshrid,
+    input  wire [            511:0] dmshr2arb_read_data
 
 );
 

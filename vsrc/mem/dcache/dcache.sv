@@ -189,54 +189,7 @@ module dcache #(
     /*                                   Stage1                                   */
     /* -------------------------------------------------------------------------- */
 
-    dcache_loadpipe_l1 #(
-        .TAG_ARRAY_IDX_HIGH (TAG_ARRAY_IDX_HIGH),
-        .TAG_ARRAY_IDX_LOW  (TAG_ARRAY_IDX_LOW),
-        .TAGARRAY_ADDR_WIDTH(TAGARRAY_ADDR_WIDTH)
-    ) u_dcache_loadpipe0_l1 (
-        .clock            (clock),
-        .reset_n          (reset_n),
-        .flush            (flush),
-        .fromldu_req_valid(ldu0_l1_req_valid),
-        .fromldu_req_ready(ldu0_l1_req_ready),
-        .fromldu_req_vaddr(ldu0_l1_req_vaddr),
-        .tagarray_rd_en   (tagarray_rd_en_port0),
-        .tagarray_rd_idx  (tagarray_rd_idx_port0)
-    );
 
-
-    dcache_loadpipe_l1 #(
-        .TAG_ARRAY_IDX_HIGH (TAG_ARRAY_IDX_HIGH),
-        .TAG_ARRAY_IDX_LOW  (TAG_ARRAY_IDX_LOW),
-        .TAGARRAY_ADDR_WIDTH(TAGARRAY_ADDR_WIDTH)
-    ) u_dcache_loadpipe1_l1 (
-        .clock            (clock),
-        .reset_n          (reset_n),
-        .flush            (flush),
-        .fromldu_req_valid(ldu1_l1_req_valid),
-        .fromldu_req_ready(ldu1_l1_req_ready),
-        .fromldu_req_vaddr(ldu1_l1_req_vaddr),
-        .tagarray_rd_en   (tagarray_rd_en_port1),
-        .tagarray_rd_idx  (tagarray_rd_idx_port1)
-    );
-
-    reg                   ldu0_l2_req_valid;
-    reg                   ldu1_l2_req_valid;
-
-    reg [   `VADDR_RANGE] ldu0_l2_req_vaddr;
-    reg [   `VADDR_RANGE] ldu1_l2_req_vaddr;
-
-    reg [`ROB_SIZE_LOG:0] ldu0_l2_req_robid;
-    reg [`ROB_SIZE_LOG:0] ldu1_l2_req_robid;
-
-    `MACRO_DFF_NONEN(ldu0_l2_req_valid, ldu0_l1_req_valid, 1)
-    `MACRO_DFF_NONEN(ldu1_l2_req_valid, ldu1_l1_req_valid, 1)
-
-    `MACRO_DFF_NONEN(ldu0_l2_req_vaddr, ldu0_l1_req_vaddr, `VADDR_LENGTH)
-    `MACRO_DFF_NONEN(ldu1_l2_req_vaddr, ldu1_l1_req_vaddr, `VADDR_LENGTH)
-
-    `MACRO_DFF_NONEN(ldu0_l2_req_robid, ldu0_l1_req_robid, `ROB_SIZE_LOG + 1)
-    `MACRO_DFF_NONEN(ldu1_l2_req_robid, ldu1_l1_req_robid, `ROB_SIZE_LOG + 1)
 
     /* -------------------------------------------------------------------------- */
     /*                STAGE 2:look up TAG and TLB ,Allote catemshr                */
@@ -251,29 +204,6 @@ module dcache #(
     wire [   `PADDR_RANGE] ldu1_l2_allocate_mshr_paddr;
     wire [`ROB_SIZE_LOG:0] ldu1_l2_allocate_mshr_robid;
 
-    
-    dcache_loadpipe_l2 #(
-        .TAG_ARRAY_IDX_HIGH (TAG_ARRAY_IDX_HIGH),
-        .TAG_ARRAY_IDX_LOW  (TAG_ARRAY_IDX_LOW),
-        .TAGARRAY_ADDR_WIDTH(TAGARRAY_ADDR_WIDTH),
-        .TAGARRAY_DATA_WIDTH(TAGARRAY_DATA_WIDTH)
-    ) u_dcache_loadpipe0_l2 (
-        .clock              (clock),
-        .reset_n            (reset_n),
-        .flush              (flush),
-        .froml1_req_valid   (ldu0_l2_req_valid),
-        .froml1_req_ready   (),
-        .froml1_req_vaddr   (ldu0_l2_req_vaddr),
-        .froml1_req_robid   (ldu0_l2_req_robid),
-        .fromtlb_valid      (ldu0_l2_tlbresp_valid),
-        .fromtlb_hit        (),
-        .fromtlb_paddr      (ldu0_l2_tlbresp_paddr),
-        .tagarray_rd_data   (tagarray_rd_data_port0),
-        .mshr_allocate_valid(ldu0_l2_allocate_mshr_valid),
-        .mshr_allocate_ready(ldu0_l2_allocate_mshr_ready),
-        .mshr_allocate_paddr(ldu0_l2_allocate_mshr_paddr),
-        .mshr_allocate_robid(ldu0_l2_allocate_mshr_robid)
-    );
 
 
 
@@ -328,11 +258,26 @@ module dcache #(
 
 
 
+
+
+
     /* -------------------------------------------------------------------------- */
     /*                           WRITE BACK QUEUE REGION                          */
     /* -------------------------------------------------------------------------- */
 
-    
+
+    writebackqueue u_writebackqueue (
+        .clock        (clock),
+        .reset_n      (reset_n),
+        .wbq2arb_valid(wbq2arb_valid),
+        .wbq2arb_ready(wbq2arb_ready),
+        .wbq2arb_paddr(wbq2arb_paddr),
+        .wbq2arb_data (wbq2arb_data),
+        .wbq2arb_wbqid(wbq2arb_wbqid)
+    );
+
+
+
 
 
 
